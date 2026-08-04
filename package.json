@@ -1,0 +1,11 @@
+{
+  "name": "janathan",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./src/input.css -o ./public/css/app.css --watch",
+    "build": "npx tailwindcss -i ./src/input.css -o ./public/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
