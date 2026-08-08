@@ -1,0 +1,56 @@
+/* Tailwind CSS */
+@import "tailwindcss";
+
+/* Plugins */
+@plugin "@tailwindcss/forms";
+
+/* Class based dark mode */
+@variant dark (&:where(.dark, .dark *));
+
+/* Customizations */
+@theme {
+    /* Fonts */
+    --default-font-family: "Inter";
+
+    /* Secondary color palette (used by Pinemix components) */
+    --color-secondary-50: #fafafa;
+    --color-secondary-100: #f4f4f5;
+    --color-secondary-200: #e4e4e7;
+    --color-secondary-300: #d4d4d8;
+    --color-secondary-400: #a1a1aa;
+    --color-secondary-500: #71717a;
+    --color-secondary-600: #52525b;
+    --color-secondary-700: #3f3f46;
+    --color-secondary-800: #27272a;
+    --color-secondary-900: #18181b;
+    --color-secondary-950: #09090b;
+
+    /* Animations */
+    --animate-full-tl: full-tl 25s linear infinite;
+    --animate-full-tr: full-tr 25s linear infinite;
+
+    @keyframes full-tl {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+
+    @keyframes full-tr {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(100%);
+        }
+    }
+}
+
+/* Alpine x-cloak style (https://alpinejs.dev/directives/cloak) */
+@layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+}
