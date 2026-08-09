@@ -72,7 +72,7 @@
         </dl>
         <div class="mt-4 flex flex-wrap items-center gap-2">
             {% if active_router and active_router.id == router.id %}
-            <a href="{{ url_for('home') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-600">Dashboard</a>
+            <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-600">Dashboard</a>
             {% else %}
             <form method="post" action="{{ url_for('routers.connect', {id: router.id}) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -124,7 +124,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
                             {% if active_router and active_router.id == router.id %}
-                            <a href="{{ url_for('home') }}" class="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-600">Dashboard</a>
+                            <a href="{{ url_for('dashboard') }}" class="rounded-lg bg-teal-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-600">Dashboard</a>
                             {% else %}
                             <form method="post" action="{{ url_for('routers.connect', {id: router.id}) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

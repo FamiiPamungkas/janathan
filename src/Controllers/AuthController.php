@@ -24,7 +24,7 @@ class AuthController
     public function showLogin(Request $request, Response $response): Response
     {
         if (!empty($_SESSION['user_id'])) {
-            return $this->redirect($response, $request, 'home');
+            return $this->redirect($response, $request, 'dashboard');
         }
 
         $html = $this->twig->render('pages/auth/login.twig');
@@ -50,7 +50,7 @@ class AuthController
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int) $user['id'];
 
-        return $this->redirect($response, $request, 'home');
+        return $this->redirect($response, $request, 'dashboard');
     }
 
     public function logout(Request $request, Response $response): Response

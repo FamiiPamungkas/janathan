@@ -140,7 +140,7 @@ class RouterController
         $_SESSION['router_id'] = $id;
         $this->flash->add('success', 'Connected to "' . $router['name'] . '".');
 
-        return $this->redirect($response, $request, 'home');
+        return $this->redirect($response, $request, 'dashboard');
     }
 
     private function renderForm(
