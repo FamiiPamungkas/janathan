@@ -52,12 +52,19 @@ composer.json
 
 ## Setup
 1. `composer install`
-2. Copy `.env.example` to `.env`, fill in `MIKROTIK_HOST`, `MIKROTIK_USER`, `MIKROTIK_PASS`, `MIKROTIK_PORT` (default 8728, or 8729 for API-SSL)
-3. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
-4. Run asset build (or use watch mode for dev):
+2. Copy `.env.example` to `.env`. Set `APP_KEY` (generate with `openssl rand -hex 32`) — it encrypts router passwords at rest. `MIKROTIK_*` vars are only used by `bin/test-connection.php`.
+3. Create the SQLite database + first admin user: `php bin/init.php <username> [password]` (prompts for a password if omitted). The DB file lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored).
+4. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
+5. Run asset build (or use watch mode for dev):
    - CSS: `npm run build:css` (`npx @tailwindcss/cli -i ./public/css/index.css -o ./public/css/app.css`)
    - JS: `npm run build:js` (`npx esbuild public/js/index.js --bundle --outfile=public/js/app.js`)
    - `npm run dev` runs both in watch mode
+
+## App Flow / Data Model
+- SQLite via PDO (no ORM). Tables: `users` (app logins) and `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY` via `CryptoService`).
+- Flow: log in to the app (`/login`) → manage routers (`/routers`) → "Connect" on a router validates the RouterOS connection and stores `router_id` in the session → dashboard (`/`) opens a fresh RouterOS connection per request using the selected router's decrypted credentials.
+- Session-based auth (`AuthMiddleware`) protects all routes except `/login`. Every POST carries a CSRF token (`CsrfMiddleware` + `csrf_token` Twig global).
+- Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them.
 
 ## Dev Server
 - Local URL: `http://MSI-FPamungkas.local:8080`

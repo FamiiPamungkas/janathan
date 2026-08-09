@@ -10,13 +10,17 @@ $host = $_ENV['MIKROTIK_HOST'] ?? '192.168.88.1';
 $user = $_ENV['MIKROTIK_USER'] ?? 'admin';
 $pass = $_ENV['MIKROTIK_PASS'] ?? '';
 $port = (int) ($_ENV['MIKROTIK_PORT'] ?? 8728);
+$ssl = filter_var($_ENV['MIKROTIK_SSL'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
 echo "Testing connection to RouterOS at {$host}:{$port}...\n";
 
 try {
-    $config = new \RouterOS\Config($user, $pass, [
-        \RouterOS\Config::OPTION_HOST => $host,
-        \RouterOS\Config::OPTION_PORT => $port,
+    $config = new \RouterOS\Config([
+        'host' => $host,
+        'user' => $user,
+        'pass' => $pass,
+        'port' => $port,
+        'ssl' => $ssl,
     ]);
 
     $client = new \RouterOS\Client($config);

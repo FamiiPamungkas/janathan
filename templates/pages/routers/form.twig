@@ -1,0 +1,88 @@
+{% extends "layout.twig" %}
+
+{% block title %}{{ isEdit ? 'Edit router' : 'Add router' }} - Janathan{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-2xl">
+    <div>
+        <a href="{{ url_for('routers.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+            </svg>
+            Back to routers
+        </a>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ isEdit ? 'Edit router' : 'Add router' }}</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {{ isEdit ? 'Update connection details for this MikroTik router.' : 'Add a MikroTik router to connect to it from the dashboard.' }}
+        </p>
+    </div>
+
+    <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <form method="post" action="{{ url_for(formAction, formParams) }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div>
+                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <input type="text" id="name" name="name" required placeholder="e.g. Office Router"
+                    value="{{ values.name|default(router.name|default('')) }}"
+                    class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.name %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                {% if errors.name %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.name }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="host" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Host / IP address</label>
+                    <input type="text" id="host" name="host" required placeholder="192.168.88.1"
+                        value="{{ values.host|default(router.host|default('')) }}"
+                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.host %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    {% if errors.host %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.host }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label for="port" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Port</label>
+                    <input type="number" id="port" name="port" min="1" max="65535" placeholder="8728"
+                        value="{{ values.port is defined and values.port != '' ? values.port : router.port|default(8728) }}"
+                        class="block w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Default: 8728 (API) or 8729 (API-SSL)</p>
+                    {% if errors.port %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.port }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label for="username" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="off" placeholder="admin"
+                    value="{{ values.username|default(router.username|default('')) }}"
+                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.username %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                {% if errors.username %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.username }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Password{% if isEdit %} <span class="font-normal text-zinc-500 dark:text-zinc-400">(leave blank to keep current)</span>{% endif %}
+                </label>
+                <input type="password" id="password" name="password" autocomplete="new-password" placeholder="{{ isEdit ? '••••••••' : '' }}" {% if not isEdit %}required{% endif %}
+                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.password %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                {% if errors.password %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.password }}</p>{% endif %}
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Encrypted at rest with your APP_KEY.</p>
+            </div>
+
+            <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" id="ssl" name="ssl" value="1"
+                    {% if values.ssl is defined ? values.ssl : router.ssl|default(false) %}checked{% endif %}
+                    class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
+                <span>
+                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Use API-SSL</span>
+                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">Encrypt the connection to the router (port 8729).</span>
+                </span>
+            </label>
+
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <a href="{{ url_for('routers.index') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">Cancel</a>
+                <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+                    {{ isEdit ? 'Save changes' : 'Add router' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

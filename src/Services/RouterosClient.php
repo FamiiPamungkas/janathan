@@ -10,40 +10,55 @@ use RouterOS\Query;
 
 class RouterosClient
 {
-    private Client $client;
-    private Config $config;
+    private ?Client $client = null;
 
     public function __construct(
         private string $host,
         private string $user,
         private string $pass,
         private int $port = 8728,
-        private bool $ssl = false
+        private bool $ssl = false,
+        private bool $legacy = false
     ) {
-        $this->config = new Config($this->user, $this->pass, [
-            Config::OPTION_HOST => $this->host,
-            Config::OPTION_PORT => $this->port,
-        ]);
-
-        if ($this->ssl) {
-            $this->config->setOption(Config::OPTION_PORT, 8729);
-        }
     }
 
     public function connect(): void
     {
-        $this->client = new Client($this->config);
+        if ($this->client !== null) {
+            return;
+        }
+
+        $options = [
+            'host' => $this->host,
+            'user' => $this->user,
+            'pass' => $this->pass,
+            'port' => $this->port,
+            'ssl' => $this->ssl,
+        ];
+
+        if ($this->legacy) {
+            $options['legacy'] = true;
+        }
+
+        $this->client = new Client(new Config($options));
     }
 
     public function query(string $command, array $arguments = []): array
     {
+        $this->connect();
+
         $query = Query::create($command);
-        
+
         foreach ($arguments as $key => $value) {
             $query->where($key, $value);
         }
 
         return $this->client->query($query)->all();
+    }
+
+    public function test(): array
+    {
+        return $this->query('/system/resource/print');
     }
 
     public function getSystemResource(): array
@@ -63,8 +78,9 @@ class RouterosClient
 
     public function disconnect(): void
     {
-        if (isset($this->client)) {
+        if ($this->client !== null) {
             $this->client->close();
+            $this->client = null;
         }
     }
 }

@@ -1,0 +1,85 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
+
+$configured = $_ENV['DB_PATH'] ?? 'database/janathan.sqlite';
+$dbPath = $configured;
+
+if ($configured !== '' && !preg_match('#^([a-zA-Z]:[\\\\/]|/)#', $configured)) {
+    $dbPath = __DIR__ . '/../' . ltrim($configured, '/');
+}
+
+if (!is_dir(dirname($dbPath))) {
+    mkdir(dirname($dbPath), 0777, true);
+}
+
+$pdo = new \PDO('sqlite:' . $dbPath);
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$pdo->exec('PRAGMA foreign_keys = ON');
+
+$pdo->exec(
+    <<<'SQL'
+    CREATE TABLE IF NOT EXISTS users (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        username      TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        name          TEXT NOT NULL DEFAULT '',
+        role          TEXT NOT NULL DEFAULT 'admin',
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS routers (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        name         TEXT NOT NULL,
+        host         TEXT NOT NULL,
+        port         INTEGER NOT NULL DEFAULT 8728,
+        ssl          INTEGER NOT NULL DEFAULT 0,
+        username     TEXT NOT NULL,
+        password_enc TEXT NOT NULL,
+        created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    SQL
+);
+
+echo "Database ready at {$dbPath}\n";
+
+$username = $argv[1] ?? 'admin';
+
+$stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
+$stmt->execute(['username' => $username]);
+
+if ($stmt->fetch() !== false) {
+    echo "User '{$username}' already exists. Nothing to do.\n";
+    exit(0);
+}
+
+$password = $argv[2] ?? '';
+
+if ($password === '') {
+    echo "Enter a password for '{$username}': ";
+    $password = trim(fgets(STDIN));
+}
+
+if ($password === '') {
+    echo "Password cannot be empty.\n";
+    exit(1);
+}
+
+$hash = password_hash($password, PASSWORD_DEFAULT);
+
+$insert = $pdo->prepare('INSERT INTO users (username, password_hash, name, role) VALUES (:username, :password_hash, :name, :role)');
+$insert->execute([
+    'username' => $username,
+    'password_hash' => $hash,
+    'name' => $username,
+    'role' => 'admin',
+]);
+
+echo "Created admin user '{$username}'.\n";
+echo "You can now log in at the application login page.\n";
