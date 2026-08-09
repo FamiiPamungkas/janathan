@@ -20,9 +20,7 @@ class RouterController
         private readonly RouterRepository      $routers,
         private readonly RouterosClientFactory $clientFactory,
         private readonly FlashService $flash
-    )
-    {
-        error_log("-- CONSTRUCT ROUTER CONTROLLER --");
+    ) {
     }
 
     public function index(Request $request, Response $response): Response
@@ -115,7 +113,6 @@ class RouterController
     {
         $id = (int)$args['id'];
         $router = $this->routers->find($id);
-        error_log((string)$id);
 
         if ($router === null) {
             $this->flash->add('error', 'Router not found.');
@@ -128,7 +125,6 @@ class RouterController
             $client->test();
             $client->disconnect();
         } catch (\Throwable $e) {
-            error_log($e->getMessage());
             $this->flash->add(
                 'error',
                 'Cannot connect to "' . $router['name'] . '" (' . $router['host'] . '). Check that the router is reachable and the credentials are correct.'

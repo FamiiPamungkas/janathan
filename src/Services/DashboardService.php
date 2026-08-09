@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Services;
 
+use Fame1302\Janathan\Models\RouterosVersion;
+
 class DashboardService
 {
     public function __construct(
@@ -13,7 +15,7 @@ class DashboardService
     }
 
     /**
-     * @return array{demo: bool, router: array, stats: array, sessions: array}
+     * @return array{demo: bool, router: array, stats: array, sessions: array, hotspotAvailable: bool}
      */
     public function getDashboardData(int $routerId): array
     {
@@ -39,12 +41,18 @@ class DashboardService
             $client->disconnect();
         }
 
-        return $this->buildData($router, $resource, $active, $users);
+        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable());
     }
 
-    private function buildData(array $router, array $resource, array $active, array $users): array
-    {
+    private function buildData(
+        array $router,
+        array $resource,
+        array $active,
+        array $users,
+        bool $hotspotAvailable
+    ): array {
         $r = $resource[0] ?? [];
+        $version = RouterosVersion::fromString($r['version'] ?? null);
 
         $totalMemory = (float) ($r['total-memory'] ?? 0);
         $freeMemory = (float) ($r['free-memory'] ?? 0);
@@ -81,6 +89,7 @@ class DashboardService
                 'identity' => $r['identity'] ?? 'Unknown',
                 'model' => $r['board-name'] ?? '-',
                 'version' => $r['version'] ?? '-',
+                'versionMajor' => $version?->major(),
                 'uptime' => $r['uptime'] ?? '-',
                 'cpu' => $cpu,
                 'memory' => $totalMemory > 0 ? (int) round((($totalMemory - $freeMemory) / $totalMemory) * 100) : 0,
@@ -97,6 +106,7 @@ class DashboardService
                 'cpu' => $cpu,
             ],
             'sessions' => $sessions,
+            'hotspotAvailable' => $hotspotAvailable,
         ];
     }
 

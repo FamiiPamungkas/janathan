@@ -15,9 +15,9 @@ class DashboardController
     use RedirectsTrait;
 
     public function __construct(
-        private Environment $twig,
-        private DashboardService $dashboard,
-        private RouterRepository $routers
+        private readonly Environment      $twig,
+        private readonly DashboardService $dashboard,
+        private readonly RouterRepository $routers
     ) {
     }
 
