@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\FlashService;
-use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
+use Fame1302\Janathan\Services\RouterRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -16,11 +16,13 @@ class RouterController
     use RedirectsTrait;
 
     public function __construct(
-        private Environment $twig,
-        private RouterRepository $routers,
-        private RouterosClientFactory $clientFactory,
-        private FlashService $flash
-    ) {
+        private readonly Environment           $twig,
+        private readonly RouterRepository      $routers,
+        private readonly RouterosClientFactory $clientFactory,
+        private readonly FlashService $flash
+    )
+    {
+        error_log("-- CONSTRUCT ROUTER CONTROLLER --");
     }
 
     public function index(Request $request, Response $response): Response
@@ -56,7 +58,7 @@ class RouterController
 
     public function showEdit(Request $request, Response $response, array $args): Response
     {
-        $router = $this->routers->find((int) $args['id']);
+        $router = $this->routers->find((int)$args['id']);
 
         if ($router === null) {
             $this->flash->add('error', 'Router not found.');
@@ -68,7 +70,7 @@ class RouterController
 
     public function update(Request $request, Response $response, array $args): Response
     {
-        $id = (int) $args['id'];
+        $id = (int)$args['id'];
         $router = $this->routers->find($id);
 
         if ($router === null) {
@@ -91,7 +93,7 @@ class RouterController
 
     public function delete(Request $request, Response $response, array $args): Response
     {
-        $id = (int) $args['id'];
+        $id = (int)$args['id'];
         $router = $this->routers->find($id);
 
         if ($router === null) {
@@ -99,7 +101,7 @@ class RouterController
         } else {
             $this->routers->delete($id);
 
-            if (isset($_SESSION['router_id']) && (int) $_SESSION['router_id'] === $id) {
+            if (isset($_SESSION['router_id']) && (int)$_SESSION['router_id'] === $id) {
                 unset($_SESSION['router_id']);
             }
 
@@ -111,8 +113,9 @@ class RouterController
 
     public function connect(Request $request, Response $response, array $args): Response
     {
-        $id = (int) $args['id'];
+        $id = (int)$args['id'];
         $router = $this->routers->find($id);
+        error_log((string)$id);
 
         if ($router === null) {
             $this->flash->add('error', 'Router not found.');
@@ -120,10 +123,12 @@ class RouterController
         }
 
         try {
-            $client = $this->clientFactory->create($this->routers->getCredentials($id));
+            $credentials = $this->routers->getCredentials($id);
+            $client = $this->clientFactory->create($credentials);
             $client->test();
             $client->disconnect();
         } catch (\Throwable $e) {
+            error_log($e->getMessage());
             $this->flash->add(
                 'error',
                 'Cannot connect to "' . $router['name'] . '" (' . $router['host'] . '). Check that the router is reachable and the credentials are correct.'
@@ -139,12 +144,13 @@ class RouterController
     }
 
     private function renderForm(
-        Request $request,
+        Request  $request,
         Response $response,
-        ?array $router,
-        array $errors,
-        array $values = []
-    ): Response {
+        ?array   $router,
+        array    $errors,
+        array    $values = []
+    ): Response
+    {
         $html = $this->twig->render('pages/routers/form.twig', [
             'router' => $router,
             'errors' => $errors,
@@ -166,12 +172,12 @@ class RouterController
         $body = is_array($body) ? $body : [];
 
         return [
-            'name' => trim((string) ($body['name'] ?? '')),
-            'host' => trim((string) ($body['host'] ?? '')),
-            'port' => trim((string) ($body['port'] ?? '')),
+            'name' => trim((string)($body['name'] ?? '')),
+            'host' => trim((string)($body['host'] ?? '')),
+            'port' => trim((string)($body['port'] ?? '')),
             'ssl' => !empty($body['ssl']),
-            'username' => trim((string) ($body['username'] ?? '')),
-            'password' => (string) ($body['password'] ?? ''),
+            'username' => trim((string)($body['username'] ?? '')),
+            'password' => (string)($body['password'] ?? ''),
         ];
     }
 

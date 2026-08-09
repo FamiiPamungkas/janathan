@@ -47,13 +47,13 @@ class RouterosClient
     {
         $this->connect();
 
-        $query = Query::create($command);
+        $query = new Query($command);
 
         foreach ($arguments as $key => $value) {
             $query->where($key, $value);
         }
 
-        return $this->client->query($query)->all();
+        return $this->client->query($query)->read();
     }
 
     public function test(): array
@@ -78,9 +78,6 @@ class RouterosClient
 
     public function disconnect(): void
     {
-        if ($this->client !== null) {
-            $this->client->close();
-            $this->client = null;
-        }
+        $this->client = null;
     }
 }

@@ -24,13 +24,11 @@ try {
     ]);
 
     $client = new \RouterOS\Client($config);
-    $result = $client->query(\RouterOS\Query::create('/system/resource/print'))->all();
+    $result = $client->query(new \RouterOS\Query('/system/resource/print'))->read();
 
     echo "Connection successful!\n";
     echo "Router Identity: " . ($result[0]['identity'] ?? 'Unknown') . "\n";
     echo "Version: " . ($result[0]['version'] ?? 'Unknown') . "\n";
-
-    $client->close();
 } catch (\Exception $e) {
     echo "Connection failed: " . $e->getMessage() . "\n";
     exit(1);

@@ -75,5 +75,5 @@ Before building features, verify the RouterOS API connection works standalone (`
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.
 - RouterOS API calls are synchronous and can be slow on weak hardware — keep timeouts sane and surface connection errors clearly in the UI rather than failing silently.
-- Never log or expose router credentials in error messages or client-side code.
+- Never log or expose router credentials in error messages or client-side code. Exception: during local development only, temporary `error_log()` debugging of credentials (e.g. in `RouterController::connect`) is acceptable — but it must be removed before production. Treat the presence of credential logging in the codebase as a dev-only state.
 - **Verify every change:** After completing any task, fetch `http://MSI-FPamungkas.local:8080` using WebFetch to confirm the page loads without errors.
