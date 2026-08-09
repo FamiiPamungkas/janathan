@@ -291,6 +291,7 @@
                                     <span x-text="s.user.charAt(0).toUpperCase()"></span>
                                 </div>
                                 <div class="min-w-0 flex-1">
+                                    <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-show="s.comment" x-text="s.comment"></p>
                                     <p class="truncate font-semibold" x-text="s.user"></p>
                                     <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-text="s.ip + ' · ' + s.mac"></p>
                                 </div>
@@ -417,7 +418,10 @@
                                     <td class="px-3 py-2.5">
                                         <div class="flex items-center gap-2">
                                             <span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-teal-700 dark:bg-teal-500/10 dark:text-teal-300" x-text="s.user.charAt(0).toUpperCase()"></span>
-                                            <span class="font-medium" x-text="s.user"></span>
+                                            <div class="min-w-0">
+                                                <p class="max-w-40 truncate text-xs text-zinc-500 dark:text-zinc-400" x-show="s.comment" x-text="s.comment" :title="s.comment"></p>
+                                                <p class="max-w-40 truncate font-medium" x-text="s.user"></p>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="s.ip"></td>

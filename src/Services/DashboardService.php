@@ -74,6 +74,7 @@ class DashboardService
             $sessions[] = [
                 'id' => $s['.id'] ?? '',
                 'user' => $s['user'] ?? '?',
+                'comment' => $s['comment'] ?? '',
                 'ip' => $s['address'] ?? '',
                 'mac' => $s['mac-address'] ?? '',
                 'uptime' => $s['uptime'] ?? '0s',
