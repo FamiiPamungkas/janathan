@@ -25,7 +25,8 @@ class RouterosClient
         private string $pass,
         private int $port = 8728,
         private bool $ssl = false,
-        private bool $legacy = false
+        private bool $legacy = false,
+        private int $socketTimeout = 10
     ) {
     }
 
@@ -41,6 +42,7 @@ class RouterosClient
             'pass' => $this->pass,
             'port' => $this->port,
             'ssl' => $this->ssl,
+            'socket_timeout' => $this->socketTimeout,
         ];
 
         if ($this->legacy) {
@@ -54,13 +56,18 @@ class RouterosClient
     {
         $this->connect();
 
-        $query = new Query($command);
+        try {
+            $query = new Query($command);
 
-        foreach ($arguments as $key => $value) {
-            $query->where($key, $value);
+            foreach ($arguments as $key => $value) {
+                $query->where($key, $value);
+            }
+
+            return $this->client->query($query)->read();
+        } catch (\Throwable $e) {
+            $this->disconnect();
+            throw $e;
         }
-
-        return $this->client->query($query)->read();
     }
 
     public function test(): array
@@ -71,6 +78,36 @@ class RouterosClient
     public function getSystemResource(): array
     {
         return $this->query('/system/resource/print');
+    }
+
+    public function getIdentity(): ?string
+    {
+        try {
+            $result = $this->query('/system/identity/print');
+
+            return $result[0]['name'] ?? null;
+        } catch (\Throwable $e) {
+            error_log("IDENTITY ".$e->getMessage());
+            return null;
+        }
+    }
+
+    public function getRouterBoard(): array
+    {
+        try {
+            return $this->query('/system/routerboard/print');
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function getClock(): array
+    {
+        try {
+            return $this->query('/system/clock/print');
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
@@ -126,13 +163,18 @@ class RouterosClient
     {
         $this->connect();
 
-        $query = new Query($command);
+        try {
+            $query = new Query($command);
 
-        foreach ($attributes as $key => $value) {
-            $query->equal($key, $value);
+            foreach ($attributes as $key => $value) {
+                $query->equal($key, $value);
+            }
+
+            return $this->client->query($query)->read();
+        } catch (\Throwable $e) {
+            $this->disconnect();
+            throw $e;
         }
-
-        return $this->client->query($query)->read();
     }
 
     /**

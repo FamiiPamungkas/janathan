@@ -116,12 +116,22 @@
                 <dd class="truncate font-medium">{{ router.model }}</dd>
             </div>
             <div class="flex justify-between gap-4">
+                <dt class="text-zinc-500 dark:text-zinc-400">Board</dt>
+                <dd class="truncate font-medium">{{ router.board }}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
                 <dt class="text-zinc-500 dark:text-zinc-400">Version</dt>
                 <dd class="truncate font-medium">{{ router.version }}</dd>
             </div>
             <div class="flex justify-between gap-4">
                 <dt class="text-zinc-500 dark:text-zinc-400">Uptime</dt>
                 <dd class="truncate font-medium">{{ router.uptime }}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+                <dt class="text-zinc-500 dark:text-zinc-400">Date &amp; Time</dt>
+                <dd class="truncate font-medium">
+                    {{ router.clock.datetime }}{% if router.clock.timezone %} · {{ router.clock.timezone }}{% endif %}
+                </dd>
             </div>
         </dl>
 
@@ -159,7 +169,7 @@
     <!-- Active sessions -->
     <div class="lg:col-span-2"
         x-data="{
-            sessions: {{ sessions|json_encode|raw }},
+            sessions: {{ sessions|json_encode|e('html_attr') }},
             sortColumn: null,
             sortDirection: 'asc',
             sortedData: [],

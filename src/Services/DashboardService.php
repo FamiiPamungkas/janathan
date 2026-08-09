@@ -28,9 +28,12 @@ class DashboardService
         $client = $this->clientFactory->create($this->routers->getCredentials($routerId));
 
         try {
-            $resource = $client->getSystemResource();
-            $active = $client->getActiveUsers();
             $users = $client->getHotspotUsers();
+            $clock = $client->getClock();
+            $resource = $client->getSystemResource();
+            $board = $client->getRouterBoard();
+            $active = $client->getActiveUsers();
+            $identity = $client->getIdentity();
         } catch (\Throwable $e) {
             throw new \RuntimeException(
                 'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
@@ -41,7 +44,7 @@ class DashboardService
             $client->disconnect();
         }
 
-        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable());
+        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable(), $identity, $board, $clock);
     }
 
     private function buildData(
@@ -49,7 +52,10 @@ class DashboardService
         array $resource,
         array $active,
         array $users,
-        bool $hotspotAvailable
+        bool $hotspotAvailable,
+        ?string $identity,
+        array $board,
+        array $clock
     ): array {
         $r = $resource[0] ?? [];
         $version = RouterosVersion::fromString($r['version'] ?? null);
@@ -80,14 +86,24 @@ class DashboardService
 
         $cpu = (int) ($r['cpu-load'] ?? 0);
 
+        $clockRecord = $clock[0] ?? [];
+        $clockDate = RouterosDate::normalize($clockRecord['date'] ?? null, $version);
+        $clockTime = $clockRecord['time'] ?? '';
+        $clockTimezone = $clockRecord['time-zone-name'] ?? ($clockRecord['gmt-offset'] ?? '');
+
         return [
             'demo' => false,
             'router' => [
                 'name' => $router['name'],
                 'host' => $router['host'],
                 'port' => $router['port'],
-                'identity' => $r['identity'] ?? 'Unknown',
-                'model' => $r['board-name'] ?? '-',
+                'identity' => $identity ?? 'Unknown',
+                'model' => $board[0]['model'] ?? ($r['board-name'] ?? '-'),
+                'board' => $r['board-name'] ?? '-',
+                'clock' => [
+                    'datetime' => trim($clockDate . ' ' . $clockTime),
+                    'timezone' => $clockTimezone,
+                ],
                 'version' => $r['version'] ?? '-',
                 'versionMajor' => $version?->major(),
                 'uptime' => $r['uptime'] ?? '-',
