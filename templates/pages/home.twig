@@ -15,12 +15,15 @@
         lastUpdated: null,
         error: '',
         refreshing: false,
+        retryCount: 0,
+        maxRetries: 1,
         sortColumn: null,
         sortDirection: 'asc',
         sortedData: [],
         timer: null,
         init() {
             this.sortedData = this.sessions;
+            this.lastUpdated = new Date();
             this.start();
         },
         start() {
@@ -56,8 +59,13 @@
                 this.applySort();
                 this.lastUpdated = new Date();
                 this.error = '';
+                this.retryCount = 0;
             } catch (e) {
                 this.error = e.message || 'Failed to refresh dashboard data.';
+                if (this.retryCount < this.maxRetries) {
+                    this.retryCount++;
+                    setTimeout(() => this.refresh(), 1500);
+                }
             } finally {
                 this.refreshing = false;
             }
@@ -84,6 +92,9 @@
         },
         timeLabel() {
             return this.lastUpdated ? this.lastUpdated.toLocaleTimeString() : '';
+        },
+        isStale() {
+            return this.lastUpdated && (new Date() - this.lastUpdated) > 30000;
         }
     }">
     <!-- Page header -->
@@ -103,19 +114,25 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-            <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'Updated ' + timeLabel()"></span>
+            <span class="text-xs" x-show="lastUpdated" x-bind:class="isStale() ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400'" x-text="(isStale() ? 'Updated (stale) ' : 'Updated ') + timeLabel()"></span>
             <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
-                <template x-if="polling">
+                <template x-if="refreshing">
+                    <svg class="size-4 animate-spin text-zinc-500 dark:text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </template>
+                <template x-if="!refreshing && polling">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                         <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
                     </svg>
                 </template>
-                <template x-if="!polling">
+                <template x-if="!refreshing && !polling">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                         <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
                     </svg>
                 </template>
-                <span x-text="polling ? 'Pause refresh' : 'Resume refresh'"></span>
+                <span x-text="refreshing ? 'Refreshing...' : (polling ? 'Pause refresh' : 'Resume refresh')"></span>
             </button>
             <a href="{{ url_for('routers.index') }}" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
