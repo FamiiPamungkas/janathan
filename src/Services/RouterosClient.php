@@ -142,6 +142,28 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/print');
     }
 
+    /**
+     * Recent hotspot entries from the router system log. Records carry
+     * `time`, `topics` and `message` keys in insertion (chronological) order.
+     */
+    public function getHotspotLogs(): array
+    {
+        $this->connect();
+
+        try {
+            $query = new Query('/log/print');
+            $query->where('topics','system, info, account');
+
+            $result = $this->client->query($query)->read();
+
+            return is_array($result) ? $result : [];
+        } catch (\Throwable $e) {
+            $this->disconnect();
+
+            return [];
+        }
+    }
+
     public function isHotspotAvailable(): bool
     {
         return $this->hotspotAvailable ?? false;

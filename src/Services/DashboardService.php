@@ -15,7 +15,7 @@ class DashboardService
     }
 
     /**
-     * @return array{demo: bool, router: array, stats: array, sessions: array, hotspotAvailable: bool}
+     * @return array{demo: bool, router: array, stats: array, logs: array, hotspotAvailable: bool}
      */
     public function getDashboardData(int $routerId): array
     {
@@ -34,6 +34,7 @@ class DashboardService
             $board = $client->getRouterBoard();
             $active = $client->getActiveUsers();
             $identity = $client->getIdentity();
+            $logs = $client->getHotspotLogs();
         } catch (\Throwable $e) {
             throw new \RuntimeException(
                 'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
@@ -44,7 +45,7 @@ class DashboardService
             $client->disconnect();
         }
 
-        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable(), $identity, $board, $clock);
+        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable(), $identity, $board, $clock, $logs);
     }
 
     private function buildData(
@@ -55,7 +56,8 @@ class DashboardService
         bool $hotspotAvailable,
         ?string $identity,
         array $board,
-        array $clock
+        array $clock,
+        array $logs
     ): array {
         $r = $resource[0] ?? [];
         $version = RouterosVersion::fromString($r['version'] ?? null);
@@ -66,22 +68,19 @@ class DashboardService
         $freeHdd = (float) ($r['free-hdd-space'] ?? 0);
 
         $traffic = 0;
-        $sessions = [];
 
         foreach ($active as $s) {
             $traffic += (int) ($s['bytes-in'] ?? 0) + (int) ($s['bytes-out'] ?? 0);
+        }
 
-            $sessions[] = [
-                'id' => $s['.id'] ?? '',
-                'user' => $s['user'] ?? '?',
-                'comment' => $s['comment'] ?? '',
-                'ip' => $s['address'] ?? '',
-                'mac' => $s['mac-address'] ?? '',
-                'uptime' => $s['uptime'] ?? '0s',
-                'download' => $this->formatBytes((int) ($s['bytes-in'] ?? 0)),
-                'upload' => $this->formatBytes((int) ($s['bytes-out'] ?? 0)),
-                'server' => $s['server'] ?? '-',
-                'status' => 'Active',
+        $logEntries = [];
+
+        foreach ($logs as $l) {
+            $logEntries[] = [
+                'id' => $l['.id'] ?? '',
+                'time' => $l['time'] ?? '',
+                'topics' => $l['topics'] ?? '',
+                'message' => $l['message'] ?? '',
             ];
         }
 
@@ -122,7 +121,7 @@ class DashboardService
                 'traffic' => $this->formatBytes($traffic),
                 'cpu' => $cpu,
             ],
-            'sessions' => $sessions,
+            'logs' => array_slice(array_reverse($logEntries), 0, 50),
             'hotspotAvailable' => $hotspotAvailable,
         ];
     }

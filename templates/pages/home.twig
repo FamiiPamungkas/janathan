@@ -6,7 +6,7 @@
 <div
     x-data="{
         stats: {{ stats|json_encode|e('html_attr') }},
-        sessions: {{ sessions|json_encode|e('html_attr') }},
+        logs: {{ logs|json_encode|e('html_attr') }},
         router: {{ router|json_encode|e('html_attr') }},
         hotspotAvailable: {{ hotspotAvailable ? 'true' : 'false' }},
         url: '{{ url_for('dashboard.data')|e('html_attr') }}',
@@ -15,12 +15,8 @@
         lastUpdated: null,
         error: '',
         refreshing: false,
-        sortColumn: null,
-        sortDirection: 'asc',
-        sortedData: [],
         timer: null,
         init() {
-            this.sortedData = this.sessions;
             this.start();
         },
         start() {
@@ -51,9 +47,8 @@
                 }
                 this.stats = data.stats;
                 this.router = data.router;
-                this.sessions = data.sessions;
+                this.logs = data.logs;
                 this.hotspotAvailable = data.hotspotAvailable;
-                this.applySort();
                 this.lastUpdated = new Date();
                 this.error = '';
             } catch (e) {
@@ -62,28 +57,17 @@
                 this.refreshing = false;
             }
         },
-        sortBy(column) {
-            if (this.sortColumn === column) {
-                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.sortDirection = 'asc';
-                this.sortColumn = column;
-            }
-            this.applySort();
-        },
-        applySort() {
-            if (!this.sortColumn) {
-                this.sortedData = [...this.sessions];
-                return;
-            }
-            this.sortedData = [...this.sessions].sort((a, b) => {
-                if (a[this.sortColumn] < b[this.sortColumn]) return this.sortDirection === 'asc' ? -1 : 1;
-                if (a[this.sortColumn] > b[this.sortColumn]) return this.sortDirection === 'asc' ? 1 : -1;
-                return 0;
-            });
-        },
         timeLabel() {
             return this.lastUpdated ? this.lastUpdated.toLocaleTimeString() : '';
+        },
+        topicBadge(topics) {
+            if (topics.includes('error')) {
+                return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300';
+            }
+            if (topics.includes('warning')) {
+                return 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300';
+            }
+            return 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300';
         }
     }">
     <!-- Page header -->
@@ -205,7 +189,7 @@
         </div>
     </div>
 
-    <!-- System resources + active sessions -->
+    <!-- System resources + hotspot logs -->
     <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <!-- Router resources -->
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-1">
@@ -274,161 +258,50 @@
             </div>
         </div>
 
-        <!-- Active sessions -->
+        <!-- Hotspot logs -->
         <div class="lg:col-span-2">
             <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
                 <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Active Sessions</h2>
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text="sortedData.length + ' online'"></span>
+                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Hotspot Logs</h2>
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text="logs.length + ' entries'"></span>
                 </div>
 
-                <!-- Mobile: stacked session cards -->
+                <!-- Empty state -->
+                <div x-show="logs.length === 0" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">
+                    No hotspot log entries found.
+                </div>
+
+                <!-- Mobile: stacked log entries -->
                 <div class="divide-y divide-zinc-100 md:hidden dark:divide-zinc-700/50">
-                    <template x-for="s in sortedData" :key="s.id">
+                    <template x-for="l in logs" :key="l.id">
                         <div class="p-4">
-                            <div class="flex items-center gap-3">
-                                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-teal-50 text-sm font-semibold text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">
-                                    <span x-text="s.user.charAt(0).toUpperCase()"></span>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-show="s.comment" x-text="s.comment"></p>
-                                    <p class="truncate font-semibold" x-text="s.user"></p>
-                                    <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-text="s.ip + ' · ' + s.mac"></p>
-                                </div>
-                                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                                    <span class="size-1.5 rounded-full bg-teal-500"></span>
-                                    <span x-text="s.status"></span>
-                                </span>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-mono text-xs text-zinc-500 dark:text-zinc-400" x-text="l.time"></span>
+                                <span class="inline-flex flex-none items-center rounded-full px-2 py-0.5 text-xs font-medium" x-bind:class="topicBadge(l.topics)" x-text="l.topics"></span>
                             </div>
-                            <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <div>
-                                    <dt class="text-xs text-zinc-500 dark:text-zinc-400">Uptime</dt>
-                                    <dd class="font-medium" x-text="s.uptime"></dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs text-zinc-500 dark:text-zinc-400">Download</dt>
-                                    <dd class="font-medium text-teal-600 dark:text-teal-400" x-text="s.download"></dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs text-zinc-500 dark:text-zinc-400">Upload</dt>
-                                    <dd class="font-medium" x-text="s.upload"></dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs text-zinc-500 dark:text-zinc-400">Server</dt>
-                                    <dd class="font-medium" x-text="s.server"></dd>
-                                </div>
-                            </dl>
+                            <p class="mt-2 text-sm whitespace-pre-line break-words text-zinc-700 dark:text-zinc-300" x-text="l.message"></p>
                         </div>
                     </template>
                 </div>
 
-                <!-- Desktop: sortable table -->
+                <!-- Desktop: table -->
                 <div class="hidden overflow-x-auto md:block">
-                    <table class="min-w-full align-middle text-sm whitespace-nowrap">
+                    <table class="min-w-full align-middle text-sm">
                         <thead>
                             <tr class="border-b border-zinc-100 dark:border-zinc-700/50">
-                                <th class="group px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <div class="inline-flex items-center gap-2">
-                                        <span>User</span>
-                                        <button type="button" @click="sortBy('user')" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-sm leading-5 font-semibold text-zinc-800 transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-3 focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/40" x-bind:class="{ 'opacity-25 group-hover:opacity-100': sortColumn !== 'user' }">
-                                            <template x-if="sortColumn !== 'user'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M13.78 10.47a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l.97.97V5.75a.75.75 0 0 1 1.5 0v5.69l.97-.97a.75.75 0 0 1 1.06 0ZM2.22 5.53a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1-1.06 1.06l-.97-.97v5.69a.75.75 0 0 1-1.5 0V4.56l-.97.97a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'user' && sortDirection === 'desc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'user' && sortDirection === 'asc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 14a.75.75 0 0 0 .75-.75V4.56l1.22 1.22a.75.75 0 1 0 1.06-1.06l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5a.75.75 0 0 0 1.06 1.06l1.22-1.22v8.69c0 .414.336.75.75.75Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                        </button>
-                                    </div>
-                                </th>
-                                <th class="group px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <div class="inline-flex items-center gap-2">
-                                        <span>IP Address</span>
-                                        <button type="button" @click="sortBy('ip')" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-sm leading-5 font-semibold text-zinc-800 transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-3 focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/40" x-bind:class="{ 'opacity-25 group-hover:opacity-100': sortColumn !== 'ip' }">
-                                            <template x-if="sortColumn !== 'ip'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M13.78 10.47a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l.97.97V5.75a.75.75 0 0 1 1.5 0v5.69l.97-.97a.75.75 0 0 1 1.06 0ZM2.22 5.53a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1-1.06 1.06l-.97-.97v5.69a.75.75 0 0 1-1.5 0V4.56l-.97.97a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'ip' && sortDirection === 'desc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'ip' && sortDirection === 'asc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 14a.75.75 0 0 0 .75-.75V4.56l1.22 1.22a.75.75 0 1 0 1.06-1.06l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5a.75.75 0 0 0 1.06 1.06l1.22-1.22v8.69c0 .414.336.75.75.75Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                        </button>
-                                    </div>
-                                </th>
-                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <span>MAC</span>
-                                </th>
-                                <th class="group px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <div class="inline-flex items-center gap-2">
-                                        <span>Uptime</span>
-                                        <button type="button" @click="sortBy('uptime')" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-sm leading-5 font-semibold text-zinc-800 transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-3 focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/40" x-bind:class="{ 'opacity-25 group-hover:opacity-100': sortColumn !== 'uptime' }">
-                                            <template x-if="sortColumn !== 'uptime'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M13.78 10.47a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l.97.97V5.75a.75.75 0 0 1 1.5 0v5.69l.97-.97a.75.75 0 0 1 1.06 0ZM2.22 5.53a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1-1.06 1.06l-.97-.97v5.69a.75.75 0 0 1-1.5 0V4.56l-.97.97a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'uptime' && sortDirection === 'desc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'uptime' && sortDirection === 'asc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 14a.75.75 0 0 0 .75-.75V4.56l1.22 1.22a.75.75 0 1 0 1.06-1.06l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5a.75.75 0 0 0 1.06 1.06l1.22-1.22v8.69c0 .414.336.75.75.75Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                        </button>
-                                    </div>
-                                </th>
-                                <th class="group px-3 py-2 text-end font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <div class="inline-flex items-center gap-2">
-                                        <span>Download</span>
-                                        <button type="button" @click="sortBy('download')" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-sm leading-5 font-semibold text-zinc-800 transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-3 focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/40" x-bind:class="{ 'opacity-25 group-hover:opacity-100': sortColumn !== 'download' }">
-                                            <template x-if="sortColumn !== 'download'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M13.78 10.47a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l.97.97V5.75a.75.75 0 0 1 1.5 0v5.69l.97-.97a.75.75 0 0 1 1.06 0ZM2.22 5.53a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1-1.06 1.06l-.97-.97v5.69a.75.75 0 0 1-1.5 0V4.56l-.97.97a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'download' && sortDirection === 'desc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'download' && sortDirection === 'asc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 14a.75.75 0 0 0 .75-.75V4.56l1.22 1.22a.75.75 0 1 0 1.06-1.06l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5a.75.75 0 0 0 1.06 1.06l1.22-1.22v8.69c0 .414.336.75.75.75Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                        </button>
-                                    </div>
-                                </th>
-                                <th class="group px-3 py-2 text-end font-semibold text-zinc-900 dark:text-zinc-50">
-                                    <div class="inline-flex items-center gap-2">
-                                        <span>Upload</span>
-                                        <button type="button" @click="sortBy('upload')" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-sm leading-5 font-semibold text-zinc-800 transition hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-3 focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/40" x-bind:class="{ 'opacity-25 group-hover:opacity-100': sortColumn !== 'upload' }">
-                                            <template x-if="sortColumn !== 'upload'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M13.78 10.47a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 1 1 1.06-1.06l.97.97V5.75a.75.75 0 0 1 1.5 0v5.69l.97-.97a.75.75 0 0 1 1.06 0ZM2.22 5.53a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1-1.06 1.06l-.97-.97v5.69a.75.75 0 0 1-1.5 0V4.56l-.97.97a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'upload' && sortDirection === 'desc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l1.22-1.22a.75.75 0 1 1 1.06 1.06l-2.5 2.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06l1.22 1.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                            <template x-if="sortColumn === 'upload' && sortDirection === 'asc'">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M8 14a.75.75 0 0 0 .75-.75V4.56l1.22 1.22a.75.75 0 1 0 1.06-1.06l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5a.75.75 0 0 0 1.06 1.06l1.22-1.22v8.69c0 .414.336.75.75.75Z" clip-rule="evenodd" /></svg>
-                                            </template>
-                                        </button>
-                                    </div>
-                                </th>
+                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Time</th>
+                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Topics</th>
+                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Message</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <template x-for="s in sortedData" :key="s.id">
-                                <tr class="border-t border-zinc-100 even:bg-secondary-50 dark:border-zinc-700/50 dark:even:bg-secondary-900/50">
+                            <template x-for="l in logs" :key="l.id">
+                                <tr class="align-top border-t border-zinc-100 even:bg-secondary-50 dark:border-zinc-700/50 dark:even:bg-secondary-900/50">
+                                    <td class="px-3 py-2.5 font-mono text-xs whitespace-nowrap text-zinc-600 dark:text-zinc-400" x-text="l.time"></td>
                                     <td class="px-3 py-2.5">
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-teal-700 dark:bg-teal-500/10 dark:text-teal-300" x-text="s.user.charAt(0).toUpperCase()"></span>
-                                            <div class="min-w-0">
-                                                <p class="max-w-40 truncate text-xs text-zinc-500 dark:text-zinc-400" x-show="s.comment" x-text="s.comment" :title="s.comment"></p>
-                                                <p class="max-w-40 truncate font-medium" x-text="s.user"></p>
-                                            </div>
-                                        </div>
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" x-bind:class="topicBadge(l.topics)" x-text="l.topics"></span>
                                     </td>
-                                    <td class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="s.ip"></td>
-                                    <td class="px-3 py-2.5 font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="s.mac"></td>
-                                    <td class="px-3 py-2.5" x-text="s.uptime"></td>
-                                    <td class="px-3 py-2.5 text-end font-medium text-teal-600 dark:text-teal-400" x-text="s.download"></td>
-                                    <td class="px-3 py-2.5 text-end" x-text="s.upload"></td>
+                                    <td class="px-3 py-2.5 text-zinc-700 whitespace-pre-line break-words dark:text-zinc-300" x-text="l.message"></td>
                                 </tr>
                             </template>
                         </tbody>
