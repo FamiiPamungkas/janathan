@@ -10,19 +10,25 @@
         router: {{ router|json_encode|e('html_attr') }},
         hotspotAvailable: {{ hotspotAvailable ? 'true' : 'false' }},
         url: '{{ url_for('dashboard.data')|e('html_attr') }}',
+        urlLogs: '{{ url_for('dashboard.logs')|e('html_attr') }}',
         interval: 5000,
+        logsInterval: 15000,
         polling: true,
         lastUpdated: null,
+        logsUpdatedAt: null,
         error: '',
         refreshing: false,
+        logsRefreshing: false,
         timer: null,
+        logsTimer: null,
         init() {
             this.start();
         },
         start() {
             this.stop();
             this.polling = true;
-            this.timer = setInterval(() => this.refresh(), this.interval);
+            this.timer = setInterval(() => this.refreshStats(), this.interval);
+            this.logsTimer = setInterval(() => this.refreshLogs(), this.logsInterval);
         },
         stop() {
             this.polling = false;
@@ -30,11 +36,15 @@
                 clearInterval(this.timer);
                 this.timer = null;
             }
+            if (this.logsTimer) {
+                clearInterval(this.logsTimer);
+                this.logsTimer = null;
+            }
         },
         togglePolling() {
             this.polling ? this.stop() : this.start();
         },
-        async refresh() {
+        async refreshStats() {
             if (this.refreshing) {
                 return;
             }
@@ -47,7 +57,6 @@
                 }
                 this.stats = data.stats;
                 this.router = data.router;
-                this.logs = data.logs;
                 this.hotspotAvailable = data.hotspotAvailable;
                 this.lastUpdated = new Date();
                 this.error = '';
@@ -56,6 +65,42 @@
             } finally {
                 this.refreshing = false;
             }
+        },
+        async refreshLogs() {
+            if (this.logsRefreshing) {
+                return;
+            }
+            this.logsRefreshing = true;
+            try {
+                const res = await fetch(this.urlLogs);
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to refresh hotspot logs.');
+                }
+                if (data.ok && data.logs) {
+                    this.logs = this.mergeLogs(this.logs, data.logs);
+                    this.logsUpdatedAt = new Date();
+                }
+            } catch (e) {
+                // A transient logs failure must not clear the logs already on screen.
+            } finally {
+                this.logsRefreshing = false;
+            }
+        },
+        mergeLogs(existing, fresh) {
+            if (!fresh || fresh.length === 0) {
+                return existing;
+            }
+            const seen = new Set(existing.map(l => l.id || (l.time + '|' + l.message)));
+            const merged = [];
+            for (const l of fresh) {
+                const key = l.id || (l.time + '|' + l.message);
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    merged.push(l);
+                }
+            }
+            return merged.concat(existing).slice(0, 50);
         },
         timeLabel() {
             return this.lastUpdated ? this.lastUpdated.toLocaleTimeString() : '';

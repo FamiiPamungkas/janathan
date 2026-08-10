@@ -145,23 +145,26 @@ class RouterosClient
     /**
      * Recent hotspot entries from the router system log. Records carry
      * `time`, `topics` and `message` keys in insertion (chronological) order.
+     * Failures are swallowed and reported as an empty result.
      */
     public function getHotspotLogs(): array
     {
-        $this->connect();
-
         try {
-            $query = new Query('/log/print');
-            $query->where('topics','system, info, account');
-
-            $result = $this->client->query($query)->read();
-
-            return is_array($result) ? $result : [];
+            return $this->getHotspotLogsStrict();
         } catch (\Throwable $e) {
-            $this->disconnect();
-
             return [];
         }
+    }
+
+    /**
+     * Like getHotspotLogs() but lets connection/query errors propagate to the
+     * caller, so a genuine empty result can be told apart from a failed query.
+     */
+    public function getHotspotLogsStrict(): array
+    {
+        $result = $this->query('/log/print', ['topics' => 'system, info, account']);
+
+        return is_array($result) ? $result : [];
     }
 
     public function isHotspotAvailable(): bool

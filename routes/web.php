@@ -28,6 +28,7 @@ return function (App $app): void {
         $app->group('/dashboard', function (RouteCollectorProxy $app) {
             $app->get('', DashboardController::class . ':index')->setName('dashboard');
             $app->get('/data', DashboardController::class . ':data')->setName('dashboard.data');
+            $app->get('/logs', DashboardController::class . ':logs')->setName('dashboard.logs');
         });
 
         $app->get('/routers', RouterController::class . ':index')->setName('routers.index');

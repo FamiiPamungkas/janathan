@@ -19,13 +19,75 @@ class DashboardService
      */
     public function getDashboardData(int $routerId): array
     {
-        $router = $this->routers->find($routerId);
+        $data = $this->collect($routerId, withLogs: true);
 
-        if ($router === null) {
-            throw new \RuntimeException('The selected router no longer exists.');
+        return $this->buildData(
+            $data['router'],
+            $data['resource'],
+            $data['active'],
+            $data['users'],
+            $data['hotspotAvailable'],
+            $data['identity'],
+            $data['board'],
+            $data['clock'],
+            $data['logs']
+        );
+    }
+
+    /**
+     * Lightweight payload for the polling `/dashboard/data` endpoint — skips
+     * the expensive system log query so it can refresh quickly and stay
+     * responsive even on weak router hardware.
+     *
+     * @return array{demo: bool, router: array, stats: array, logs: array, hotspotAvailable: bool}
+     */
+    public function getStatsData(int $routerId): array
+    {
+        $data = $this->collect($routerId, withLogs: false);
+
+        return $this->buildData(
+            $data['router'],
+            $data['resource'],
+            $data['active'],
+            $data['users'],
+            $data['hotspotAvailable'],
+            $data['identity'],
+            $data['board'],
+            $data['clock'],
+            $data['logs']
+        );
+    }
+
+    /**
+     * Logs-only payload for `/dashboard/logs`. `ok` tells the client whether
+     * the query succeeded, so a genuine empty result is distinguishable from a
+     * transient failure (which must not clear the logs already on screen).
+     *
+     * @return array{logs: array, ok: bool}
+     */
+    public function getLogsData(int $routerId): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $logs = $client->getHotspotLogsStrict();
+        } catch (\Throwable $e) {
+            return ['logs' => [], 'ok' => false];
+        } finally {
+            $client->disconnect();
         }
 
-        $client = $this->clientFactory->create($this->routers->getCredentials($routerId));
+        return ['logs' => $this->buildLogs($logs), 'ok' => true];
+    }
+
+    /**
+     * @return array{router: array, resource: array, active: array, users: array, clock: array, board: array, identity: ?string, logs: array, hotspotAvailable: bool}
+     */
+    private function collect(int $routerId, bool $withLogs): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        $hotspotAvailable = false;
 
         try {
             $users = $client->getHotspotUsers();
@@ -34,18 +96,48 @@ class DashboardService
             $board = $client->getRouterBoard();
             $active = $client->getActiveUsers();
             $identity = $client->getIdentity();
-            $logs = $client->getHotspotLogs();
+            $logs = $withLogs ? $client->getHotspotLogs() : [];
+            $hotspotAvailable = $client->isHotspotAvailable();
         } catch (\Throwable $e) {
-            throw new \RuntimeException(
-                'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
-                0,
-                $e
-            );
+            throw $this->unreachable($router, $e);
         } finally {
             $client->disconnect();
         }
 
-        return $this->buildData($router, $resource, $active, $users, $client->isHotspotAvailable(), $identity, $board, $clock, $logs);
+        return [
+            'router' => $router,
+            'resource' => $resource,
+            'active' => $active,
+            'users' => $users,
+            'clock' => $clock,
+            'board' => $board,
+            'identity' => $identity,
+            'logs' => $logs,
+            'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    /**
+     * @return array{router: array, client: RouterosClient}
+     */
+    private function connect(int $routerId): array
+    {
+        $router = $this->routers->find($routerId);
+
+        if ($router === null) {
+            throw new \RuntimeException('The selected router no longer exists.');
+        }
+
+        return [$router, $this->clientFactory->create($this->routers->getCredentials($routerId))];
+    }
+
+    private function unreachable(array $router, \Throwable $e): \RuntimeException
+    {
+        return new \RuntimeException(
+            'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
+            0,
+            $e
+        );
     }
 
     private function buildData(
@@ -71,17 +163,6 @@ class DashboardService
 
         foreach ($active as $s) {
             $traffic += (int) ($s['bytes-in'] ?? 0) + (int) ($s['bytes-out'] ?? 0);
-        }
-
-        $logEntries = [];
-
-        foreach ($logs as $l) {
-            $logEntries[] = [
-                'id' => $l['.id'] ?? '',
-                'time' => $l['time'] ?? '',
-                'topics' => $l['topics'] ?? '',
-                'message' => $l['message'] ?? '',
-            ];
         }
 
         $cpu = (int) ($r['cpu-load'] ?? 0);
@@ -121,9 +202,28 @@ class DashboardService
                 'traffic' => $this->formatBytes($traffic),
                 'cpu' => $cpu,
             ],
-            'logs' => array_slice(array_reverse($logEntries), 0, 50),
+            'logs' => $this->buildLogs($logs),
             'hotspotAvailable' => $hotspotAvailable,
         ];
+    }
+
+    /**
+     * Normalize RouterOS log records and return them newest-first, capped at 50.
+     */
+    private function buildLogs(array $logs): array
+    {
+        $entries = [];
+
+        foreach ($logs as $l) {
+            $entries[] = [
+                'id' => $l['.id'] ?? '',
+                'time' => $l['time'] ?? '',
+                'topics' => $l['topics'] ?? '',
+                'message' => $l['message'] ?? '',
+            ];
+        }
+
+        return array_slice(array_reverse($entries), 0, 50);
     }
 
     private function formatBytes(int|float $bytes): string

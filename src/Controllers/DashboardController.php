@@ -60,7 +60,22 @@ class DashboardController
         }
 
         try {
-            $data = $this->dashboard->getDashboardData((int) $_SESSION['router_id']);
+            $data = $this->dashboard->getStatsData((int) $_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            return $this->json($response, ['error' => $e->getMessage()], 502);
+        }
+
+        return $this->json($response, $data);
+    }
+
+    public function logs(Request $request, Response $response): Response
+    {
+        if (empty($_SESSION['router_id'])) {
+            return $this->json($response, ['error' => 'No router selected.'], 401);
+        }
+
+        try {
+            $data = $this->dashboard->getLogsData((int) $_SESSION['router_id']);
         } catch (\Throwable $e) {
             return $this->json($response, ['error' => $e->getMessage()], 502);
         }
