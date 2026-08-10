@@ -178,9 +178,11 @@ class RouterosClient
     }
 
     /**
-     * Execute a hotspot query with graceful fallback: when the hotspot menu is
-     * not available on the router (package missing, not configured, or denied),
-     * an empty result is returned instead of a trap payload.
+     * Execute a hotspot query. When the hotspot menu is not available on the
+     * router (package missing, not configured, or denied), a RouterOS !trap
+     * reply is returned and this method yields an empty result while marking
+     * hotspot as unavailable. Actual connection/API failures are re-thrown so
+     * callers can distinguish "no hotspot" from "failed to fetch".
      */
     private function hotspotQuery(string $command, array $attributes = []): array
     {
@@ -192,7 +194,7 @@ class RouterosClient
         } catch (\Throwable $e) {
             $this->hotspotAvailable = false;
 
-            return [];
+            throw $e;
         }
     }
 
