@@ -70,6 +70,7 @@ return [
 
         $app = $container->get(App::class);
 
+        $twig->addGlobal('app_url', rtrim((string) ($_ENV['APP_URL'] ?? ''), '/'));
         $twig->addFunction(new \Twig\TwigFunction('asset', function (string $path) {
             return '/' . ltrim($path, '/');
         }));
