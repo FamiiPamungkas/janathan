@@ -127,14 +127,10 @@
                 <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'Updated ' + timeLabel()"></span>
                 <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <template x-if="polling">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
-                    </svg>
+                    <i class="lni lni-pause text-base" aria-hidden="true"></i>
                 </template>
                 <template x-if="!polling">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
-                    </svg>
+                    <i class="lni lni-play text-base" aria-hidden="true"></i>
                 </template>
                 <span x-text="polling ? 'Pause refresh' : 'Resume refresh'"></span>
             </button>
@@ -144,9 +140,7 @@
 
     <!-- Connection error notice -->
     <div x-show="error" x-transition class="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 size-5 flex-none text-red-500">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
-        </svg>
+        <i class="lni lni-xmark-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">Connection lost</p>
             <p class="mt-0.5 text-sm" x-text="error"></p>
@@ -156,9 +150,7 @@
     <!-- Hotspot unavailable notice -->
     {% if not hotspotAvailable %}
     <div x-show="!hotspotAvailable" class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 size-5 flex-none">
-            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
-        </svg>
+        <i class="lni lni-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">Hotspot is not available on this router</p>
             <p class="mt-0.5 text-sm">Session and user stats are hidden. Check that the hotspot package is installed and configured, and that the API user has permission to read it.</p>
@@ -171,9 +163,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
-                    </svg>
+                    <i class="lni lni-user-multiple-4 text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Active Sessions</span>
             </div>
@@ -184,9 +174,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5.25a.75.75 0 0 0 .402.66l3.5 2a.75.75 0 0 0 .746-1.302L10.75 9.99V5Z" clip-rule="evenodd" />
-                    </svg>
+                    <i class="lni lni-id-card text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Total Users</span>
             </div>
@@ -197,9 +185,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path d="M10 2a6 6 0 0 0-6 6v3.586l-.707.707A1 1 0 0 0 3.586 15H16.414a1 1 0 0 0 .707-1.707L16 11.586V8a6 6 0 0 0-6-6ZM7 15v1a3 3 0 0 0 6 0v-1h-6Z" />
-                    </svg>
+                    <i class="lni lni-bar-chart-4 text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Traffic</span>
             </div>
@@ -210,9 +196,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path fill-rule="evenodd" d="M15.5 2A1.5 1.5 0 0 0 14 3.5v13a1.5 1.5 0 0 0 1.5 1.5h1a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 16.5 2h-1ZM9.5 6A1.5 1.5 0 0 0 8 7.5v9A1.5 1.5 0 0 0 9.5 18h1a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 10.5 6h-1ZM3.5 10A1.5 1.5 0 0 0 2 11.5v5A1.5 1.5 0 0 0 3.5 18h1A1.5 1.5 0 0 0 6 16.5v-5A1.5 1.5 0 0 0 4.5 10h-1Z" clip-rule="evenodd" />
-                    </svg>
+                    <i class="lni lni-gauge-1 text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">CPU Load</span>
             </div>

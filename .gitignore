@@ -3,5 +3,6 @@
 .idea/
 /public/css/app.css
 /public/js/app.js
+/public/fonts/lineicons/
 /node_modules/
 /database/*.sqlite
