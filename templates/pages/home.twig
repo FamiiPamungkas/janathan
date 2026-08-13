@@ -107,7 +107,7 @@
         }
     }">
     <!-- Page header -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center md:items-start sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -122,9 +122,10 @@
                 <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
             </p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'Updated ' + timeLabel()"></span>
-            <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+        <div>
+            <div class="flex items-center justify-end grow gap-3">
+                <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'Updated ' + timeLabel()"></span>
+                <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <template x-if="polling">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                         <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
@@ -137,12 +138,7 @@
                 </template>
                 <span x-text="polling ? 'Pause refresh' : 'Resume refresh'"></span>
             </button>
-            <a href="{{ url_for('routers.index') }}" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                    <path fill-rule="evenodd" d="M14 6a4 4 0 0 1 4 4v5.25A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25V10a4 4 0 0 1 4-4h8Zm-1.25 5.75a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75Zm-5.5 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
-                </svg>
-                Manage routers
-            </a>
+            </div>
         </div>
     </div>
 
