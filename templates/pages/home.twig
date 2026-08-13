@@ -11,8 +11,8 @@
         hotspotAvailable: {{ hotspotAvailable ? 'true' : 'false' }},
         url: '{{ url_for('dashboard.data')|e('html_attr') }}',
         urlLogs: '{{ url_for('dashboard.logs')|e('html_attr') }}',
-        interval: 5000,
-        logsInterval: 15000,
+        interval: 3000,
+        logsInterval: 3000,
         polling: true,
         lastUpdated: null,
         logsUpdatedAt: null,
@@ -104,15 +104,6 @@
         },
         timeLabel() {
             return this.lastUpdated ? this.lastUpdated.toLocaleTimeString() : '';
-        },
-        topicBadge(topics) {
-            if (topics.includes('error')) {
-                return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300';
-            }
-            if (topics.includes('warning')) {
-                return 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300';
-            }
-            return 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300';
         }
     }">
     <!-- Page header -->
@@ -322,7 +313,7 @@
                         <div class="p-4">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="font-mono text-xs text-zinc-500 dark:text-zinc-400" x-text="l.time"></span>
-                                <span class="inline-flex flex-none items-center rounded-full px-2 py-0.5 text-xs font-medium" x-bind:class="topicBadge(l.topics)" x-text="l.topics"></span>
+                                <span class="inline-flex flex-none items-center rounded-full px-2 py-0.5 text-xs font-medium" x-text="l.user"></span>
                             </div>
                             <p class="mt-2 text-sm whitespace-pre-line break-words text-zinc-700 dark:text-zinc-300" x-text="l.message"></p>
                         </div>
@@ -335,7 +326,7 @@
                         <thead>
                             <tr class="border-b border-zinc-100 dark:border-zinc-700/50">
                                 <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Time</th>
-                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Topics</th>
+                                <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">User (IP)</th>
                                 <th class="px-3 py-2 text-start font-semibold text-zinc-900 dark:text-zinc-50">Message</th>
                             </tr>
                         </thead>
@@ -343,9 +334,7 @@
                             <template x-for="l in logs" :key="l.id">
                                 <tr class="align-top border-t border-zinc-100 even:bg-secondary-50 dark:border-zinc-700/50 dark:even:bg-secondary-900/50">
                                     <td class="px-3 py-2.5 font-mono text-xs whitespace-nowrap text-zinc-600 dark:text-zinc-400" x-text="l.time"></td>
-                                    <td class="px-3 py-2.5">
-                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" x-bind:class="topicBadge(l.topics)" x-text="l.topics"></span>
-                                    </td>
+                                    <td class="px-3 py-2.5 text-zinc-700 whitespace-pre-line break-words dark:text-zinc-300" x-text="l.user"></td>
                                     <td class="px-3 py-2.5 text-zinc-700 whitespace-pre-line break-words dark:text-zinc-300" x-text="l.message"></td>
                                 </tr>
                             </template>

@@ -7,7 +7,11 @@ namespace Fame1302\Janathan\Services;
 use Fame1302\Janathan\Models\RouterosVersion;
 use RouterOS\Client;
 use RouterOS\Config;
+use RouterOS\Exceptions\ClientException;
+use RouterOS\Exceptions\ConfigException;
+use RouterOS\Exceptions\QueryException;
 use RouterOS\Query;
+use Throwable;
 
 class RouterosClient
 {
@@ -52,6 +56,12 @@ class RouterosClient
         $this->client = new Client(new Config($options));
     }
 
+    /**
+     * @throws ClientException
+     * @throws Throwable
+     * @throws QueryException
+     * @throws ConfigException
+     */
     public function query(string $command, array $arguments = []): array
     {
         $this->connect();
@@ -64,7 +74,7 @@ class RouterosClient
             }
 
             return $this->client->query($query)->read();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->disconnect();
             throw $e;
         }
@@ -86,7 +96,7 @@ class RouterosClient
             $result = $this->query('/system/identity/print');
 
             return $result[0]['name'] ?? null;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             error_log("IDENTITY ".$e->getMessage());
             return null;
         }
@@ -96,7 +106,7 @@ class RouterosClient
     {
         try {
             return $this->query('/system/routerboard/print');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return [];
         }
     }
@@ -105,7 +115,7 @@ class RouterosClient
     {
         try {
             return $this->query('/system/clock/print');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return [];
         }
     }
@@ -125,7 +135,7 @@ class RouterosClient
         try {
             $resource = $this->getSystemResource();
             $this->version = RouterosVersion::fromString($resource[0]['version'] ?? null);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->version = null;
         }
 
@@ -143,28 +153,16 @@ class RouterosClient
     }
 
     /**
-     * Recent hotspot entries from the router system log. Records carry
-     * `time`, `topics` and `message` keys in insertion (chronological) order.
-     * Failures are swallowed and reported as an empty result.
+     * Like getHotspotLogs() but lets connection/query errors propagate to the
+     * caller, so a genuine empty result can be told apart from a failed query.
      */
     public function getHotspotLogs(): array
     {
         try {
-            return $this->getHotspotLogsStrict();
-        } catch (\Throwable $e) {
+            return $this->query('/log/print', ['topics' => 'hotspot, info, debug']);
+        }catch (Throwable $e){
             return [];
         }
-    }
-
-    /**
-     * Like getHotspotLogs() but lets connection/query errors propagate to the
-     * caller, so a genuine empty result can be told apart from a failed query.
-     */
-    public function getHotspotLogsStrict(): array
-    {
-        $result = $this->query('/log/print', ['topics' => 'system, info, account']);
-
-        return is_array($result) ? $result : [];
     }
 
     public function isHotspotAvailable(): bool
@@ -196,7 +194,7 @@ class RouterosClient
             }
 
             return $this->client->query($query)->read();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->disconnect();
             throw $e;
         }
@@ -214,7 +212,7 @@ class RouterosClient
             $this->hotspotAvailable = !$this->isTrap($result);
 
             return $this->hotspotAvailable ? $result : [];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->hotspotAvailable = false;
 
             return [];
