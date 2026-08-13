@@ -73,6 +73,9 @@ composer.json
 ## Testing Router Connectivity
 Before building features, verify the RouterOS API connection works standalone (`bin/test-connection.php` or similar) — confirm login, and a simple `/system/resource/print` call succeeds — before wiring it into Slim routes.
 
+## ToDo
+- [ ] **Localization** — internationalize the app (extract UI strings, add translations, locale switching).
+
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.
 - RouterOS API calls are synchronous and can be slow on weak hardware — keep timeouts sane and surface connection errors clearly in the UI rather than failing silently.
