@@ -152,6 +152,11 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/print');
     }
 
+    public function getHotspotProfiles(): array
+    {
+        return $this->hotspotQuery('/ip/hotspot/user/profile/print');
+    }
+
     /**
      * Like getHotspotLogs() but lets connection/query errors propagate to the
      * caller, so a genuine empty result can be told apart from a failed query.
