@@ -11,7 +11,7 @@
 <aside
     x-trap.inert.noscroll="sidebarOpen && window.innerWidth < 1024"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-    class="fixed inset-y-0 left-0 z-50 flex w-48 flex-col border-r border-zinc-200 bg-white transition-transform duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 lg:sticky lg:top-16 lg:z-auto lg:h-[calc(100vh-4rem)] lg:translate-x-0"
+    class="fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-zinc-200 bg-white transition-transform duration-300 ease-in-out dark:border-zinc-700 dark:bg-zinc-900 lg:sticky lg:top-16 lg:z-auto lg:h-[calc(100vh-4rem)] lg:translate-x-0"
 >
     <!-- Mobile header -->
     <div class="flex h-16 flex-none items-center justify-between gap-3 border-b border-zinc-200 px-4 dark:border-zinc-700 lg:hidden">
@@ -47,13 +47,17 @@
                     <i class="lni lni-chevron-down flex-none text-xl opacity-40 transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true"></i>
                 </button>
 
-                <div x-show="open" x-cloak class="ms-6 mt-1 flex flex-col gap-0.5">
-                    <a href="{{ url_for('hotspot.users') }}" class="group flex items-center gap-3 rounded-md px-3 py-1.5 text-sm {% if users_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                <div x-show="open" x-cloak class="relative mt-1 flex flex-col gap-1">
+                    <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-5 w-px bg-zinc-200 dark:bg-zinc-700"></span>
+
+                    <a href="{{ url_for('hotspot.users') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if users_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                        <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if users_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="lni lni-user-multiple-4 flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">User List</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.profiles') }}" class="group flex items-center gap-3 rounded-md px-3 py-1.5 text-sm {% if profiles_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.profiles') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if profiles_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                        <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if profiles_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="lni lni-gear-1 flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Profile List</span>
                     </a>
