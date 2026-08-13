@@ -44,5 +44,6 @@ return function (App $app): void {
         $app->post('/routers/{id}/edit', RouterController::class . ':update')->setName('routers.update');
         $app->post('/routers/{id}/delete', RouterController::class . ':delete')->setName('routers.delete');
         $app->post('/routers/{id}/connect', RouterController::class . ':connect')->setName('routers.connect');
+        $app->post('/routers/disconnect', RouterController::class . ':disconnect')->setName('routers.disconnect');
     })->add(AuthMiddleware::class);
 };

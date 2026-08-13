@@ -139,6 +139,24 @@ class RouterController
         return $this->redirect($response, $request, 'dashboard');
     }
 
+    public function disconnect(Request $request, Response $response): Response
+    {
+        $name = null;
+
+        if (!empty($_SESSION['router_id'])) {
+            $active = $this->routers->find((int) $_SESSION['router_id']);
+            $name = $active['name'] ?? null;
+        }
+
+        unset($_SESSION['router_id']);
+
+        if ($name !== null) {
+            $this->flash->add('success', 'Disconnected from "' . $name . '".');
+        }
+
+        return $this->redirect($response, $request, 'routers.index');
+    }
+
     private function renderForm(
         Request  $request,
         Response $response,
