@@ -48,6 +48,13 @@
     }
 }
 
+/* Buttons should always show a pointer cursor */
+@layer base {
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+}
+
 /* Alpine x-cloak style (https://alpinejs.dev/directives/cloak) */
 @layer base {
     [x-cloak] {
