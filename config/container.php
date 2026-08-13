@@ -83,6 +83,12 @@ return [
             return $app->getRouteCollector()->getRouteParser()->urlFor($name, $params);
         }));
 
+        $twig->addFunction(new \Twig\TwigFunction('path_info', function () {
+            $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+            return $path;
+        }));
+
         $twig->addFunction(new \Twig\TwigFunction('flash', function () use ($container) {
             return $container->get(FlashService::class)->all();
         }));

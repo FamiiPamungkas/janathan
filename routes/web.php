@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Fame1302\Janathan\Controllers\AuthController;
 use Fame1302\Janathan\Controllers\DashboardController;
+use Fame1302\Janathan\Controllers\HotspotController;
 use Fame1302\Janathan\Controllers\RouterController;
 use Fame1302\Janathan\Middleware\AuthMiddleware;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -29,6 +30,11 @@ return function (App $app): void {
             $app->get('', DashboardController::class . ':index')->setName('dashboard');
             $app->get('/data', DashboardController::class . ':data')->setName('dashboard.data');
             $app->get('/logs', DashboardController::class . ':logs')->setName('dashboard.logs');
+        });
+
+        $app->group('/hotspot', function (RouteCollectorProxy $app) {
+            $app->get('/users', HotspotController::class . ':users')->setName('hotspot.users');
+            $app->get('/profiles', HotspotController::class . ':profiles')->setName('hotspot.profiles');
         });
 
         $app->get('/routers', RouterController::class . ':index')->setName('routers.index');

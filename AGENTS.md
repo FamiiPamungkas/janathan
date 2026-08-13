@@ -48,6 +48,7 @@ composer.json
 - Custom colors referenced by Pinemix (e.g. the `secondary` palette used by Table Sorting) are defined in `@theme` in `public/css/index.css` — add any new named colors there, don't use arbitrary inline colors for shared tokens.
 - Dark mode: class-based via the `dark` variant; use the Pinemix Dark Mode Toggle pattern which persists to `localStorage` under key `dark-mode` (`'on' | 'off' | 'system'`). `layout.twig` applies the saved preference before paint to avoid flash.
 - Icons: inline SVGs (Heroicons / Lucide style, as used in Pinemix components) — no icon package.
+- **Keep control sizing consistent and visually balanced.** Standalone icon-only buttons (hamburger, close, theme) should be fixed-size squares (`h-8 w-8` + centered `size-5` icon, `rounded-lg`) so they align with adjacent fixed-size elements (e.g. the 32px app logo in the navbar) — never size them from padding (`p-2` + `size-5` = 36px) next to 32px neighbors. Match the size of whatever the button sits beside, and use one radius (`rounded-lg`) for all small buttons/inputs. Text buttons use `px-3.5 py-2` (primary/secondary) and `px-3 py-1.5` (inline actions) — don't invent new paddings for the same role.
 - After changing any markup, rebuild assets (`npm run build`) and verify the page renders cleanly in both light and dark mode.
 
 ## Setup

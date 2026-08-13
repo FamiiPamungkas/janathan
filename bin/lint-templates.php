@@ -14,6 +14,7 @@ $twig = new \Twig\Environment(new \Twig\Loader\FilesystemLoader($templatesDir), 
 $twig->addFunction(new \Twig\TwigFunction('asset', fn (string $path) => '/' . ltrim($path, '/')));
 $twig->addFunction(new \Twig\TwigFunction('base_path', fn () => ''));
 $twig->addFunction(new \Twig\TwigFunction('url_for', fn (string $name, array $params = []) => $name));
+$twig->addFunction(new \Twig\TwigFunction('path_info', fn () => '/'));
 $twig->addFunction(new \Twig\TwigFunction('flash', fn () => []));
 
 $files = new RecursiveIteratorIterator(
