@@ -6,6 +6,7 @@ use Fame1302\Janathan\Controllers\AuthController;
 use Fame1302\Janathan\Controllers\DashboardController;
 use Fame1302\Janathan\Controllers\HotspotController;
 use Fame1302\Janathan\Controllers\RouterController;
+use Fame1302\Janathan\Controllers\VoucherTemplateController;
 use Fame1302\Janathan\Middleware\AuthMiddleware;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -46,6 +47,17 @@ return function (App $app): void {
             $app->get('/profiles/{id}/edit', HotspotController::class . ':showEdit')->setName('hotspot.profiles.edit');
             $app->post('/profiles/{id}/edit', HotspotController::class . ':update')->setName('hotspot.profiles.update');
             $app->post('/profiles/{id}/delete', HotspotController::class . ':delete')->setName('hotspot.profiles.delete');
+        });
+
+        $app->group('/voucher-templates', function (RouteCollectorProxy $app) {
+            $app->get('', VoucherTemplateController::class . ':index')->setName('voucher_templates.index');
+            $app->get('/create', VoucherTemplateController::class . ':showCreate')->setName('voucher_templates.create');
+            $app->post('', VoucherTemplateController::class . ':create')->setName('voucher_templates.store');
+            $app->get('/{id}/edit', VoucherTemplateController::class . ':showEdit')->setName('voucher_templates.edit');
+            $app->post('/{id}/edit', VoucherTemplateController::class . ':update')->setName('voucher_templates.update');
+            $app->post('/{id}/delete', VoucherTemplateController::class . ':delete')->setName('voucher_templates.delete');
+            $app->get('/{id}/preview', VoucherTemplateController::class . ':preview')->setName('voucher_templates.preview');
+            $app->get('/{id}/preview-render', VoucherTemplateController::class . ':previewRender')->setName('voucher_templates.preview_render');
         });
 
         $app->get('/routers', RouterController::class . ':index')->setName('routers.index');

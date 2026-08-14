@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="pragma" content="no-cache">
+    <title>Voucher-{hotspotname}-{getuprofile}-{id}</title>
+    <link rel="icon" href="../img/favicon.png" />
+    <style>
+        @page {
+            size: auto;
+            margin: 15mm 3mm 3mm 7mm;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                background: #fff;
+            }
+
+            table {
+                page-break-after: auto
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto
+            }
+
+            td {
+                page-break-inside: avoid;
+                page-break-after: auto
+            }
+
+            thead {
+                display: table-header-group
+            }
+
+            tfoot {
+                display: table-footer-group
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /*background: #ebebeb;*/
+            padding: 16px;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+
+        #result {
+            display: block;
+        }
+
+        .card {
+            float: left;
+            width: 220px;
+            border: solid 1px black;
+            border-radius: 5px;
+            position: relative;
+            justify-content: space-between;
+            font-size: .7rem;
+            margin: 3px;
+            display: inline-block;
+            overflow: hidden;
+        }
+
+        .card .left-area {
+            padding: 6px 6px 3px;
+            width: 75px;
+            /*position: absolute;*/
+        }
+
+        .card .right-area {
+            padding: 0 0 3px 0;
+            width: 70%;
+            text-align: right;
+        }
+
+        .card .left-area .price {
+            font-size: 1.2rem;
+            line-height: 1rem;
+            font-weight: bold;
+        }
+
+        .card .left-area .duration {
+            color: gray;
+        }
+        .card .left-area .currency {
+            font-weight: bold;
+        }
+
+        .bg-w {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.80);
+            clip-path: polygon(40% 0, 100% 0, 100% 100%, 30% 100%);
+            left: 0;
+            top: 0;
+            z-index: 0;
+        }
+
+        .bg {
+            z-index: 0;
+            background-color: rgb(211, 0, 0);
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            clip-path: polygon(30% 0, 100% 0, 100% 100%, 30% 100%, 35% 50%);
+        }
+
+        .data {
+            position: relative;
+            z-index: 100;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .up {
+            width: 100px;
+        }
+
+        .left {
+            text-align: left;
+        }
+
+        table td.tight {
+            border-spacing: 0;
+            line-height: .7rem;
+        }
+
+        .brand {
+            position: absolute;
+            top: 2px;
+            right: 5px;
+        }
+
+        .d-none {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="data" class="d-none">
+    <div data-item>
+        <p data-profile>{profile}</p>
+        <p data-price>{price}</p>
+        <p data-color>{color}</p>
+        <p data-user>{username}</p>
+        <p data-pass>{password}</p>
+    </div>
+</div>
+<div id="result"></div>
+<table id="voucher" class="card d-none">
+    <tr>
+        <td class="left-area">
+            <div class="duration bold" data-duration></div>
+            <div class="price" data-price>------</div>
+            <div class="currency">RUPIAH</div>
+        </td>
+        <td class="right-area">
+            <div class="bg"></div>
+            <div class="bg-w"></div>
+            <span class="brand bold" data-brand>FamiiComp</span>
+            <table class="data">
+                <tr>
+                    <td colspan="3" class="bold"> </td>
+                </tr>
+                <tr>
+                    <td>   </td>
+                    <td class="up left tight">Username</td>
+                    <td class="up left tight">Password</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td class="up left tight">
+                        <span class="bold" data-username>-----</span>
+                    </td>
+                    <td class="up left tight">
+                        <span class="bold" data-password>-----</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+<script>
+
+    const dataEl = document.getElementById("data");
+    const itemEl = document.querySelector("[data-item]");
+    const voucherEl = document.getElementById("voucher");
+    const resultEl = document.getElementById("result");
+    const count = 90;
+
+    // generateDummyData();
+    createVoucher();
+
+    function randomString(length) {
+        if (!length) length = 4;
+
+        let string = "";
+        while (string.length < length) {
+            string += randomChar();
+        }
+        return string;
+    }
+
+    function randomChar() {
+        const alphanum = "abcdefghijklmnopqrstu1234567890";
+        const array = alphanum.split("");
+        const s = Math.random() * array.length;
+        const index = Math.round(s);
+        return array[index] ?? "";
+    }
+
+    function generateDummyData() {
+        for (let i = 1; i < count; i++) {
+            const clone = itemEl.cloneNode(true);
+
+            const profileEl = clone.querySelector("[data-profile]");
+            const priceEl = clone.querySelector("[data-price]");
+            const colorEl = clone.querySelector("[data-color]");
+            const userEl = clone.querySelector("[data-user]");
+            const passEl = clone.querySelector("[data-pass]");
+
+            let price = 2000;
+            let profile = "";
+            let color = "";
+            const rand = Math.random() * 10;
+            if (rand < 4) {
+                price = 2000
+                profile = "5 JAM"
+                color = "#00C49A"
+            } else if (rand > 5) {
+                price = 30000
+                profile = "1 BULAN"
+                color = "#9e2ca1"
+            } else {
+                price = 4000;
+                profile = "1 HARI"
+                color = "#ff9451"
+            }
+
+            priceEl.textContent = price;
+            profileEl.textContent = profile;
+            colorEl.textContent = color;
+            userEl.textContent = randomString(6);
+            passEl.textContent = randomString(4);
+
+            dataEl.append(clone);
+
+        }
+        createVoucher();
+    }
+
+    function shadeColor(hex, percent) {
+        const num = parseInt(hex.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+        const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amt));
+        const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+        return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function createVoucher() {
+        let i = 1;
+        for (const item of dataEl.children) {
+            const clone = voucherEl.cloneNode(true);
+            clone.classList.remove("d-none");
+
+            const priceEl = clone.querySelector("[data-price]");
+            const usernameEl = clone.querySelector("[data-username]");
+            const passwordEl = clone.querySelector("[data-password]");
+            const durationEl = clone.querySelector("[data-duration]");
+            const brandEl = clone.querySelector("[data-brand]");
+            const backgroundEl = clone.querySelector("[class=bg]");
+
+            const priceStr = item.querySelector("[data-price]");
+            const price = parseFloat(priceStr.textContent) || 0;
+            priceEl.innerHTML = new Intl.NumberFormat('id-ID', {
+                maximumFractionDigits: 0,
+            }).format(price);
+
+            const profile = item.querySelector("[data-profile]").textContent;
+            passwordEl.innerHTML = item.querySelector("[data-pass]").textContent;
+            usernameEl.innerHTML = item.querySelector("[data-user]").textContent;
+            durationEl.innerHTML = profile.toUpperCase() || "------";
+            brandEl.innerHTML = brandEl.innerHTML + ` [`+i+`]`;
+
+            const color = (item.querySelector("[data-color]")?.textContent || "").trim();
+            if (color) {
+                clone.style.borderColor = shadeColor(color, -25);
+                backgroundEl.style.backgroundColor = color;
+                brandEl.style.color = shadeColor(color, -30);
+            }
+
+            resultEl.append(clone);
+            i++;
+        }
+    }
+
+</script>
+</body>
+</html>

@@ -8,6 +8,8 @@ use Fame1302\Janathan\Services\HotspotProfileRepository;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
 use Fame1302\Janathan\Services\UserRepository;
+use Fame1302\Janathan\Services\VoucherTemplateRepository;
+use Fame1302\Janathan\Services\VoucherTemplateRenderer;
 use Psr\Container\ContainerInterface;
 use Slim\App;
 use Slim\Factory\AppFactory;
@@ -73,6 +75,12 @@ return [
     RouterRepository::class => function (ContainerInterface $container) {
         return new RouterRepository($container->get(PDO::class), $container->get(CryptoService::class));
     },
+
+    VoucherTemplateRepository::class => function (ContainerInterface $container) {
+        return new VoucherTemplateRepository($container->get(PDO::class));
+    },
+
+    VoucherTemplateRenderer::class => fn (ContainerInterface $container) => new VoucherTemplateRenderer(),
 
     HotspotProfileRepository::class => function (ContainerInterface $container) {
         return new HotspotProfileRepository($container->get(PDO::class));

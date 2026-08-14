@@ -56,6 +56,16 @@ $pdo->exec(
         updated_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE (router_id, profile_id)
     );
+
+    CREATE TABLE IF NOT EXISTS voucher_templates (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL UNIQUE,
+        header     TEXT NOT NULL DEFAULT '',
+        row        TEXT NOT NULL DEFAULT '',
+        footer     TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     SQL
 );
 
