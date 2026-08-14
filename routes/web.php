@@ -35,6 +35,11 @@ return function (App $app): void {
         $app->group('/hotspot', function (RouteCollectorProxy $app) {
             $app->get('/users', HotspotController::class . ':users')->setName('hotspot.users');
             $app->get('/profiles', HotspotController::class . ':profiles')->setName('hotspot.profiles');
+            $app->get('/profiles/create', HotspotController::class . ':showCreate')->setName('hotspot.profiles.create');
+            $app->post('/profiles', HotspotController::class . ':create')->setName('hotspot.profiles.store');
+            $app->get('/profiles/{id}/edit', HotspotController::class . ':showEdit')->setName('hotspot.profiles.edit');
+            $app->post('/profiles/{id}/edit', HotspotController::class . ':update')->setName('hotspot.profiles.update');
+            $app->post('/profiles/{id}/delete', HotspotController::class . ':delete')->setName('hotspot.profiles.delete');
         });
 
         $app->get('/routers', RouterController::class . ':index')->setName('routers.index');

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Services;
 
+use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Models\RouterosVersion;
+use Fame1302\Janathan\Support\Logger;
 use RouterOS\Client;
 use RouterOS\Config;
 use RouterOS\Exceptions\ClientException;
@@ -27,11 +29,12 @@ class RouterosClient
         private string $host,
         private string $user,
         private string $pass,
-        private int $port = 8728,
-        private bool $ssl = false,
-        private bool $legacy = false,
-        private int $socketTimeout = 10
-    ) {
+        private int    $port = 8728,
+        private bool   $ssl = false,
+        private bool   $legacy = false,
+        private int    $socketTimeout = 10
+    )
+    {
     }
 
     public function connect(): void
@@ -97,7 +100,7 @@ class RouterosClient
 
             return $result[0]['name'] ?? null;
         } catch (Throwable $e) {
-            error_log("IDENTITY ".$e->getMessage());
+            error_log("IDENTITY " . $e->getMessage());
             return null;
         }
     }
@@ -157,6 +160,36 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');
     }
 
+    public function getIpPools(): array
+    {
+        return $this->query('/ip/pool/print');
+    }
+
+    public function getHotspotProfile(string $id): ?array
+    {
+        $result = $this->query('/ip/hotspot/user/profile/print', ['.id' => $id]);
+        return $result[0] ?? null;
+    }
+
+    public function addHotspotProfile(array $fields): void
+    {
+        Logger::log("ADD HOTSPOT PROFILE ", $fields);
+        $result = $this->rawQuery('/ip/hotspot/user/profile/add', $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function setHotspotProfile(string $id, array $fields): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/user/profile/set', ['.id' => $id] + $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function removeHotspotProfile(string $id): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/user/profile/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     /**
      * Like getHotspotLogs() but lets connection/query errors propagate to the
      * caller, so a genuine empty result can be told apart from a failed query.
@@ -165,7 +198,7 @@ class RouterosClient
     {
         try {
             return $this->query('/log/print', ['topics' => 'hotspot, info, debug']);
-        }catch (Throwable $e){
+        } catch (Throwable $e) {
             return [];
         }
     }
@@ -237,5 +270,26 @@ class RouterosClient
         }
 
         return false;
+    }
+
+    /**
+     * Throw when a write command came back as a RouterOS `!trap`, surfacing
+     * the router's own message (e.g. a duplicate profile name).
+     *
+     * @throws RouterosCommandException
+     */
+    private function assertNotTrap(array $result): void
+    {
+        foreach ($result as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $message = $row['message'] ?? $row['after']['message'] ?? null;
+
+            if (is_string($message) && $message !== '') {
+                throw new RouterosCommandException($message);
+            }
+        }
     }
 }
