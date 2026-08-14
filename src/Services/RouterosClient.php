@@ -196,11 +196,20 @@ class RouterosClient
         return $result[0] ?? null;
     }
 
-    public function addHotspotProfile(array $fields): void
+    /**
+     * Add a hotspot user profile and return the RouterOS `.id` of the new
+     * entry (from the `!done` reply's `ret` attribute), or null when the
+     * router did not provide one.
+     */
+    public function addHotspotProfile(array $fields): ?string
     {
         Logger::log("ADD HOTSPOT PROFILE ", $fields);
         $result = $this->rawQuery('/ip/hotspot/user/profile/add', $fields);
         $this->assertNotTrap($result);
+
+        $ret = $result['after']['ret'] ?? null;
+
+        return is_string($ret) && $ret !== '' ? $ret : null;
     }
 
     public function setHotspotProfile(string $id, array $fields): void

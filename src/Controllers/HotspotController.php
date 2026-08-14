@@ -481,7 +481,7 @@ class HotspotController
     }
 
     /**
-     * @return array{name: string, rate_limit: string, shared_users: string, add_mac_cookie: bool, address_pool: string, on_login: string, on_logout: string}
+     * @return array{name: string, rate_limit: string, shared_users: string, add_mac_cookie: bool, address_pool: string, on_login: string, on_logout: string, color: string, price: string}
      */
     private function extractValues(mixed $body): array
     {
@@ -495,6 +495,8 @@ class HotspotController
             'address_pool' => trim((string)($body['address_pool'] ?? '')),
             'on_login' => trim((string)($body['on_login'] ?? '')),
             'on_logout' => trim((string)($body['on_logout'] ?? '')),
+            'color' => trim((string)($body['color'] ?? '')),
+            'price' => trim((string)($body['price'] ?? '')),
         ];
     }
 
@@ -525,6 +527,18 @@ class HotspotController
         foreach (['on_login', 'on_logout'] as $field) {
             if (strlen($values[$field]) > 4096) {
                 $errors[$field] = 'Script must be 4096 characters or fewer.';
+            }
+        }
+
+        if ($values['color'] !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $values['color']) !== 1) {
+            $errors['color'] = 'Color must be a hex value like #14b8a6.';
+        }
+
+        if ($values['price'] !== '') {
+            if (!is_numeric($values['price']) || (float)$values['price'] < 0) {
+                $errors['price'] = 'Price must be a number of 0 or more.';
+            } elseif ((float)$values['price'] > 999999999) {
+                $errors['price'] = 'Price is too large.';
             }
         }
 

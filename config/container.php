@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Fame1302\Janathan\Services\CryptoService;
 use Fame1302\Janathan\Services\FlashService;
+use Fame1302\Janathan\Services\HotspotProfileRepository;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
 use Fame1302\Janathan\Services\UserRepository;
@@ -42,6 +43,22 @@ return [
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $pdo->exec('PRAGMA foreign_keys = ON');
 
+        $pdo->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS hotspot_profiles (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                router_id  INTEGER NOT NULL,
+                profile_id TEXT NOT NULL,
+                name       TEXT NOT NULL,
+                color      TEXT NOT NULL DEFAULT '',
+                price      REAL NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (router_id, profile_id)
+            );
+            SQL
+        );
+
         return $pdo;
     },
 
@@ -55,6 +72,10 @@ return [
 
     RouterRepository::class => function (ContainerInterface $container) {
         return new RouterRepository($container->get(PDO::class), $container->get(CryptoService::class));
+    },
+
+    HotspotProfileRepository::class => function (ContainerInterface $container) {
+        return new HotspotProfileRepository($container->get(PDO::class));
     },
 
     RouterosClientFactory::class => fn (ContainerInterface $container) => new RouterosClientFactory(),

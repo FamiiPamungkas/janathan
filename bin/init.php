@@ -44,6 +44,18 @@ $pdo->exec(
         created_at   TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS hotspot_profiles (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        router_id  INTEGER NOT NULL,
+        profile_id TEXT NOT NULL,
+        name       TEXT NOT NULL,
+        color      TEXT NOT NULL DEFAULT '',
+        price      REAL NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (router_id, profile_id)
+    );
     SQL
 );
 

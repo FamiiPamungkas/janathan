@@ -12,8 +12,9 @@ use Throwable;
 readonly class HotspotService
 {
     public function __construct(
-        private RouterRepository      $routers,
-        private RouterosClientFactory $clientFactory
+        private RouterRepository           $routers,
+        private RouterosClientFactory      $clientFactory,
+        private HotspotProfileRepository   $profileMeta
     )
     {
     }
@@ -257,7 +258,7 @@ readonly class HotspotService
 
         return [
             'router' => $router,
-            'profiles' => $this->buildProfiles($profiles),
+            'profiles' => $this->buildProfiles($routerId, $profiles, $hotspotAvailable),
             'hotspotAvailable' => $hotspotAvailable,
         ];
     }
@@ -278,7 +279,24 @@ readonly class HotspotService
             $client->disconnect();
         }
 
-        return $profile === null ? null : $this->buildProfile($profile);
+        if ($profile === null) {
+            return null;
+        }
+
+        $built = $this->buildProfile($profile);
+
+        $meta = $this->profileMeta->findByProfileId($routerId, $id);
+        if ($meta === null) {
+            $meta = $this->profileMeta->findByName($routerId, $built['name']);
+            if ($meta !== null) {
+                $this->profileMeta->heal((int)$meta['id'], $routerId, $id, $built['name']);
+            }
+        }
+
+        $built['color'] = (string)($meta['color'] ?? '');
+        $built['price'] = $meta !== null ? (string)(float)$meta['price'] : '';
+
+        return $built;
     }
 
     /**
@@ -315,8 +333,14 @@ readonly class HotspotService
      */
     public function createProfile(int $routerId, array $values): void
     {
-        $this->write($routerId, fn(RouterosClient $client) => $client->addHotspotProfile($this->normalizeFields($values))
+        $newId = $this->write(
+            $routerId,
+            fn(RouterosClient $client) => $client->addHotspotProfile($this->normalizeFields($values))
         );
+
+        if (is_string($newId) && $newId !== '') {
+            $this->saveProfileMeta($routerId, $newId, $values);
+        }
     }
 
     /**
@@ -324,8 +348,12 @@ readonly class HotspotService
      */
     public function updateProfile(int $routerId, string $id, array $values): void
     {
-        $this->write($routerId, fn(RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values))
+        $this->write(
+            $routerId,
+            fn(RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values))
         );
+
+        $this->saveProfileMeta($routerId, $id, $values);
     }
 
     /**
@@ -334,14 +362,16 @@ readonly class HotspotService
     public function removeProfile(int $routerId, string $id): void
     {
         $this->write($routerId, fn(RouterosClient $client) => $client->removeHotspotProfile($id));
+
+        $this->profileMeta->delete($routerId, $id);
     }
 
-    private function write(int $routerId, callable $operation): void
+    private function write(int $routerId, callable $operation): mixed
     {
         [$router, $client] = $this->connect($routerId);
 
         try {
-            $operation($client);
+            return $operation($client);
         } catch (RouterosCommandException $e) {
             throw $e;
         } catch (Throwable $e) {
@@ -349,6 +379,27 @@ readonly class HotspotService
         } finally {
             $client->disconnect();
         }
+    }
+
+    /**
+     * Persist the local (SQLite) half of a profile: voucher color and price.
+     */
+    private function saveProfileMeta(int $routerId, string $profileId, array $values): void
+    {
+        $this->profileMeta->upsert(
+            $routerId,
+            $profileId,
+            (string)$values['name'],
+            (string)($values['color'] ?? ''),
+            $this->normalizePrice($values['price'] ?? '')
+        );
+    }
+
+    private function normalizePrice(mixed $price): float
+    {
+        $price = trim((string)$price);
+
+        return $price === '' ? 0.0 : (float)$price;
     }
 
     /**
@@ -500,17 +551,54 @@ readonly class HotspotService
         return $fields;
     }
 
-    private function buildProfiles(array $profiles): array
+    /**
+     * Merge RouterOS profiles with their local metadata. Meta rows are matched
+     * by profile_id first and by name second; mismatches are healed so rows
+     * survive both renames and `.id` changes (backup restore / netinstall).
+     * Rows that match nothing are cleaned up, but only when the hotspot menu
+     * is genuinely readable — an empty list from an unavailable router must
+     * never wipe stored metadata.
+     */
+    private function buildProfiles(int $routerId, array $profiles, bool $hotspotAvailable): array
     {
+        $byId = [];
+        $byName = [];
+        foreach ($this->profileMeta->allForRouter($routerId) as $m) {
+            $byId[(string)$m['profile_id']] = $m;
+            $byName[(string)$m['name']] = $m;
+        }
+
         $rows = [];
+        $matchedIds = [];
 
         foreach ($profiles as $p) {
+            $profileId = (string)($p['.id'] ?? '');
+            $name = (string)($p['name'] ?? '');
+
+            $meta = $byId[$profileId] ?? null;
+            if ($meta === null && $name !== '') {
+                $meta = $byName[$name] ?? null;
+            }
+
+            if ($meta !== null) {
+                if ((string)$meta['profile_id'] !== $profileId || (string)$meta['name'] !== $name) {
+                    $this->profileMeta->heal((int)$meta['id'], $routerId, $profileId, $name);
+                }
+                $matchedIds[] = (int)$meta['id'];
+            }
+
             $rows[] = [
-                'id' => $p['.id'] ?? '',
-                'name' => $p['name'] ?? '',
+                'id' => $profileId,
+                'name' => $name,
                 'rate_limit' => $p['rate-limit'] ?? '-',
                 'shared_users' => $p['shared-users'] ?? '-',
+                'color' => (string)($meta['color'] ?? ''),
+                'price' => $meta !== null ? (float)$meta['price'] : null,
             ];
+        }
+
+        if ($hotspotAvailable) {
+            $this->profileMeta->deleteUnmatched($routerId, $matchedIds);
         }
 
         return $rows;
