@@ -155,6 +155,31 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/print');
     }
 
+    public function getHotspotUser(string $id): ?array
+    {
+        $result = $this->query('/ip/hotspot/user/print', ['.id' => $id]);
+
+        return $result[0] ?? null;
+    }
+
+    public function addHotspotUser(array $fields): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/user/add', $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function setHotspotUser(string $id, array $fields): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/user/set', ['.id' => $id] + $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function removeHotspotUser(string $id): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/user/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     public function getHotspotProfiles(): array
     {
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');

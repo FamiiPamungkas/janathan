@@ -28,7 +28,149 @@ class HotspotController
 
     public function users(Request $request, Response $response): Response
     {
-        return $this->renderPlaceholder($response, 'User List');
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $params = $request->getQueryParams();
+        $filters = [
+            'q' => isset($params['q']) ? trim((string)$params['q']) : '',
+            'profile' => isset($params['profile']) ? trim((string)$params['profile']) : '',
+            'comment' => isset($params['comment']) ? trim((string)$params['comment']) : '',
+            'status' => isset($params['status']) ? trim((string)$params['status']) : 'all',
+        ];
+
+        try {
+            $data = $this->hotspot->getUsers((int)$_SESSION['router_id'], $filters);
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($response, $e);
+        }
+
+        $html = $this->twig->render('pages/hotspot/users.twig', $data);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    public function showCreateUser(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $params = $request->getQueryParams();
+        $defaults = [];
+        if (isset($params['profile']) && trim((string)$params['profile']) !== '') {
+            $defaults['profile'] = trim((string)$params['profile']);
+        }
+
+        return $this->renderUserForm($request, $response, null, [], $defaults);
+    }
+
+    public function createUser(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $values = $this->extractUserValues($request->getParsedBody());
+        $errors = $this->validateUser($values, false);
+
+        if ($errors !== []) {
+            return $this->renderUserForm($request, $response, null, $errors, $values);
+        }
+
+        try {
+            $this->hotspot->createUser((int)$_SESSION['router_id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapUserRouterError($e->getMessage());
+
+            return $this->renderUserForm($request, $response, null, $fieldErrors + $errors, $values, $banner);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+        }
+
+        $this->flash->add('success', 'User "' . $values['name'] . '" created.');
+
+        return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+    }
+
+    public function showEditUser(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $user = $this->hotspot->getUser((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($response, $e);
+        }
+
+        if ($user === null) {
+            $this->flash->add('error', 'User not found.');
+
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        return $this->renderUserForm($request, $response, $user, []);
+    }
+
+    public function updateUser(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $values = $this->extractUserValues($request->getParsedBody());
+        $errors = $this->validateUser($values, true);
+
+        if ($errors !== []) {
+            $values['id'] = $args['id'];
+
+            return $this->renderUserForm($request, $response, $values, $errors, $values);
+        }
+
+        try {
+            $this->hotspot->updateUser((int)$_SESSION['router_id'], $args['id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapUserRouterError($e->getMessage());
+            $values['id'] = $args['id'];
+
+            return $this->renderUserForm($request, $response, $values, $fieldErrors + $errors, $values, $banner);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        $this->flash->add('success', 'User "' . $values['name'] . '" updated.');
+
+        return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+    }
+
+    public function deleteUser(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = $request->getParsedBody();
+        $profile = is_array($body) ? trim((string)($body['profile'] ?? '')) : '';
+
+        try {
+            $this->hotspot->removeUser((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+        }
+
+        $this->flash->add('success', 'User removed.');
+
+        return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
     }
 
     public function profiles(Request $request, Response $response): Response
@@ -224,14 +366,118 @@ class HotspotController
         return $response->withStatus($errors !== [] ? 422 : 200);
     }
 
-    private function renderPlaceholder(Response $response, string $title): Response
-    {
-        $html = $this->twig->render('pages/hotspot/placeholder.twig', [
-            'title' => $title,
+    private function renderUserForm(
+        Request  $request,
+        Response $response,
+        ?array   $user,
+        array    $errors,
+        array    $values = [],
+        ?string  $errorBanner = null
+    ): Response {
+        $profiles = [];
+
+        try {
+            $profiles = $this->hotspot->getProfileNames((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            if ($errorBanner === null) {
+                $errorBanner = $e->getMessage();
+            }
+        }
+
+        $listProfile = $values['profile'] ?? ($user['profile'] ?? null);
+        $html = $this->twig->render('pages/hotspot/user_form.twig', [
+            'user' => $user,
+            'errors' => $errors,
+            'values' => $values,
+            'profiles' => $profiles,
+            'errorBanner' => $errorBanner,
+            'formAction' => $user === null ? 'hotspot.users.store' : 'hotspot.users.update',
+            'formParams' => $user === null ? [] : ['id' => $user['id']],
+            'isEdit' => $user !== null,
+            'listProfile' => is_string($listProfile) && $listProfile !== '' ? $listProfile : null,
         ]);
         $response->getBody()->write($html);
 
-        return $response;
+        return $response->withStatus($errors !== [] ? 422 : 200);
+    }
+
+    private function redirectUsers(Response $response, Request $request, ?string $profile): Response
+    {
+        $url = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser()->urlFor('hotspot.users');
+        if ($profile !== null && $profile !== '') {
+            $url .= '?profile=' . rawurlencode($profile);
+        }
+
+        return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
+    /**
+     * @return array{name: string, password: string, profile: string, comment: string, disabled: bool}
+     */
+    private function extractUserValues(mixed $body): array
+    {
+        $body = is_array($body) ? $body : [];
+
+        return [
+            'name' => trim((string)($body['name'] ?? '')),
+            'password' => (string)($body['password'] ?? ''),
+            'profile' => trim((string)($body['profile'] ?? '')),
+            'comment' => trim((string)($body['comment'] ?? '')),
+            'disabled' => !empty($body['disabled']),
+        ];
+    }
+
+    private function validateUser(array $values, bool $isEdit): array
+    {
+        $errors = [];
+
+        if ($values['name'] === '') {
+            $errors['name'] = 'Name is required.';
+        } elseif (mb_strlen($values['name']) > 247) {
+            $errors['name'] = 'Name must be 247 characters or fewer.';
+        }
+
+        if (!$isEdit && $values['password'] === '') {
+            $errors['password'] = 'Password is required.';
+        } elseif ($values['password'] !== '' && mb_strlen($values['password']) > 247) {
+            $errors['password'] = 'Password must be 247 characters or fewer.';
+        }
+
+        if ($values['profile'] === '') {
+            $errors['profile'] = 'Profile is required.';
+        }
+
+        if (mb_strlen($values['comment']) > 4096) {
+            $errors['comment'] = 'Comment must be 4096 characters or fewer.';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function mapUserRouterError(string $message): array
+    {
+        $map = [
+            'name' => 'name',
+            'password' => 'password',
+            'profile' => 'profile',
+            'comment' => 'comment',
+            'disabled' => 'disabled',
+        ];
+
+        if (preg_match("/unknown parameter ['\"]?([a-z0-9-]+)['\"]?/i", $message, $m) === 1) {
+            $attr = strtolower($m[1]);
+            if (isset($map[$attr])) {
+                return [
+                    $message,
+                    [$map[$attr] => 'Router rejected this field (' . $attr . '). ' . $message],
+                ];
+            }
+        }
+
+        return [$message, []];
     }
 
     /**

@@ -1,0 +1,227 @@
+{% extends "layout.twig" %}
+
+{% block title %}User List - Hotspot - Janathan{% endblock %}
+
+{% block content %}
+{% set profileFilter = filters.profile|default('') %}
+{% set hasFilters = filtersActive|default(false) %}
+<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight">User List</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <span class="inline-flex items-center gap-1.5">
+                <span class="relative flex size-2">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>
+                    <span class="relative inline-flex size-2 rounded-full bg-teal-500"></span>
+                </span>
+                {{ router.name }}
+            </span>
+            <span class="mx-1.5 text-zinc-300 dark:text-zinc-700">·</span>
+            <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
+        </p>
+    </div>
+    <a href="{{ url_for('hotspot.users.create') }}{% if profileFilter %}?profile={{ profileFilter|url_encode }}{% endif %}"
+        class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+        <i class="lni lni-plus text-base" aria-hidden="true"></i>
+        Add user
+    </a>
+</div>
+
+<div class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+    <form method="get" action="{{ url_for('hotspot.users') }}" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+        <div class="sm:col-span-2 lg:col-span-3">
+            <label for="filter-q" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Search</label>
+            <div class="relative">
+                <i class="lni lni-search-1 pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-base text-zinc-400" aria-hidden="true"></i>
+                <input type="search" id="filter-q" name="q" value="{{ filters.q|default('') }}" placeholder="Name or comment…"
+                    class="block w-full rounded-lg border border-zinc-300 bg-white py-2 pe-3 ps-9 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+            </div>
+        </div>
+        <div class="lg:col-span-2">
+            <label for="filter-profile" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Profile</label>
+            <select id="filter-profile" name="profile"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="" {% if profileFilter == '' %}selected{% endif %}>All profiles</option>
+                {% for p in profiles %}
+                <option value="{{ p }}" {% if profileFilter == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="lg:col-span-3">
+            <label for="filter-comment" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Comment</label>
+            <select id="filter-comment" name="comment"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="" {% if filters.comment|default('') == '' %}selected{% endif %}>All comments</option>
+                {% for c in comments %}
+                <option value="{{ c }}" {% if filters.comment|default('') == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="lg:col-span-2">
+            <label for="filter-status" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Status</label>
+            <select id="filter-status" name="status"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="all" {% if filters.status|default('all') == 'all' %}selected{% endif %}>All</option>
+                <option value="enabled" {% if filters.status|default('all') == 'enabled' %}selected{% endif %}>Enabled</option>
+                <option value="disabled" {% if filters.status|default('all') == 'disabled' %}selected{% endif %}>Disabled</option>
+            </select>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
+            <button type="submit"
+                class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700 sm:flex-none">
+                <i class="lni lni-funnel text-base" aria-hidden="true"></i>
+                Filter
+            </button>
+            <a href="{{ url_for('hotspot.users') }}"
+                class="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 sm:flex-none">
+                Reset
+            </a>
+        </div>
+    </form>
+    {% if hasFilters %}
+    <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        Showing <span class="font-medium tabular-nums text-zinc-700 dark:text-zinc-300">{{ users|length }}</span>
+        user{% if users|length != 1 %}s{% endif %} matching filters
+    </p>
+    {% endif %}
+</div>
+
+{% if not hotspotAvailable %}
+<div class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+    <i class="lni lni-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
+    <div>
+        <p class="text-sm font-semibold">Hotspot is not available on this router</p>
+        <p class="mt-0.5 text-sm">Users cannot be listed. Check that the hotspot package is installed and configured, and that the API user has permission to read it.</p>
+    </div>
+</div>
+{% endif %}
+
+{% if users is empty %}
+<div class="mt-8 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-700/50">
+        <i class="lni lni-user-4 text-2xl text-zinc-400" aria-hidden="true"></i>
+    </div>
+    <h2 class="mt-4 text-base font-semibold">No users found</h2>
+    <p class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+        {% if hasFilters %}
+            No hotspot users match the current filters.
+            <a href="{{ url_for('hotspot.users') }}" class="font-medium text-teal-600 hover:underline dark:text-teal-400">Clear filters</a>
+        {% else %}
+            This router has no hotspot users yet. Create one to get started.
+        {% endif %}
+    </p>
+</div>
+{% else %}
+<!-- Mobile: stacked cards -->
+<div class="mt-6 grid grid-cols-1 gap-3 md:hidden">
+    {% for user in users %}
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
+                <i class="lni lni-user-4 text-xl" aria-hidden="true"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="truncate font-semibold">{{ user.name }}</p>
+                <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ user.profile ?: '—' }}</p>
+            </div>
+            {% if user.disabled %}
+            <span class="inline-flex flex-none items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Disabled</span>
+            {% else %}
+            <span class="inline-flex flex-none items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">Enabled</span>
+            {% endif %}
+        </div>
+        <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm">
+            {% if user.comment %}
+            <div class="flex items-center justify-between gap-4">
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Comment</dt>
+                <dd class="truncate text-xs text-zinc-600 dark:text-zinc-400">{{ user.comment }}</dd>
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-between gap-4">
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Uptime</dt>
+                <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.uptime ?: '—' }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Bytes In</dt>
+                <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_in }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Bytes Out</dt>
+                <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_out }}</dd>
+            </div>
+        </dl>
+        <div class="mt-4 flex items-center gap-2">
+            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <i class="lni lni-pencil-1 text-xl" aria-hidden="true"></i>
+            </a>
+            <form method="post" action="{{ url_for('hotspot.users.delete', {id: user.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove user &quot;{{ user.name }}&quot;?')) $event.preventDefault()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
+                <button type="submit" title="Remove" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                    <i class="lni lni-trash-3 text-xl" aria-hidden="true"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Desktop: table -->
+<div class="mt-6 hidden overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 md:block">
+    <div class="overflow-x-auto">
+        <table class="min-w-full align-middle text-sm">
+            <thead>
+                <tr class="border-b border-zinc-100 text-start dark:border-zinc-700/50">
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Name</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Profile</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Comment</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Uptime</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Bytes In</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Bytes Out</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Status</th>
+                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="border-t border-zinc-100 even:bg-secondary-50 dark:border-zinc-700/50 dark:even:bg-secondary-900/50">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ user.name|first|upper }}</span>
+                            <span class="font-medium">{{ user.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400">{{ user.profile ?: '—' }}</td>
+                    <td class="max-w-[12rem] truncate px-4 py-3 text-zinc-600 dark:text-zinc-400">{{ user.comment ?: '—' }}</td>
+                    <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.uptime ?: '—' }}</td>
+                    <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_in }}</td>
+                    <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_out }}</td>
+                    <td class="px-4 py-3">
+                        {% if user.disabled %}
+                        <span class="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Disabled</span>
+                        {% else %}
+                        <span class="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">Enabled</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <i class="lni lni-pencil-1 text-xl" aria-hidden="true"></i>
+                            </a>
+                            <form method="post" action="{{ url_for('hotspot.users.delete', {id: user.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove user &quot;{{ user.name }}&quot;?')) $event.preventDefault()">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
+                                <button type="submit" title="Remove" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                                    <i class="lni lni-trash-3 text-xl" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
