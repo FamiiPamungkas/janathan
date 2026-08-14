@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
+use Fame1302\Janathan\Support\Logger;
+use RuntimeException;
 use Throwable;
 
 readonly class HotspotService
@@ -12,7 +14,8 @@ readonly class HotspotService
     public function __construct(
         private RouterRepository      $routers,
         private RouterosClientFactory $clientFactory
-    ) {
+    )
+    {
     }
 
     /**
@@ -48,7 +51,6 @@ readonly class HotspotService
 
         try {
             $profile = $client->getHotspotProfile($id);
-            error_log("PROFILE ".print_r($profile,true));
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
         } finally {
@@ -59,27 +61,58 @@ readonly class HotspotService
     }
 
     /**
-     * @throws \RuntimeException When the router cannot be reached or rejects the command.
+     * @return string[] Sorted, unique pool names from the router.
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
+     */
+    public function getIpPools(int $routerId): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $rows = $client->getIpPools();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        } finally {
+            $client->disconnect();
+        }
+
+        $names = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && isset($row['name']) && is_string($row['name']) && $row['name'] !== '') {
+                $names[] = $row['name'];
+            }
+        }
+
+        $names = array_values(array_unique($names));
+        sort($names, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $names;
+    }
+
+    /**
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
      */
     public function createProfile(int $routerId, array $values): void
     {
-        $this->write($routerId, fn (RouterosClient $client) => $client->addHotspotProfile($this->normalizeFields($values)));
+        $this->write($routerId, fn(RouterosClient $client) => $client->addHotspotProfile($this->normalizeFields($values))
+        );
     }
 
     /**
-     * @throws \RuntimeException When the router cannot be reached or rejects the command.
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
      */
     public function updateProfile(int $routerId, string $id, array $values): void
     {
-        $this->write($routerId, fn (RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values)));
+        $this->write($routerId, fn(RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values))
+        );
     }
 
     /**
-     * @throws \RuntimeException When the router cannot be reached or rejects the command.
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
      */
     public function removeProfile(int $routerId, string $id): void
     {
-        $this->write($routerId, fn (RouterosClient $client) => $client->removeHotspotProfile($id));
+        $this->write($routerId, fn(RouterosClient $client) => $client->removeHotspotProfile($id));
     }
 
     private function write(int $routerId, callable $operation): void
@@ -105,16 +138,16 @@ readonly class HotspotService
         $router = $this->routers->find($routerId);
 
         if ($router === null) {
-            throw new \RuntimeException('The selected router no longer exists.');
+            throw new RuntimeException('The selected router no longer exists.');
         }
 
         return [$router, $this->clientFactory->create($this->routers->getCredentials($routerId))];
     }
 
-    private function unreachable(array $router, Throwable $e): \RuntimeException
+    private function unreachable(array $router, Throwable $e): RuntimeException
     {
-        error_log("ERROR ".$e->getMessage());
-        return new \RuntimeException(
+        error_log("ERROR " . $e->getMessage());
+        return new RuntimeException(
             'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
             0,
             $e
@@ -139,41 +172,37 @@ readonly class HotspotService
 
     private function buildProfile(array $p): array
     {
+        Logger::log("ADD MAC COOKIE ", $p['add-mac-cookie']);
         return [
             'id' => $p['.id'] ?? '',
             'name' => $p['name'] ?? '',
             'rate_limit' => $p['rate-limit'] ?? '',
             'shared_users' => $p['shared-users'] ?? '1',
-            'idle_timeout' => $p['idle-timeout'] ?? 'none',
-            'session_timeout' => $p['session-timeout'] ?? 'none',
-            'keepalive_timeout' => $p['keepalive-timeout'] ?? 'none',
-            'mac_cookie' => ($p['mac-cookie'] ?? 'yes') === 'yes',
-            'addresses_pool' => $p['addresses-pool'] ?? '',
+            'add_mac_cookie' => $p['add-mac-cookie'],
+            'address_pool' => $p['address-pool'] ?? '',
             'on_login' => $p['on-login'] ?? '',
             'on_logout' => $p['on-logout'] ?? '',
         ];
     }
 
     /**
-     * Map form input to RouterOS attribute names. Empty optional values become
-     * `none`/`unlimited` so a blank field always disables the option.
+     * Map form input to RouterOS attribute names. Blank rate limit becomes
+     * `unlimited`; other RouterOS attributes not set by the form keep their
+     * own defaults (e.g. idle/session/keepalive timeouts default to `none`).
      */
     private function normalizeFields(array $values): array
     {
         $fields = [
             'name' => $values['name'],
             'shared-users' => $values['shared_users'] === '' ? '1' : $values['shared_users'],
-            'rate-limit' => $values['rate_limit'] === '' ? 'unlimited' : $values['rate_limit'],
-            'idle-timeout' => $values['idle_timeout'] === '' ? 'none' : $values['idle_timeout'],
-            'session-timeout' => $values['session_timeout'] === '' ? 'none' : $values['session_timeout'],
-            'keepalive-timeout' => $values['keepalive_timeout'] === '' ? 'none' : $values['keepalive_timeout'],
-            'mac-cookie' => !empty($values['mac_cookie']) ? 'yes' : 'no',
+            'rate-limit' => $values['rate_limit'],
+            'add-mac-cookie' => !empty($values['add_mac_cookie']) ? 'yes' : 'no',
             'on-login' => $values['on_login'],
             'on-logout' => $values['on_logout'],
         ];
 
-        if (($values['addresses_pool'] ?? '') !== '') {
-            $fields['addresses-pool'] = $values['addresses_pool'];
+        if (($values['address_pool'] ?? '') !== '') {
+            $fields['address-pool'] = $values['address_pool'];
         }
 
         return $fields;

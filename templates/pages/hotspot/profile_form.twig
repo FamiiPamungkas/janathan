@@ -16,6 +16,12 @@
     </div>
 
     <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        {% if errorBanner %}
+            <div class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                <i class="lni lni-xmark-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
+                <span>{{ errorBanner }}</span>
+            </div>
+        {% endif %}
         <form method="post" action="{{ url_for(formAction, formParams) }}" class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
@@ -47,44 +53,22 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <div>
-                    <label for="idle_timeout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Idle timeout</label>
-                    <input type="text" id="idle_timeout" name="idle_timeout" placeholder="none" autocomplete="off"
-                        value="{{ values.idle_timeout|default(profile.idle_timeout|default('')) }}"
-                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.idle_timeout %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    {% if errors.idle_timeout %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.idle_timeout }}</p>{% endif %}
-                </div>
-
-                <div>
-                    <label for="session_timeout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Session timeout</label>
-                    <input type="text" id="session_timeout" name="session_timeout" placeholder="none" autocomplete="off"
-                        value="{{ values.session_timeout|default(profile.session_timeout|default('')) }}"
-                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.session_timeout %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    {% if errors.session_timeout %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.session_timeout }}</p>{% endif %}
-                </div>
-
-                <div>
-                    <label for="keepalive_timeout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Keepalive timeout</label>
-                    <input type="text" id="keepalive_timeout" name="keepalive_timeout" placeholder="none" autocomplete="off"
-                        value="{{ values.keepalive_timeout|default(profile.keepalive_timeout|default('')) }}"
-                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.keepalive_timeout %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Use 30m, 1h or none.</p>
-                    {% if errors.keepalive_timeout %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.keepalive_timeout }}</p>{% endif %}
-                </div>
-            </div>
-
             <div>
-                <label for="addresses_pool" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Address pool</label>
-                <input type="text" id="addresses_pool" name="addresses_pool" placeholder="dhcp_pool1" autocomplete="off"
-                    value="{{ values.addresses_pool|default(profile.addresses_pool|default('')) }}"
-                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.addresses_pool %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                {% if errors.addresses_pool %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.addresses_pool }}</p>{% endif %}
+                <label for="address_pool" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Address pool</label>
+                {% set currentPool = values.address_pool|default(profile.address_pool|default('')) %}
+                <select id="address_pool" name="address_pool"
+                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.address_pool %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    <option value="" {% if currentPool == '' %}selected{% endif %}>— No pool —</option>
+                    {% for pool in pools %}
+                        <option value="{{ pool }}" {% if currentPool == pool %}selected{% endif %}>{{ pool }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.address_pool %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.address_pool }}</p>{% endif %}
             </div>
 
             <label class="flex items-start gap-2.5 cursor-pointer">
-                <input type="checkbox" id="mac_cookie" name="mac_cookie" value="1"
-                    {% if values.mac_cookie is defined ? values.mac_cookie : profile.mac_cookie|default(false) %}checked{% endif %}
+                <input type="checkbox" id="add_mac_cookie" name="add_mac_cookie" value="1"
+                    {% if values.add_mac_cookie is defined ? values.add_mac_cookie : (profile.add_mac_cookie == 'true')|default(false) %}checked{% endif %}
                     class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
                 <span>
                     <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">MAC cookie</span>

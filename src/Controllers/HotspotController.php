@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Controllers;
 
+use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotService;
 use Fame1302\Janathan\Services\RouterRepository;
+use Fame1302\Janathan\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -20,7 +22,8 @@ class HotspotController
         private readonly HotspotService   $hotspot,
         private readonly RouterRepository $routers,
         private readonly FlashService     $flash
-    ) {
+    )
+    {
     }
 
     public function users(Request $request, Response $response): Response
@@ -35,7 +38,7 @@ class HotspotController
         }
 
         try {
-            $data = $this->hotspot->getProfiles((int) $_SESSION['router_id']);
+            $data = $this->hotspot->getProfiles((int)$_SESSION['router_id']);
         } catch (\Throwable $e) {
             return $this->renderUnreachable($response, $e);
         }
@@ -69,9 +72,14 @@ class HotspotController
         }
 
         try {
-            error_log("VALUES ".print_r($values,true));
-            $this->hotspot->createProfile((int) $_SESSION['router_id'], $values);
+//            error_log("VALUES ".print_r($values,true));
+            $this->hotspot->createProfile((int)$_SESSION['router_id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapRouterError($e->getMessage());
+
+            return $this->renderForm($request, $response, null, $fieldErrors + $errors, $values, $banner);
         } catch (\Throwable $e) {
+            error_log(print_r($e->getMessage(), true));
             $this->flash->add('error', $e->getMessage());
 
             return $this->redirect($response, $request, 'hotspot.profiles');
@@ -89,7 +97,7 @@ class HotspotController
         }
 
         try {
-            $profile = $this->hotspot->getProfile((int) $_SESSION['router_id'], $args['id']);
+            $profile = $this->hotspot->getProfile((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
             return $this->renderUnreachable($response, $e);
         }
@@ -119,7 +127,12 @@ class HotspotController
         }
 
         try {
-            $this->hotspot->updateProfile((int) $_SESSION['router_id'], $args['id'], $values);
+            $this->hotspot->updateProfile((int)$_SESSION['router_id'], $args['id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapRouterError($e->getMessage());
+            $values['id'] = $args['id'];
+
+            return $this->renderForm($request, $response, $values, $fieldErrors + $errors, $values, $banner);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
@@ -138,7 +151,7 @@ class HotspotController
         }
 
         try {
-            $this->hotspot->removeProfile((int) $_SESSION['router_id'], $args['id']);
+            $this->hotspot->removeProfile((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
@@ -156,7 +169,7 @@ class HotspotController
             return $this->redirect($response, $request, 'routers.index');
         }
 
-        if ($this->routers->find((int) $_SESSION['router_id']) === null) {
+        if ($this->routers->find((int)$_SESSION['router_id']) === null) {
             unset($_SESSION['router_id']);
 
             return $this->redirect($response, $request, 'routers.index');
@@ -180,13 +193,28 @@ class HotspotController
         Response $response,
         ?array   $profile,
         array    $errors,
-        array    $values = []
+        array    $values = [],
+        ?string  $errorBanner = null
     ): Response
     {
+        $pools = [];
+
+        try {
+            $pools = $this->hotspot->getIpPools((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            if ($errorBanner === null) {
+                $errorBanner = $e->getMessage();
+            }
+        }
+
+        Logger::log("VALUES ", $values);
+        Logger::log("PROFILE ", $profile);
         $html = $this->twig->render('pages/hotspot/profile_form.twig', [
             'profile' => $profile,
             'errors' => $errors,
             'values' => $values,
+            'pools' => $pools,
+            'errorBanner' => $errorBanner,
             'formAction' => $profile === null ? 'hotspot.profiles.store' : 'hotspot.profiles.update',
             'formParams' => $profile === null ? [] : ['id' => $profile['id']],
             'isEdit' => $profile !== null,
@@ -207,23 +235,20 @@ class HotspotController
     }
 
     /**
-     * @return array{name: string, rate_limit: string, shared_users: string, idle_timeout: string, session_timeout: string, keepalive_timeout: string, mac_cookie: bool, addresses_pool: string, on_login: string, on_logout: string}
+     * @return array{name: string, rate_limit: string, shared_users: string, add_mac_cookie: bool, address_pool: string, on_login: string, on_logout: string}
      */
     private function extractValues(mixed $body): array
     {
         $body = is_array($body) ? $body : [];
 
         return [
-            'name' => trim((string) ($body['name'] ?? '')),
-            'rate_limit' => trim((string) ($body['rate_limit'] ?? '')),
-            'shared_users' => trim((string) ($body['shared_users'] ?? '')),
-            'idle_timeout' => trim((string) ($body['idle_timeout'] ?? '')),
-            'session_timeout' => trim((string) ($body['session_timeout'] ?? '')),
-            'keepalive_timeout' => trim((string) ($body['keepalive_timeout'] ?? '')),
-            'mac_cookie' => !empty($body['mac_cookie']),
-            'addresses_pool' => trim((string) ($body['addresses_pool'] ?? '')),
-            'on_login' => trim((string) ($body['on_login'] ?? '')),
-            'on_logout' => trim((string) ($body['on_logout'] ?? '')),
+            'name' => trim((string)($body['name'] ?? '')),
+            'rate_limit' => trim((string)($body['rate_limit'] ?? '')),
+            'shared_users' => trim((string)($body['shared_users'] ?? '')),
+            'add_mac_cookie' => !empty($body['add_mac_cookie']),
+            'address_pool' => trim((string)($body['address_pool'] ?? '')),
+            'on_login' => trim((string)($body['on_login'] ?? '')),
+            'on_logout' => trim((string)($body['on_logout'] ?? '')),
         ];
     }
 
@@ -239,7 +264,7 @@ class HotspotController
 
         if ($values['shared_users'] === '' || !ctype_digit($values['shared_users'])) {
             $errors['shared_users'] = 'Shared users must be a number.';
-        } elseif ((int) $values['shared_users'] < 1 || (int) $values['shared_users'] > 255) {
+        } elseif ((int)$values['shared_users'] < 1 || (int)$values['shared_users'] > 255) {
             $errors['shared_users'] = 'Shared users must be between 1 and 255.';
         }
 
@@ -247,14 +272,8 @@ class HotspotController
             $errors['rate_limit'] = 'Invalid rate limit format.';
         }
 
-        foreach (['idle_timeout', 'session_timeout', 'keepalive_timeout'] as $field) {
-            if ($values[$field] !== '' && preg_match('/^(none|[0-9]+[smhdw])$/i', $values[$field]) !== 1) {
-                $errors[$field] = 'Use a value like 30m, 1h or none.';
-            }
-        }
-
-        if ($values['addresses_pool'] !== '' && preg_match('/^[A-Za-z0-9._-]+$/', $values['addresses_pool']) !== 1) {
-            $errors['addresses_pool'] = 'Invalid pool name.';
+        if ($values['address_pool'] !== '' && preg_match('/^[A-Za-z0-9._-]+$/', $values['address_pool']) !== 1) {
+            $errors['address_pool'] = 'Invalid pool name.';
         }
 
         foreach (['on_login', 'on_logout'] as $field) {
@@ -264,5 +283,38 @@ class HotspotController
         }
 
         return $errors;
+    }
+
+    /**
+     * Map a RouterOS trap message to a top-of-form banner plus, when possible,
+     * a per-field error. Currently only matches `unknown parameter <attr>`
+     * replies, which name the offending attribute explicitly.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function mapRouterError(string $message): array
+    {
+        $map = [
+            'name' => 'name',
+            'shared-users' => 'shared_users',
+            'rate-limit' => 'rate_limit',
+            'address-pool' => 'address_pool',
+            'mac-cookie' => 'add_mac_cookie',
+            'add-mac-cookie' => 'add_mac_cookie',
+            'on-login' => 'on_login',
+            'on-logout' => 'on_logout',
+        ];
+
+        if (preg_match("/unknown parameter ['\"]?([a-z0-9-]+)['\"]?/i", $message, $m) === 1) {
+            $attr = strtolower($m[1]);
+            if (isset($map[$attr])) {
+                return [
+                    $message,
+                    [$map[$attr] => 'Router rejected this field (' . $attr . '). ' . $message],
+                ];
+            }
+        }
+
+        return [$message, []];
     }
 }

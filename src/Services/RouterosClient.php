@@ -6,6 +6,7 @@ namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Models\RouterosVersion;
+use Fame1302\Janathan\Support\Logger;
 use RouterOS\Client;
 use RouterOS\Config;
 use RouterOS\Exceptions\ClientException;
@@ -28,11 +29,12 @@ class RouterosClient
         private string $host,
         private string $user,
         private string $pass,
-        private int $port = 8728,
-        private bool $ssl = false,
-        private bool $legacy = false,
-        private int $socketTimeout = 10
-    ) {
+        private int    $port = 8728,
+        private bool   $ssl = false,
+        private bool   $legacy = false,
+        private int    $socketTimeout = 10
+    )
+    {
     }
 
     public function connect(): void
@@ -98,7 +100,7 @@ class RouterosClient
 
             return $result[0]['name'] ?? null;
         } catch (Throwable $e) {
-            error_log("IDENTITY ".$e->getMessage());
+            error_log("IDENTITY " . $e->getMessage());
             return null;
         }
     }
@@ -158,16 +160,20 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');
     }
 
+    public function getIpPools(): array
+    {
+        return $this->query('/ip/pool/print');
+    }
+
     public function getHotspotProfile(string $id): ?array
     {
         $result = $this->query('/ip/hotspot/user/profile/print', ['.id' => $id]);
-        error_log("PROFILE RESULT ".print_r($result,true));
-
         return $result[0] ?? null;
     }
 
     public function addHotspotProfile(array $fields): void
     {
+        Logger::log("ADD HOTSPOT PROFILE ", $fields);
         $result = $this->rawQuery('/ip/hotspot/user/profile/add', $fields);
         $this->assertNotTrap($result);
     }
@@ -192,7 +198,7 @@ class RouterosClient
     {
         try {
             return $this->query('/log/print', ['topics' => 'hotspot, info, debug']);
-        }catch (Throwable $e){
+        } catch (Throwable $e) {
             return [];
         }
     }
