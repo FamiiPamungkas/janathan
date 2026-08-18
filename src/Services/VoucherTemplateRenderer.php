@@ -188,4 +188,75 @@ class VoucherTemplateRenderer
             $html
         );
     }
+
+    /**
+     * @param list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}> $users
+     * @param array<string, array{name: string, color: string, price: string}> $profilesById
+     */
+    public function renderUsersDefault(array $users, array $profilesById): string
+    {
+        $file = file_get_contents($this->defaultTemplatePath);
+
+        if ($file === false) {
+            return '<!DOCTYPE html><html><body><p>Default voucher template file is missing.</p></body></html>';
+        }
+
+        $items = '';
+        foreach ($users as $user) {
+            $profile = $profilesById[(string)($user['profile'] ?? '')]
+                ?? ['name' => (string)($user['profile'] ?? ''), 'color' => '', 'price' => ''];
+
+            $price = (string)($profile['price'] ?? '');
+            $price = ($price === '' || $price === '0') ? '999999' : $price;
+
+            $items .= "<div data-item>\n"
+                . '        <p data-profile>' . htmlspecialchars((string)($profile['name'] ?? '')) . "</p>\n"
+                . '        <p data-price>' . htmlspecialchars($price) . "</p>\n"
+                . '        <p data-color>' . htmlspecialchars((string)($profile['color'] ?? '')) . "</p>\n"
+                . '        <p data-user>' . htmlspecialchars((string)($user['name'] ?? '')) . "</p>\n"
+                . '        <p data-pass>' . htmlspecialchars((string)($user['password'] ?? '')) . "</p>\n"
+                . "    </div>\n";
+        }
+
+        return preg_replace(
+            '#<div id="data"[^>]*>.*?<div id="result">#s',
+            '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
+            $file,
+            1
+        ) ?? $file;
+    }
+
+    /**
+     * @param array{header: string, row: string, footer: string} $template
+     * @param list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}> $users
+     * @param array<string, array{name: string, color: string, price: string}> $profilesById
+     */
+    public function renderUsersCustom(array $template, array $users, array $profilesById): string
+    {
+        $rows = '';
+        foreach ($users as $user) {
+            $profile = $profilesById[(string)($user['profile'] ?? '')]
+                ?? ['name' => (string)($user['profile'] ?? ''), 'color' => '', 'price' => ''];
+
+            $rows .= $this->fillUser($template['row'], $profile, $user);
+        }
+
+        return '<!DOCTYPE html>'
+            . '<html lang="en">'
+            . '<head>'
+            . '<meta charset="UTF-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<style>'
+            . '@media print { body { background: #fff; } }'
+            . '* { box-sizing: border-box; }'
+            . 'body { margin: 0; padding: 16px; font-family: \'Segoe UI\', Helvetica, Arial, sans-serif; }'
+            . '</style>'
+            . '</head>'
+            . '<body>'
+            . $template['header']
+            . $rows
+            . $template['footer']
+            . '</body>'
+            . '</html>';
+    }
 }

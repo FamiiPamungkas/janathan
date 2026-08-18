@@ -111,6 +111,58 @@ class HotspotController
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 
+    public function printUsers(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $routerId = (int)$_SESSION['router_id'];
+        $params = $request->getQueryParams();
+        $filters = [
+            'q' => isset($params['q']) ? trim((string)$params['q']) : '',
+            'profile' => isset($params['profile']) ? trim((string)$params['profile']) : '',
+            'comment' => isset($params['comment']) ? trim((string)$params['comment']) : '',
+            'status' => isset($params['status']) ? trim((string)$params['status']) : 'all',
+        ];
+        $templateId = (string)($params['template'] ?? '0');
+
+        if ($filters['comment'] === '') {
+            $this->flash->add('error', 'Select a comment filter before printing vouchers.');
+
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        try {
+            $result = $this->hotspot->getUsersForPrint($routerId, $filters);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', 'Cannot reach the router to print these users.');
+
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        if ($result['users'] === []) {
+            $this->flash->add('error', 'No users found for the selected comment.');
+
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        $useDefault = $templateId === '0' || $templateId === 'default';
+        $template = $useDefault ? null : $this->templates->find((int)$templateId);
+
+        if ($template === null) {
+            $html = $this->voucherRenderer->renderUsersDefault($result['users'], $result['profiles']);
+        } else {
+            $html = $this->voucherRenderer->renderUsersCustom($template, $result['users'], $result['profiles']);
+        }
+
+        $html = preg_replace('#</body>#i', '<script>window.print();</script></body>', $html, 1) ?? $html;
+
+        $response->getBody()->write($html);
+
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+
     public function showCreateUser(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

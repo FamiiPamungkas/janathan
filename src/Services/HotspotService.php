@@ -313,6 +313,76 @@ readonly class HotspotService
     }
 
     /**
+     * Fetch every user matching the given list filters (comment + others),
+     * each with its plaintext password, plus a map of profile metadata keyed
+     * by profile name. Used to render a combined voucher sheet for printing.
+     *
+     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @return array{
+     *     users: list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}>,
+     *     profiles: array<string, array{name: string, color: string, price: string}>
+     * }
+     */
+    public function getUsersForPrint(int $routerId, array $filters = []): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+            $profileRows = $client->getHotspotProfiles();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        } finally {
+            $client->disconnect();
+        }
+
+        $normalized = $this->normalizeUserListFilters($filters);
+        $built = $this->buildUsers($rows);
+
+        $profileMap = [];
+        foreach ($this->buildProfiles($routerId, $profileRows, $hotspotAvailable) as $p) {
+            $profileMap[(string)$p['name']] = [
+                'name' => (string)$p['name'],
+                'color' => (string)($p['color'] ?? ''),
+                'price' => $p['price'] === null ? '' : (string)$p['price'],
+            ];
+        }
+
+        $filtered = $this->applyUserListFilters($built, $normalized);
+
+        $users = [];
+        foreach ($filtered as $u) {
+            if (($u['name'] ?? '') === 'default-trial') {
+                continue;
+            }
+
+            $userId = $u['id'] ?? '';
+            $password = '';
+            foreach ($rows as $row) {
+                if (($row['.id'] ?? '') === $userId) {
+                    $password = (string)($row['password'] ?? '');
+                    break;
+                }
+            }
+
+            $users[] = [
+                'id' => $userId,
+                'name' => $u['name'] ?? '',
+                'profile' => $u['profile'] ?? '',
+                'comment' => $u['comment'] ?? '',
+                'disabled' => (bool)($u['disabled'] ?? false),
+                'password' => $password,
+            ];
+        }
+
+        return [
+            'users' => $users,
+            'profiles' => $profileMap,
+        ];
+    }
+
+    /**
      * @return array|null The normalized profile, or null when it does not exist.
      */
     public function getProfile(int $routerId, string $id): ?array
