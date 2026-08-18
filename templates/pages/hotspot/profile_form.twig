@@ -66,6 +66,15 @@
                 </div>
             </div>
 
+            <div>
+                <label for="prefix" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Default username prefix</label>
+                <input type="text" id="prefix" name="prefix" placeholder="e.g. vch" maxlength="100"
+                    value="{{ values.prefix|default(profile.prefix|default('')) }}"
+                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.prefix %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Pre-filled into the username prefix when generating users with this profile.</p>
+                {% if errors.prefix %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.prefix }}</p>{% endif %}
+            </div>
+
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
                     <label for="rate_limit" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Rate limit</label>

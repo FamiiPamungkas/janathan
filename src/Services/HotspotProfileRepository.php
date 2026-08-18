@@ -17,7 +17,7 @@ use PDO;
  */
 class HotspotProfileRepository
 {
-    private const SELECT_COLUMNS = 'id, router_id, profile_id, name, color, price, created_at, updated_at';
+    private const SELECT_COLUMNS = 'id, router_id, profile_id, name, color, price, prefix, created_at, updated_at';
 
     public function __construct(private PDO $pdo)
     {
@@ -64,15 +64,16 @@ class HotspotProfileRepository
         return $stmt->fetchAll();
     }
 
-    public function upsert(int $routerId, string $profileId, string $name, string $color, float $price): void
+    public function upsert(int $routerId, string $profileId, string $name, string $color, float $price, string $prefix): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO hotspot_profiles (router_id, profile_id, name, color, price)
-             VALUES (:router_id, :profile_id, :name, :color, :price)
+            'INSERT INTO hotspot_profiles (router_id, profile_id, name, color, price, prefix)
+             VALUES (:router_id, :profile_id, :name, :color, :price, :prefix)
              ON CONFLICT (router_id, profile_id) DO UPDATE SET
                  name = excluded.name,
                  color = excluded.color,
                  price = excluded.price,
+                 prefix = excluded.prefix,
                  updated_at = datetime(\'now\')'
         );
         $stmt->execute([
@@ -81,6 +82,7 @@ class HotspotProfileRepository
             'name' => $name,
             'color' => $color,
             'price' => $price,
+            'prefix' => $prefix,
         ]);
     }
 

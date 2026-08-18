@@ -163,6 +163,72 @@ class HotspotController
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 
+    public function showGenerate(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $routerId = (int)$_SESSION['router_id'];
+        $profiles = [];
+        $profilesWithPrefix = [];
+
+        try {
+            $profiles = $this->hotspot->getProfileNames($routerId);
+            $profilesWithPrefix = $this->hotspot->getProfiles($routerId)['profiles'];
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($response, $e);
+        }
+
+        $prefixMap = [];
+        foreach ($profilesWithPrefix as $p) {
+            $prefixMap[$p['name']] = $p['prefix'] ?? '';
+        }
+
+        $html = $this->twig->render('pages/hotspot/generate.twig', [
+            'profiles' => $profiles,
+            'prefixMap' => $prefixMap,
+            'errors' => [],
+            'values' => [],
+            'errorBanner' => null,
+            'formAction' => 'hotspot.users.generate.store',
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    public function generateUsers(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $values = $this->extractGenerateValues($request->getParsedBody());
+        $errors = $this->validateGenerate($values);
+
+        if ($errors !== []) {
+            return $this->renderGenerateForm($request, $response, $errors, $values);
+        }
+
+        try {
+            $result = $this->hotspot->generateUsers((int)$_SESSION['router_id'], $values);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.users.generate');
+        }
+
+        if ($result['created'] > 0) {
+            $this->flash->add('success', $result['created'] . ' user(s) generated.');
+        }
+        if ($result['failed'] > 0) {
+            $this->flash->add('error', $result['failed'] . ' user(s) failed: ' . implode('; ', array_slice($result['errors'], 0, 5)));
+        }
+
+        return $this->redirectUsers($response, $request, $values['profile']);
+    }
+
     public function showCreateUser(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
@@ -512,6 +578,38 @@ class HotspotController
         return $response->withStatus($errors !== [] ? 422 : 200);
     }
 
+    private function renderGenerateForm(
+        Request  $request,
+        Response $response,
+        array    $errors,
+        array    $values = []
+    ): Response {
+        $routerId = (int)$_SESSION['router_id'];
+        $profiles = [];
+        $prefixMap = [];
+
+        try {
+            $profiles = $this->hotspot->getProfileNames($routerId);
+            foreach ($this->hotspot->getProfiles($routerId)['profiles'] as $p) {
+                $prefixMap[$p['name']] = $p['prefix'] ?? '';
+            }
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($response, $e);
+        }
+
+        $html = $this->twig->render('pages/hotspot/generate.twig', [
+            'profiles' => $profiles,
+            'prefixMap' => $prefixMap,
+            'errors' => $errors,
+            'values' => $values,
+            'errorBanner' => null,
+            'formAction' => 'hotspot.users.generate.store',
+        ]);
+        $response->getBody()->write($html);
+
+        return $response->withStatus($errors !== [] ? 422 : 200);
+    }
+
     private function redirectUsers(Response $response, Request $request, ?string $profile): Response
     {
         $url = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser()->urlFor('hotspot.users');
@@ -566,6 +664,62 @@ class HotspotController
     }
 
     /**
+     * @return array{qty: int, profile: string, prefix: string, comment: string, character: string, name_length: int, password_length: int}
+     */
+    private function extractGenerateValues(mixed $body): array
+    {
+        $body = is_array($body) ? $body : [];
+
+        $nameLength = (int)($body['name_length'] ?? 6);
+        $passwordLength = (int)($body['password_length'] ?? 4);
+
+        return [
+            'qty' => (int)($body['qty'] ?? 0),
+            'profile' => trim((string)($body['profile'] ?? '')),
+            'prefix' => trim((string)($body['prefix'] ?? '')),
+            'comment' => trim((string)($body['comment'] ?? '')),
+            'character' => trim((string)($body['character'] ?? 'lowercase')),
+            'name_length' => $nameLength < 1 ? 1 : $nameLength,
+            'password_length' => $passwordLength < 1 ? 1 : $passwordLength,
+            'password_same_as_username' => !empty($body['password_same_as_username']),
+        ];
+    }
+
+    private function validateGenerate(array $values): array
+    {
+        $errors = [];
+
+        if ($values['qty'] < 1) {
+            $errors['qty'] = 'Quantity must be at least 1.';
+        } elseif ($values['qty'] > 1000) {
+            $errors['qty'] = 'Quantity cannot exceed 1000.';
+        }
+
+        if ($values['profile'] === '') {
+            $errors['profile'] = 'Profile is required.';
+        }
+
+        $characters = ['lowercase', 'uppercase', 'combined', 'alphanumeric'];
+        if (!in_array($values['character'], $characters, true)) {
+            $errors['character'] = 'Select a character set.';
+        }
+
+        $lengths = [4, 6, 8, 10, 12, 16, 20, 24];
+        if (!in_array($values['name_length'], $lengths, true)) {
+            $errors['name_length'] = 'Select a name length.';
+        }
+        if (!$values['password_same_as_username'] && !in_array($values['password_length'], $lengths, true)) {
+            $errors['password_length'] = 'Select a password length.';
+        }
+
+        if (mb_strlen($values['comment']) > 4096) {
+            $errors['comment'] = 'Comment must be 4096 characters or fewer.';
+        }
+
+        return $errors;
+    }
+
+    /**
      * @return array{0: string, 1: array<string, string>}
      */
     private function mapUserRouterError(string $message): array
@@ -608,6 +762,7 @@ class HotspotController
             'on_logout' => trim((string)($body['on_logout'] ?? '')),
             'color' => trim((string)($body['color'] ?? '')),
             'price' => trim((string)($body['price'] ?? '')),
+            'prefix' => trim((string)($body['prefix'] ?? '')),
         ];
     }
 
@@ -651,6 +806,10 @@ class HotspotController
             } elseif ((float)$values['price'] > 999999999) {
                 $errors['price'] = 'Price is too large.';
             }
+        }
+
+        if (mb_strlen($values['prefix']) > 100) {
+            $errors['prefix'] = 'Prefix must be 100 characters or fewer.';
         }
 
         return $errors;

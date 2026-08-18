@@ -70,6 +70,7 @@ composer.json
 ## Dev Server
 - Dev URL comes from `APP_URL` in `.env` (e.g. `http://192.168.88.34:8080`) — it changes per machine, so read it from `.env` rather than assuming a hostname.
 - The dev server is run locally on **Windows** (Laragon) and is left running during development — **do not restart or re-run the project to verify changes**. Verify by reading `APP_URL` from `.env` and WebFetch-ing that URL.
+- **PHP syntax checks run on Windows, not WSL:** PHP executes via Laragon on Windows — do NOT first check for or try to install a Linux/WSL PHP (`which php`, `php` on PATH, etc.). To lint a file, invoke the Laragon PHP binary directly, e.g. `/mnt/c/laragon/bin/php/php-<version>-Win32-vs16-x64/php.exe -l path/to/file.php` (pick whichever version dir currently exists under `/mnt/c/laragon/bin/php/`). WebFetch the dev URL from `APP_URL` for runtime verification as usual.
 
 ## Testing Router Connectivity
 Before building features, verify the RouterOS API connection works standalone (`bin/test-connection.php` or similar) — confirm login, and a simple `/system/resource/print` call succeeds — before wiring it into Slim routes.

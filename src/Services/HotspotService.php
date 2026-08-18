@@ -274,6 +274,79 @@ readonly class HotspotService
     }
 
     /**
+     * Bulk-create hotspot users. Each username is built as `prefix` followed
+     * by random characters; each password is random characters. One router
+     * connection is reused for the whole batch.
+     *
+     * @param array{qty: int, profile: string, prefix: string, comment: string, character: string, name_length: int, password_length: int, password_same_as_username: bool} $values
+     * @return array{created: int, failed: int, errors: string[]}
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function generateUsers(int $routerId, array $values): array
+    {
+        $charset = $this->characterCharset($values['character']);
+        $result = ['created' => 0, 'failed' => 0, 'errors' => []];
+
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            for ($i = 0; $i < $values['qty']; $i++) {
+                $name = $values['prefix'] . $this->randomString($charset, $values['name_length']);
+                $password = $values['password_same_as_username']
+                    ? $name
+                    : $this->randomString($charset, $values['password_length']);
+
+                try {
+                    $client->addHotspotUser($this->normalizeUserFields([
+                        'name' => $name,
+                        'profile' => $values['profile'],
+                        'comment' => $values['comment'],
+                        'password' => $password,
+                    ], false));
+                    $result['created']++;
+                } catch (RouterosCommandException $e) {
+                    $result['failed']++;
+                    $result['errors'][] = $name . ': ' . $e->getMessage();
+                }
+            }
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        } finally {
+            $client->disconnect();
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    private function characterCharset(string $character): string
+    {
+        return match ($character) {
+            'uppercase' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            'combined' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            'alphanumeric' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+            default => 'abcdefghijklmnopqrstuvwxyz',
+        };
+    }
+
+    /**
+     * @param non-empty-string $charset
+     */
+    private function randomString(string $charset, int $length): string
+    {
+        $out = '';
+        $max = strlen($charset) - 1;
+
+        for ($i = 0; $i < $length; $i++) {
+            $out .= $charset[random_int(0, $max)];
+        }
+
+        return $out;
+    }
+
+    /**
      * @throws RuntimeException When the router cannot be reached or rejects the command.
      */
     public function updateUser(int $routerId, string $id, array $values): void
@@ -414,6 +487,7 @@ readonly class HotspotService
 
         $built['color'] = (string)($meta['color'] ?? '');
         $built['price'] = $meta !== null ? (string)(float)$meta['price'] : '';
+        $built['prefix'] = (string)($meta['prefix'] ?? '');
 
         return $built;
     }
@@ -510,7 +584,8 @@ readonly class HotspotService
             $profileId,
             (string)$values['name'],
             (string)($values['color'] ?? ''),
-            $this->normalizePrice($values['price'] ?? '')
+            $this->normalizePrice($values['price'] ?? ''),
+            (string)($values['prefix'] ?? '')
         );
     }
 
@@ -713,6 +788,7 @@ readonly class HotspotService
                 'shared_users' => $p['shared-users'] ?? '-',
                 'color' => (string)($meta['color'] ?? ''),
                 'price' => $meta !== null ? (float)$meta['price'] : null,
+                'prefix' => (string)($meta['prefix'] ?? ''),
             ];
         }
 

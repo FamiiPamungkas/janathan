@@ -54,12 +54,18 @@ return [
                 name       TEXT NOT NULL,
                 color      TEXT NOT NULL DEFAULT '',
                 price      REAL NOT NULL DEFAULT 0,
+                prefix     TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now')),
                 UNIQUE (router_id, profile_id)
             );
             SQL
         );
+
+        $columns = $pdo->query("PRAGMA table_info(hotspot_profiles)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('prefix', $columns, true)) {
+            $pdo->exec('ALTER TABLE hotspot_profiles ADD COLUMN prefix TEXT NOT NULL DEFAULT \'\'');
+        }
 
         return $pdo;
     },
