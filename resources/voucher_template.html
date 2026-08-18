@@ -179,10 +179,10 @@
             <span class="brand bold" data-brand>FamiiComp</span>
             <table class="data">
                 <tr>
-                    <td colspan="3" class="bold"> </td>
+                    <td colspan="3" class="bold">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td>   </td>
+                    <td>&nbsp;&nbsp;&nbsp;</td>
                     <td class="up left tight">Username</td>
                     <td class="up left tight">Password</td>
                 </tr>
@@ -209,64 +209,6 @@
 
     // generateDummyData();
     createVoucher();
-
-    function randomString(length) {
-        if (!length) length = 4;
-
-        let string = "";
-        while (string.length < length) {
-            string += randomChar();
-        }
-        return string;
-    }
-
-    function randomChar() {
-        const alphanum = "abcdefghijklmnopqrstu1234567890";
-        const array = alphanum.split("");
-        const s = Math.random() * array.length;
-        const index = Math.round(s);
-        return array[index] ?? "";
-    }
-
-    function generateDummyData() {
-        for (let i = 1; i < count; i++) {
-            const clone = itemEl.cloneNode(true);
-
-            const profileEl = clone.querySelector("[data-profile]");
-            const priceEl = clone.querySelector("[data-price]");
-            const colorEl = clone.querySelector("[data-color]");
-            const userEl = clone.querySelector("[data-user]");
-            const passEl = clone.querySelector("[data-pass]");
-
-            let price = 2000;
-            let profile = "";
-            let color = "";
-            const rand = Math.random() * 10;
-            if (rand < 4) {
-                price = 2000
-                profile = "5 JAM"
-                color = "#00C49A"
-            } else if (rand > 5) {
-                price = 30000
-                profile = "1 BULAN"
-                color = "#9e2ca1"
-            } else {
-                price = 4000;
-                profile = "1 HARI"
-                color = "#ff9451"
-            }
-
-            priceEl.textContent = price;
-            profileEl.textContent = profile;
-            colorEl.textContent = color;
-            userEl.textContent = randomString(6);
-            passEl.textContent = randomString(4);
-
-            dataEl.append(clone);
-
-        }
-        createVoucher();
-    }
 
     function shadeColor(hex, percent) {
         const num = parseInt(hex.replace("#", ""), 16);

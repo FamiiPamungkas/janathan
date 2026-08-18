@@ -16,9 +16,7 @@ namespace Fame1302\Janathan\Services;
  */
 class VoucherTemplateRenderer
 {
-    private const VOUCHERS_PER_PROFILE = 5;
-
-    private const CHARSET = 'abcdefghijklmnopqrstu1234567890';
+    private const VOUCHERS_PER_PROFILE = 1;
 
     public function __construct(
         private readonly string $defaultTemplatePath = VoucherTemplateRepository::DEFAULT_TEMPLATE_PATH
@@ -39,12 +37,13 @@ class VoucherTemplateRenderer
         $items = '';
         foreach ($profiles as $profile) {
             for ($i = 0; $i < self::VOUCHERS_PER_PROFILE; $i++) {
+                $price = ($profile['price'] === '' || $profile['price'] === '0') ? '999999' : $profile['price'];
                 $items .= "<div data-item>\n"
                     . '        <p data-profile>' . htmlspecialchars($profile['name']) . "</p>\n"
-                    . '        <p data-price>' . htmlspecialchars($profile['price']) . "</p>\n"
+                    . '        <p data-price>' . htmlspecialchars($price) . "</p>\n"
                     . '        <p data-color>' . htmlspecialchars($profile['color']) . "</p>\n"
-                    . '        <p data-user>' . self::randomString(6) . "</p>\n"
-                    . '        <p data-pass>' . self::randomString(4) . "</p>\n"
+                    . '        <p data-user>' . htmlspecialchars('1234') . "</p>\n"
+                    . '        <p data-pass>' . htmlspecialchars('1234') . "</p>\n"
                     . "    </div>\n";
             }
         }
@@ -96,28 +95,17 @@ class VoucherTemplateRenderer
      */
     private function fill(string $html, array $profile): string
     {
+        $price = ($profile['price'] === '' || $profile['price'] === '0') ? '999999' : $profile['price'];
         return str_replace(
             ['{username}', '{password}', '{profile}', '{price}', '{color}'],
             [
-                self::randomString(6),
-                self::randomString(4),
+                '1234',
+                '1234',
                 htmlspecialchars($profile['name'], ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars($profile['price'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($price, ENT_QUOTES, 'UTF-8'),
                 htmlspecialchars($profile['color'], ENT_QUOTES, 'UTF-8'),
             ],
             $html
         );
-    }
-
-    private static function randomString(int $length): string
-    {
-        $string = '';
-        $max = strlen(self::CHARSET) - 1;
-
-        for ($i = 0; $i < $length; $i++) {
-            $string .= self::CHARSET[random_int(0, $max)];
-        }
-
-        return $string;
     }
 }
