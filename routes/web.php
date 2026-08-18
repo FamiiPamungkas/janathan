@@ -56,7 +56,7 @@ return function (App $app): void {
             $app->get('/{id}/edit', VoucherTemplateController::class . ':showEdit')->setName('voucher_templates.edit');
             $app->post('/{id}/edit', VoucherTemplateController::class . ':update')->setName('voucher_templates.update');
             $app->post('/{id}/delete', VoucherTemplateController::class . ':delete')->setName('voucher_templates.delete');
-            $app->get('/{id}/preview', VoucherTemplateController::class . ':preview')->setName('voucher_templates.preview');
+            $app->get('/profiles', VoucherTemplateController::class . ':profilesJson')->setName('voucher_templates.profiles');
             $app->get('/{id}/preview-render', VoucherTemplateController::class . ':previewRender')->setName('voucher_templates.preview_render');
         });
 

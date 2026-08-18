@@ -137,16 +137,9 @@ class VoucherTemplateController
         return $this->redirect($response, $request, 'voucher_templates.index');
     }
 
-    public function preview(Request $request, Response $response, array $args): Response
+    public function profilesJson(Request $request, Response $response): Response
     {
-        $template = $this->resolveTemplate($args['id'], $request, $response);
-
-        if ($template === null) {
-            return $this->redirect($response, $request, 'voucher_templates.index');
-        }
-
         $profiles = [];
-        $errorBanner = null;
 
         if (!empty($_SESSION['router_id'])) {
             try {
@@ -159,18 +152,13 @@ class VoucherTemplateController
                     ];
                 }
             } catch (\Throwable $e) {
-                $errorBanner = 'Could not load profiles from the router: ' . $e->getMessage();
+                $profiles = [];
             }
         }
 
-        $html = $this->twig->render('pages/voucher_templates/preview.twig', [
-            'template' => $template,
-            'profiles' => $profiles,
-            'errorBanner' => $errorBanner,
-        ]);
-        $response->getBody()->write($html);
+        $response->getBody()->write(json_encode($profiles, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
-        return $response;
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
     public function previewRender(Request $request, Response $response, array $args): Response
