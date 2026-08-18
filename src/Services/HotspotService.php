@@ -199,6 +199,55 @@ readonly class HotspotService
     }
 
     /**
+     * Fetch a single user with its plaintext password for voucher printing.
+     * The password is used only to build the printable voucher HTML and is
+     * never stored, logged, or returned to list views.
+     *
+     * @return array|null {id, name, profile, comment, disabled, password}
+     */
+    public function getUserForPrint(int $routerId, string $id): ?array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $user = $client->getHotspotUser($id);
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        } finally {
+            $client->disconnect();
+        }
+
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'id' => $user['.id'] ?? '',
+            'name' => $user['name'] ?? '',
+            'profile' => $user['profile'] ?? '',
+            'comment' => $user['comment'] ?? '',
+            'disabled' => $this->isYes($user['disabled'] ?? null),
+            'password' => $user['password'] ?? '',
+        ];
+    }
+
+    /**
+     * @return array|null {id, name, rate_limit, shared_users, color, price}
+     */
+    public function getProfileByName(int $routerId, string $name): ?array
+    {
+        $profiles = $this->getProfiles($routerId)['profiles'];
+
+        foreach ($profiles as $profile) {
+            if (($profile['name'] ?? '') === $name) {
+                return $profile;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return string[] Sorted unique profile names for form selects.
      */
     public function getProfileNames(int $routerId): array

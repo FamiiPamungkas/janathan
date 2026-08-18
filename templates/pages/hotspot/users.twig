@@ -112,6 +112,7 @@
     </p>
 </div>
 {% else %}
+<div x-data="{ printModal: false, printUserId: null, printUserName: '' }">
 <!-- Mobile: stacked cards -->
 <div class="mt-6 grid grid-cols-1 gap-3 md:hidden">
     {% for user in users %}
@@ -154,6 +155,10 @@
             <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <i class="lni lni-pencil-1 text-xl" aria-hidden="true"></i>
             </a>
+            <button type="button" title="Print" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <i class="lni lni-printer text-xl" aria-hidden="true"></i>
+            </button>
             <form method="post" action="{{ url_for('hotspot.users.delete', {id: user.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove user &quot;{{ user.name }}&quot;?')) $event.preventDefault()">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
@@ -208,6 +213,10 @@
                             <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="lni lni-pencil-1 text-xl" aria-hidden="true"></i>
                             </a>
+                            <button type="button" title="Print" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <i class="lni lni-printer text-xl" aria-hidden="true"></i>
+                            </button>
                             <form method="post" action="{{ url_for('hotspot.users.delete', {id: user.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove user &quot;{{ user.name }}&quot;?')) $event.preventDefault()">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
@@ -222,6 +231,36 @@
             </tbody>
         </table>
     </div>
+</div>
+
+<!-- Print template picker modal -->
+<div x-show="printModal" x-cloak class="fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-4 sm:items-center"
+     x-transition.opacity>
+    <div class="w-full max-w-sm rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+         @click.outside="printModal = false"
+         x-transition>
+        <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Print user voucher</h2>
+            <button type="button" @click="printModal = false"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="Close">
+                <i class="lni lni-close text-xl" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="px-4 pt-3 text-xs text-zinc-500 dark:text-zinc-400">
+            Choose a voucher template for <span class="font-medium text-zinc-700 dark:text-zinc-300" x-text="printUserName"></span>
+        </p>
+        <div class="flex flex-col gap-1 p-3">
+            <template x-for="t in {{ voucherTemplates|json_encode }}" :key="t.id">
+                <a :href="`{{ url_for('hotspot.users.print', {id: '__ID__'}) }}?template=${t.id}`.replace('__ID__', printUserId)"
+                    target="_blank" @click="printModal = false"
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    <span x-text="t.name + (t.is_default ? ' (default)' : '')"></span>
+                    <i class="lni lni-printer text-base text-zinc-400" aria-hidden="true"></i>
+                </a>
+            </template>
+        </div>
+    </div>
+</div>
 </div>
 {% endif %}
 {% endblock %}

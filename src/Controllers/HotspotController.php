@@ -8,6 +8,8 @@ use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotService;
 use Fame1302\Janathan\Services\RouterRepository;
+use Fame1302\Janathan\Services\VoucherTemplateRenderer;
+use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -18,10 +20,12 @@ class HotspotController
     use RedirectsTrait;
 
     public function __construct(
-        private readonly Environment      $twig,
-        private readonly HotspotService   $hotspot,
-        private readonly RouterRepository $routers,
-        private readonly FlashService     $flash
+        private readonly Environment             $twig,
+        private readonly HotspotService          $hotspot,
+        private readonly RouterRepository        $routers,
+        private readonly FlashService            $flash,
+        private readonly VoucherTemplateRepository $templates,
+        private readonly VoucherTemplateRenderer $voucherRenderer
     )
     {
     }
@@ -46,10 +50,65 @@ class HotspotController
             return $this->renderUnreachable($response, $e);
         }
 
+        $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
+
         $html = $this->twig->render('pages/hotspot/users.twig', $data);
         $response->getBody()->write($html);
 
         return $response;
+    }
+
+    public function printUser(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $routerId = (int)$_SESSION['router_id'];
+        $id = (string)$args['id'];
+        $params = $request->getQueryParams();
+        $templateId = (string)($params['template'] ?? '0');
+
+        try {
+            $user = $this->hotspot->getUserForPrint($routerId, $id);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', 'Cannot reach the router to print this user.');
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        if ($user === null) {
+            $this->flash->add('error', 'User not found.');
+            return $this->redirect($response, $request, 'hotspot.users');
+        }
+
+        try {
+            $profile = $this->hotspot->getProfileByName($routerId, $user['profile']) ?? [
+                'name' => $user['profile'],
+                'color' => '',
+                'price' => '',
+            ];
+        } catch (\Throwable $e) {
+            $profile = [
+                'name' => $user['profile'],
+                'color' => '',
+                'price' => '',
+            ];
+        }
+
+        $useDefault = $templateId === '0' || $templateId === 'default';
+        $template = $useDefault ? null : $this->templates->find((int)$templateId);
+
+        if ($template === null) {
+            $html = $this->voucherRenderer->renderDefaultUser($user, $profile);
+        } else {
+            $html = $this->voucherRenderer->renderCustomUser($template, $user, $profile);
+        }
+
+        $html = preg_replace('#</body>#i', '<script>window.print();</script></body>', $html, 1) ?? $html;
+
+        $response->getBody()->write($html);
+
+        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
     }
 
     public function showCreateUser(Request $request, Response $response): Response
