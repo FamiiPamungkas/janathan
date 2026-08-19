@@ -1,6 +1,6 @@
 {% extends "layout.twig" %}
 
-{% block title %}Voucher Templates - Janathan{% endblock %}
+{% block title %}{{ trans('voucher_templates.title') }}{% endblock %}
 
 {% block content %}
 <div
@@ -50,15 +50,15 @@
 >
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight">Voucher Templates</h1>
+            <h1 class="text-2xl font-bold tracking-tight">{{ trans('voucher_templates.heading') }}</h1>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Build printable voucher layouts with header, row and footer HTML
+                {{ trans('voucher_templates.subtitle') }}
             </p>
         </div>
         <a href="{{ url_for('voucher_templates.create') }}"
             class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
             <i class="ph ph-plus text-base" aria-hidden="true"></i>
-            Add template
+            {{ trans('voucher_templates.add') }}
         </a>
     </div>
 
@@ -78,31 +78,31 @@
                             {{ template.name }}
                             {% if template.is_default %}
                             <span class="inline-flex flex-none items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                                <span class="size-1.5 rounded-full bg-teal-500"></span>Default
+                                <span class="size-1.5 rounded-full bg-teal-500"></span>{{ trans('voucher_templates.default') }}
                             </span>
                             {% endif %}
                         </p>
                         {% if template.is_default %}
-                        <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">Built-in system template · read-only</p>
+                        <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ trans('voucher_templates.system_readonly') }}</p>
                         {% else %}
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                            {{ template.header is not empty ? 'Header' : '—' }} · {{ template.row is not empty ? 'Row' : '—' }} · {{ template.footer is not empty ? 'Footer' : '—' }}
+                            {{ template.header is not empty ? trans('voucher_templates.section_header') : '—' }} · {{ template.row is not empty ? trans('voucher_templates.section_row') : '—' }} · {{ template.footer is not empty ? trans('voucher_templates.section_footer') : '—' }}
                         </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-2">
-                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="Preview" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                     <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                 </button>
                 {% if not template.is_default %}
-                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                     <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                 </a>
-                <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove voucher template &quot;{{ template.name }}&quot;?')) $event.preventDefault()">
+                <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('{{ trans('voucher_templates.remove_confirm', {name: template.name})|e('js') }}')) $event.preventDefault()">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" title="Remove" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
                         <i class="ph ph-trash text-xl" aria-hidden="true"></i>
                     </button>
                 </form>
@@ -113,12 +113,12 @@
 
         {% if not has_custom %}
         <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white p-6 text-center dark:border-zinc-700 dark:bg-zinc-800">
-            <h2 class="text-sm font-semibold">No custom templates yet</h2>
+            <h2 class="text-sm font-semibold">{{ trans('voucher_templates.empty_title') }}</h2>
             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                The built-in default is always available. Add your own layout to customize printed vouchers.
+                {{ trans('voucher_templates.empty_text') }}
             </p>
             <a href="{{ url_for('voucher_templates.create') }}" class="mt-3 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600">
-                Create your first template
+                {{ trans('voucher_templates.empty_create') }}
             </a>
         </div>
         {% endif %}
@@ -130,9 +130,9 @@
             <table class="min-w-full align-middle text-sm">
                 <thead>
                     <tr class="border-b border-zinc-100 text-start dark:border-zinc-700/50">
-                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Name</th>
-                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Sections</th>
-                        <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">Actions</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('voucher_templates.th_name') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('voucher_templates.th_sections') }}</th>
+                        <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('voucher_templates.th_actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -144,48 +144,48 @@
                                 <span class="font-medium">{{ template.name }}</span>
                                 {% if template.is_default %}
                                 <span class="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                                    <span class="size-1.5 rounded-full bg-teal-500"></span>Default
+                                    <span class="size-1.5 rounded-full bg-teal-500"></span>{{ trans('voucher_templates.default') }}
                                 </span>
                                 {% endif %}
                             </div>
                         </td>
                         <td class="px-4 py-3">
                             {% if template.is_default %}
-                            <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">System template</span>
+                            <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">{{ trans('voucher_templates.system_template') }}</span>
                             {% else %}
                             <div class="flex flex-wrap gap-1.5">
                                 {% if template.header is not empty %}
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">Header</span>
+                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">{{ trans('voucher_templates.section_header') }}</span>
                                 {% endif %}
                                 {% if template.row is not empty %}
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">Row</span>
+                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">{{ trans('voucher_templates.section_row') }}</span>
                                 {% endif %}
                                 {% if template.footer is not empty %}
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">Footer</span>
+                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">{{ trans('voucher_templates.section_footer') }}</span>
                                 {% endif %}
                                 {% if template.header is empty and template.row is empty and template.footer is empty %}
-                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">Empty</span>
+                                <span class="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-400">{{ trans('voucher_templates.section_empty') }}</span>
                                 {% endif %}
                             </div>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-end gap-2">
-                                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="Preview" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                     <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                                 </button>
                                 {% if not template.is_default %}
-                                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                     <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                                 </a>
-                                <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove voucher template &quot;{{ template.name }}&quot;?')) $event.preventDefault()">
+                                <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('{{ trans('voucher_templates.remove_confirm', {name: template.name})|e('js') }}')) $event.preventDefault()">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" title="Remove" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
                                         <i class="ph ph-trash text-xl" aria-hidden="true"></i>
                                     </button>
                                 </form>
                                 {% else %}
-                                <span class="text-xs text-zinc-400 dark:text-zinc-500">Read-only</span>
+                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ trans('voucher_templates.read_only') }}</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -196,8 +196,8 @@
         </div>
         {% if not has_custom %}
         <div class="border-t border-zinc-100 px-4 py-4 text-center text-sm text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
-            No custom templates yet —
-            <a href="{{ url_for('voucher_templates.create') }}" class="font-medium text-teal-600 hover:underline dark:text-teal-400">create your first</a>
+            {{ trans('voucher_templates.empty_inline') }}
+            <a href="{{ url_for('voucher_templates.create') }}" class="font-medium text-teal-600 hover:underline dark:text-teal-400">{{ trans('voucher_templates.empty_create_link') }}</a>
         </div>
         {% endif %}
     </div>
@@ -215,7 +215,7 @@
         <div x-show="shown" x-transition role="dialog" aria-modal="true" class="relative z-10 w-full max-w-md overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Preview</p>
+                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('voucher_templates.preview') }}</p>
                     <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-text="templateName"></p>
                 </div>
                 <button type="button" @click="shown = false" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
@@ -226,16 +226,16 @@
             <div class="max-h-[60vh] overflow-y-auto p-4">
                 <div x-show="loading" class="flex items-center justify-center gap-2 py-8 text-sm text-zinc-500 dark:text-zinc-400">
                     <i class="ph ph-spinner text-xl animate-spin" aria-hidden="true"></i>
-                    Loading profiles…
+                    {{ trans('voucher_templates.loading_profiles') }}
                 </div>
 
                 <template x-if="!loading">
                     <div>
                         <div x-show="isDummy" class="mb-3 flex items-start gap-2.5 rounded-lg border border-dashed border-zinc-300 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                             <i class="ph ph-info mt-0.5 flex-none text-base" aria-hidden="true"></i>
-                            <p>No profiles available — previewing with dummy data.</p>
+                            <p>{{ trans('voucher_templates.no_profiles_dummy') }}</p>
                         </div>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Profiles</p>
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('voucher_templates.profiles') }}</p>
                         <div class="flex flex-col gap-2">
                             <template x-for="p in profiles" :key="p.name">
                                 <button type="button" @click="printProfile(p)"
@@ -249,7 +249,7 @@
                                 </button>
                             </template>
                         </div>
-                        <p class="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">Opens the printable voucher page in a new tab</p>
+                        <p class="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">{{ trans('voucher_templates.opens_new_tab') }}</p>
                     </div>
                 </template>
             </div>

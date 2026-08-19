@@ -81,8 +81,7 @@ Before building features, verify the RouterOS API connection works standalone (`
   - [x] **Dashboard** menu (home + dashboard_error templates).
   - [x] **Routers** menu (list + form).
   - [x] **Hotspot** menu (users list, profiles, generate, user/profile forms, export preview, placeholder).
-  - [ ] **Routers** menu (list + form).
-  - [ ] **Voucher Templates** menu (list + form).
+  - [x] **Voucher Templates** menu (list + form).
   - [ ] **Auth / Login** page.
   - [ ] PHP-side messages (controllers/services flash + JSON error strings).
 
