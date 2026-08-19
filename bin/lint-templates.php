@@ -17,6 +17,14 @@ $twig->addFunction(new \Twig\TwigFunction('url_for', fn (string $name, array $pa
 $twig->addFunction(new \Twig\TwigFunction('path_info', fn () => '/'));
 $twig->addFunction(new \Twig\TwigFunction('flash', fn () => []));
 
+$translator = new \Fame1302\Janathan\Services\TranslationService(
+    (string) ($_SESSION['locale'] ?? 'en'),
+    ['en' => 'English', 'id' => 'Bahasa Indonesia']
+);
+$twig->addFunction(new \Twig\TwigFunction('trans', fn (string $key, array $replace = []) => $translator->trans($key, $replace)));
+$twig->addGlobal('locale', $translator->getLocale());
+$twig->addGlobal('locales', $translator->getAvailable());
+
 $files = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($templatesDir, FilesystemIterator::SKIP_DOTS)
 );

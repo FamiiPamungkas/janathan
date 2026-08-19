@@ -1,17 +1,17 @@
 {% extends "layout.twig" %}
 
-{% block title %}{{ isEdit ? 'Edit router' : 'Add router' }} - Janathan{% endblock %}
+{% block title %}{{ trans(isEdit ? 'routers.title_edit' : 'routers.title_add') }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto w-full max-w-2xl">
     <div>
         <a href="{{ url_for('routers.index') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
             <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
-            Back to routers
+            {{ trans('routers.back') }}
         </a>
-        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ isEdit ? 'Edit router' : 'Add router' }}</h1>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ trans(isEdit ? 'routers.edit_title' : 'routers.add_title') }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {{ isEdit ? 'Update connection details for this MikroTik router.' : 'Add a MikroTik router to connect to it from the dashboard.' }}
+            {{ trans(isEdit ? 'routers.edit_subtitle' : 'routers.add_subtitle') }}
         </p>
     </div>
 
@@ -20,12 +20,12 @@
 
         <!-- Section 1: Session name -->
         <section class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Session name</h2>
-            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">A friendly label to identify this router in the app.</p>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('routers.section_session_name') }}</h2>
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.session_name_help') }}</p>
 
             <div class="mt-4">
-                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Session name</label>
-                <input type="text" id="name" name="name" required placeholder="e.g. Office Router"
+                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.session_name_label') }}</label>
+                <input type="text" id="name" name="name" required placeholder="{{ trans('routers.ph_office_router') }}"
                     value="{{ values.name|default(router.name|default('')) }}"
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.name %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                 {% if errors.name %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.name }}</p>{% endif %}
@@ -65,39 +65,39 @@
                 }
             }">
             <input type="hidden" x-ref="csrf" value="{{ csrf_token }}">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Connection</h2>
-            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">MikroTik API credentials used to reach this router.</p>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('routers.section_connection') }}</h2>
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.connection_help') }}</p>
 
             <div class="mt-4 space-y-5">
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div>
-                        <label for="host" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Host / IP address</label>
-                        <input type="text" id="host" name="host" x-ref="host" required placeholder="192.168.88.1"
+                        <label for="host" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.host_label') }}</label>
+                        <input type="text" id="host" name="host" x-ref="host" required placeholder="{{ trans('routers.ph_ip') }}"
                             value="{{ values.host|default(router.host|default('')) }}"
                             class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.host %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                         {% if errors.host %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.host }}</p>{% endif %}
                     </div>
 
                     <div>
-                        <label for="port" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Port</label>
+                        <label for="port" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.port_label') }}</label>
                         <input type="number" id="port" name="port" x-ref="port" min="1" max="65535" placeholder="8728"
                             value="{{ values.port is defined and values.port != '' ? values.port : router.port|default(8728) }}"
                             class="block w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
-                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Default: 8728 (API) or 8729 (API-SSL)</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.port_help') }}</p>
                         {% if errors.port %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.port }}</p>{% endif %}
                     </div>
                 </div>
 
                 <div>
-                    <label for="username" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Username</label>
-                    <input type="text" id="username" name="username" x-ref="username" required autocomplete="off" placeholder="admin"
+                    <label for="username" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.username_label') }}</label>
+                    <input type="text" id="username" name="username" x-ref="username" required autocomplete="off" placeholder="{{ trans('routers.ph_admin') }}"
                         value="{{ values.username|default(router.username|default('')) }}"
                         class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.username %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                     {% if errors.username %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.username }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Password</label>
+                    <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.password_label') }}</label>
                     <div class="relative">
                         <input :type="show ? 'text' : 'password'" id="password" name="password" x-ref="password" required autocomplete="new-password"
                             value="{{ values.password|default(router.password|default('')) }}"
@@ -109,7 +109,7 @@
                         </button>
                     </div>
                     {% if errors.password %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.password }}</p>{% endif %}
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Encrypted at rest with your APP_KEY.</p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.password_help') }}</p>
                 </div>
 
                 <label class="flex items-start gap-2.5 cursor-pointer">
@@ -117,8 +117,8 @@
                         {% if values.ssl is defined ? values.ssl : router.ssl|default(false) %}checked{% endif %}
                         class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
                     <span>
-                        <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Use API-SSL</span>
-                        <span class="block text-xs text-zinc-500 dark:text-zinc-400">Encrypt the connection to the router (port 8729).</span>
+                        <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.ssl_label') }}</span>
+                        <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.ssl_help') }}</span>
                     </span>
                 </label>
 
@@ -126,10 +126,10 @@
                     <button type="button" @click="check()" :disabled="busy"
                         class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                         <i class="ph ph-wifi-high text-base" :class="busy && 'animate-pulse'" aria-hidden="true"></i>
-                        <span x-text="busy ? 'Checking…' : 'Check connection'"></span>
+                        <span x-text="busy ? '{{ trans('routers.checking') }}' : '{{ trans('routers.check_connection') }}'"></span>
                     </button>
                     <span x-show="status === 'ok'" x-cloak class="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
-                        <i class="ph ph-check-circle text-base" aria-hidden="true"></i> Connected successfully
+                        <i class="ph ph-check-circle text-base" aria-hidden="true"></i> {{ trans('routers.connected_success') }}
                     </span>
                     <span x-show="status.startsWith('error:')" x-cloak class="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400">
                         <i class="ph ph-x-circle text-base" aria-hidden="true"></i>
@@ -141,26 +141,26 @@
 
         <!-- Section 3: Hotspot Preferences -->
         <section class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Hotspot Preferences</h2>
-            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">App-level settings for this router. All fields are optional.</p>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('routers.hotspot_prefs') }}</h2>
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('routers.hotspot_prefs_help') }}</p>
 
             <div class="mt-4 space-y-5">
                 <div>
-                    <label for="hotspot_name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Hotspot name</label>
-                    <input type="text" id="hotspot_name" name="hotspot_name" placeholder="e.g. Office Hotspot"
+                    <label for="hotspot_name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.hotspot_name_label') }}</label>
+                    <input type="text" id="hotspot_name" name="hotspot_name" placeholder="{{ trans('routers.ph_hotspot_name') }}"
                         value="{{ values.hotspot_name|default(router.hotspot_name|default('')) }}"
                         class="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 </div>
 
                 <div>
-                    <label for="dns_name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">DNS name</label>
-                    <input type="text" id="dns_name" name="dns_name" placeholder="e.g. jannathan.local / 10.5.50.1"
+                    <label for="dns_name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.dns_name_label') }}</label>
+                    <input type="text" id="dns_name" name="dns_name" placeholder="{{ trans('routers.ph_dns_name') }}"
                         value="{{ values.dns_name|default(router.dns_name|default('')) }}"
                         class="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 </div>
 
                 <div>
-                    <label for="currency" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Currency</label>
+                    <label for="currency" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('routers.currency_label') }}</label>
                     <select id="currency" name="currency"
                         class="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                         {% set currentCurrency = values.currency|default(router.currency|default('IDR')) %}
@@ -173,9 +173,9 @@
         </section>
 
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <a href="{{ url_for('routers.index') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">Cancel</a>
+            <a href="{{ url_for('routers.index') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">{{ trans('routers.cancel') }}</a>
             <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
-                {{ isEdit ? 'Save changes' : 'Add router' }}
+                {{ trans(isEdit ? 'routers.save_changes' : 'routers.add') }}
             </button>
         </div>
     </form>

@@ -79,6 +79,7 @@ Before building features, verify the RouterOS API connection works standalone (`
 - [ ] **Localization** — internationalize the app (extract UI strings, add translations, locale switching).
   - [x] Infrastructure: `TranslationService`, `LocaleMiddleware`, `users.locale` column, navbar language switcher, `trans()` Twig helper, `en` + `id` message files.
   - [x] **Dashboard** menu (home + dashboard_error templates).
+  - [x] **Routers** menu (list + form).
   - [ ] **Hotspot** menu (users list, profiles, generate, user/profile forms, export preview, placeholder).
   - [ ] **Routers** menu (list + form).
   - [ ] **Voucher Templates** menu (list + form).
