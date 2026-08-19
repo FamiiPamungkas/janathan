@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('/css/app.css') }}">
-    <link rel="stylesheet" href="{{ asset('/fonts/lineicons/lineicons.css') }}">
+    <link rel="stylesheet" href="{{ asset('/fonts/phosphor/style.css') }}">
     <script>
         (function () {
             var stored = null;
@@ -38,7 +38,7 @@
                         {% for message in messages %}
                             <div class="flex items-start gap-3 rounded-xl border p-4 text-sm
                                 {% if message.type == 'error' %}border-red-200 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200{% else %}border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200{% endif %}">
-                                <i class="lni flex-none text-xl {% if message.type == 'error' %}lni-xmark-circle text-red-500{% else %}lni-check-circle-1 text-teal-500{% endif %}" aria-hidden="true"></i>
+                                <i class="ph flex-none text-xl {% if message.type == 'error' %}ph-x-circle text-red-500{% else %}ph-check-circle text-teal-500{% endif %}" aria-hidden="true"></i>
                                 <p>{{ message.message }}</p>
                             </div>
                         {% endfor %}

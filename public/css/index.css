@@ -61,3 +61,10 @@
         display: none !important;
     }
 }
+
+/* Phosphor icons: keep them from shrinking inside flex containers (LineIcons did this by default) */
+@layer base {
+    i.ph {
+        flex-shrink: 0;
+    }
+}

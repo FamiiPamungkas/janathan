@@ -127,10 +127,10 @@
                 <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'Updated ' + timeLabel()"></span>
                 <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <template x-if="polling">
-                    <i class="lni lni-pause text-base" aria-hidden="true"></i>
+                    <i class="ph ph-pause text-base" aria-hidden="true"></i>
                 </template>
                 <template x-if="!polling">
-                    <i class="lni lni-play text-base" aria-hidden="true"></i>
+                    <i class="ph ph-play text-base" aria-hidden="true"></i>
                 </template>
                 <span x-text="polling ? 'Pause refresh' : 'Resume refresh'"></span>
             </button>
@@ -140,7 +140,7 @@
 
     <!-- Connection error notice -->
     <div x-show="error" x-transition class="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-        <i class="lni lni-xmark-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
+        <i class="ph ph-x-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">Connection lost</p>
             <p class="mt-0.5 text-sm" x-text="error"></p>
@@ -150,7 +150,7 @@
     <!-- Hotspot unavailable notice -->
     {% if not hotspotAvailable %}
     <div x-show="!hotspotAvailable" class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-        <i class="lni lni-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
+        <i class="ph ph-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">Hotspot is not available on this router</p>
             <p class="mt-0.5 text-sm">Session and user stats are hidden. Check that the hotspot package is installed and configured, and that the API user has permission to read it.</p>
@@ -163,7 +163,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                    <i class="lni lni-user-multiple-4 text-base" aria-hidden="true"></i>
+                    <i class="ph ph-users-three text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Active Sessions</span>
             </div>
@@ -174,7 +174,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
-                    <i class="lni lni-id-card text-base" aria-hidden="true"></i>
+                    <i class="ph ph-identification-card text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Total Users</span>
             </div>
@@ -185,7 +185,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
-                    <i class="lni lni-bar-chart-4 text-base" aria-hidden="true"></i>
+                    <i class="ph ph-chart-bar text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">Traffic</span>
             </div>
@@ -196,7 +196,7 @@
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
-                    <i class="lni lni-gauge-1 text-base" aria-hidden="true"></i>
+                    <i class="ph ph-gauge text-base" aria-hidden="true"></i>
                 </div>
                 <span class="text-sm font-medium">CPU Load</span>
             </div>

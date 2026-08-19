@@ -20,12 +20,12 @@
     <div class="flex h-16 flex-none items-center justify-between gap-3 border-b border-zinc-200 px-4 dark:border-zinc-700 lg:hidden">
         <a href="{{ url_for('dashboard') }}" class="flex flex-none items-center gap-2.5">
             <div class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-teal-500 text-white">
-                <i class="lni lni-database-2 text-xl" aria-hidden="true"></i>
+                <i class="ph ph-database text-xl" aria-hidden="true"></i>
             </div>
             <span class="text-lg font-bold tracking-tight">Janathan</span>
         </a>
         <button type="button" @click="sidebarOpen = false" aria-label="Close navigation" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100">
-            <i class="lni lni-xmark text-xl" aria-hidden="true"></i>
+            <i class="ph ph-x text-xl" aria-hidden="true"></i>
         </button>
     </div>
 
@@ -37,7 +37,7 @@
             {% if active_router %}
             <!-- Dashboard -->
             <a href="{{ url_for('dashboard') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if dashboard_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
-                <i class="lni lni-dashboard-square-1 flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                <i class="ph ph-squares-four flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Dashboard</span>
             </a>
 
@@ -45,10 +45,10 @@
             <div x-data="{ open: {{ hotspot_active ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" aria-expanded="open" class="group flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium {% if hotspot_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
                     <span class="flex flex-1 items-center gap-3">
-                        <i class="lni lni-tower-broadcast-1 flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <i class="ph ph-broadcast flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Hotspot</span>
                     </span>
-                    <i class="lni lni-chevron-down flex-none text-xl opacity-40 transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true"></i>
+                    <i class="ph ph-caret-down flex-none text-xl opacity-40 transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true"></i>
                 </button>
 
                 <div x-show="open" x-cloak class="relative mt-1 flex flex-col gap-1">
@@ -56,19 +56,19 @@
 
                     <a href="{{ url_for('hotspot.users') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if users_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if users_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
-                        <i class="lni lni-user-multiple-4 flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <i class="ph ph-users-three flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">User List</span>
                     </a>
 
                     <a href="{{ url_for('hotspot.profiles') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if profiles_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if profiles_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
-                        <i class="lni lni-gear-1 flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <i class="ph ph-gear flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Profile List</span>
                     </a>
 
                     <a href="{{ url_for('hotspot.users.generate') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if generate_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if generate_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
-                        <i class="lni lni-wand-2 flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <i class="ph ph-magic-wand flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Generate Users</span>
                     </a>
                 </div>
@@ -76,7 +76,7 @@
             {% else %}
             <!-- Not connected hint -->
             <div class="flex items-start gap-2.5 rounded-xl border border-dashed border-zinc-300 px-3 py-2.5 dark:border-zinc-700">
-                <i class="lni lni-plug-1 flex-none text-base text-zinc-400" aria-hidden="true"></i>
+                <i class="ph ph-plug flex-none text-base text-zinc-400" aria-hidden="true"></i>
                 <p class="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
                     Connect to a router to unlock the dashboard and hotspot tools.
                 </p>
@@ -85,13 +85,13 @@
 
             <!-- Voucher Templates -->
             <a href="{{ url_for('voucher_templates.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if voucher_templates_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
-                <i class="lni lni-ticket-1 flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                <i class="ph ph-ticket flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Voucher Templates</span>
             </a>
 
             <!-- Routers -->
             <a href="{{ url_for('routers.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if routers_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
-                <i class="lni lni-database-2 flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                <i class="ph ph-database flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Routers</span>
             </a>
         </div>
