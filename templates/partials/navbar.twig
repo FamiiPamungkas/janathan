@@ -133,6 +133,27 @@
                         <span class="flex-1">Theme</span>
                         <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text="{ 'off': 'Light', 'system': 'System', 'on': 'Dark' }[darkModePreference]"></span>
                     </button>
+                    <!-- Language switcher -->
+                    <div x-data="{ langOpen: false }" class="relative border-t border-zinc-100 dark:border-zinc-700/50">
+                        <button @click="langOpen = !langOpen" type="button" class="flex w-full items-center gap-2 px-3 py-2 text-start text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/40">
+                            <i class="ph ph-translate flex-none text-base" aria-hidden="true"></i>
+                            <span class="flex-1">{{ trans('ui.language') }}</span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text="({{ locales|json_encode|raw }})[document.documentElement.lang] || document.documentElement.lang"></span>
+                            <i class="ph ph-caret-down text-xs opacity-60" aria-hidden="true"></i>
+                        </button>
+                        <div x-show="langOpen" x-cloak @click.outside="langOpen = false" class="py-1">
+                            {% for code, label in locales %}
+                                <form method="post" action="{{ url_for('locale.set') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="locale" value="{{ code }}">
+                                    <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/40 {% if code == locale %}font-semibold text-teal-600 dark:text-teal-400{% else %}text-zinc-700 dark:text-zinc-300{% endif %}">
+                                        <span class="flex-1">{{ label }}</span>
+                                        {% if code == locale %}<i class="ph ph-check text-base" aria-hidden="true"></i>{% endif %}
+                                    </button>
+                                </form>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <form method="post" action="{{ url_for('logout') }}" class="border-t border-zinc-100 dark:border-zinc-700/50">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="w-full px-3 py-2 text-start text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">Sign out</button>

@@ -16,4 +16,15 @@ trait RedirectsTrait
 
         return $response->withHeader('Location', $url)->withStatus(302);
     }
+
+    protected function redirectBack(Response $response, Request $request, string $fallback = 'dashboard'): Response
+    {
+        $referer = $request->getHeaderLine('Referer');
+
+        if ($referer === '') {
+            return $this->redirect($response, $request, $fallback);
+        }
+
+        return $response->withHeader('Location', $referer)->withStatus(302);
+    }
 }

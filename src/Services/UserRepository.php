@@ -14,11 +14,17 @@ class UserRepository
 
     public function find(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, username, name, role, created_at FROM users WHERE id = :id');
+        $stmt = $this->pdo->prepare('SELECT id, username, name, role, locale, created_at FROM users WHERE id = :id');
         $stmt->execute(['id' => $id]);
         $user = $stmt->fetch();
 
         return $user === false ? null : $user;
+    }
+
+    public function updateLocale(int $id, string $locale): void
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET locale = :locale WHERE id = :id');
+        $stmt->execute(['id' => $id, 'locale' => $locale]);
     }
 
     public function findByUsername(string $username): ?array

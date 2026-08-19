@@ -30,6 +30,7 @@ $pdo->exec(
         password_hash TEXT NOT NULL,
         name          TEXT NOT NULL DEFAULT '',
         role          TEXT NOT NULL DEFAULT 'admin',
+        locale        TEXT NOT NULL DEFAULT 'en',
         created_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -88,6 +89,15 @@ foreach ($migrations as $column => $definition) {
     if (!in_array($column, $existingColumns, true)) {
         $pdo->exec("ALTER TABLE routers ADD COLUMN {$column} {$definition}");
     }
+}
+
+$userColumns = [];
+foreach ($pdo->query('PRAGMA table_info(users)') as $col) {
+    $userColumns[] = $col['name'];
+}
+
+if (!in_array('locale', $userColumns, true)) {
+    $pdo->exec("ALTER TABLE users ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'");
 }
 
 echo "Database ready at {$dbPath}\n";

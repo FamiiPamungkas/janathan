@@ -77,6 +77,13 @@ Before building features, verify the RouterOS API connection works standalone (`
 
 ## ToDo
 - [ ] **Localization** — internationalize the app (extract UI strings, add translations, locale switching).
+  - [x] Infrastructure: `TranslationService`, `LocaleMiddleware`, `users.locale` column, navbar language switcher, `trans()` Twig helper, `en` + `id` message files.
+  - [x] **Dashboard** menu (home + dashboard_error templates).
+  - [ ] **Hotspot** menu (users list, profiles, generate, user/profile forms, export preview, placeholder).
+  - [ ] **Routers** menu (list + form).
+  - [ ] **Voucher Templates** menu (list + form).
+  - [ ] **Auth / Login** page.
+  - [ ] PHP-side messages (controllers/services flash + JSON error strings).
 
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.

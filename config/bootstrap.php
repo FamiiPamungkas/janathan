@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use DI\ContainerBuilder;
 use Fame1302\Janathan\Middleware\CsrfMiddleware;
+use Fame1302\Janathan\Middleware\LocaleMiddleware;
 use Slim\App;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -24,5 +25,6 @@ $routes = require __DIR__ . '/../routes/web.php';
 $routes($app);
 
 $app->add(CsrfMiddleware::class);
+$app->add(LocaleMiddleware::class);
 
 return $app;

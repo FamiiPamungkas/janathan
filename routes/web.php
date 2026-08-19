@@ -18,6 +18,7 @@ return function (App $app): void {
     $app->get('/login', AuthController::class . ':showLogin')->setName('login');
     $app->post('/login', AuthController::class . ':login')->setName('login.post');
     $app->post('/logout', AuthController::class . ':logout')->setName('logout');
+    $app->post('/locale', AuthController::class . ':setLocale')->setName('locale.set');
 
     $app->group('', function (RouteCollectorProxy $app) {
         $app->get('/', function (Request $request, Response $response) {

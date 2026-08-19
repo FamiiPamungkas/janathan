@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\FlashService;
+use Fame1302\Janathan\Services\TranslationService;
 use Fame1302\Janathan\Services\UserRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Psr7\Response as SlimResponse;
 use Twig\Environment;
 
 class AuthController
@@ -17,7 +19,8 @@ class AuthController
     public function __construct(
         private Environment $twig,
         private UserRepository $users,
-        private FlashService $flash
+        private FlashService $flash,
+        private TranslationService $translator
     ) {
     }
 
@@ -49,8 +52,28 @@ class AuthController
 
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int) $user['id'];
+        $_SESSION['locale'] = $user['locale'] ?? 'en';
 
         return $this->redirect($response, $request, 'dashboard');
+    }
+
+    public function setLocale(Request $request, Response $response): Response
+    {
+        $body = (array) $request->getParsedBody();
+        $locale = strtolower(trim((string) ($body['locale'] ?? '')));
+        $available = $this->translator->getAvailable();
+
+        if (!array_key_exists($locale, $available)) {
+            $locale = 'en';
+        }
+
+        $_SESSION['locale'] = $locale;
+
+        if (!empty($_SESSION['user_id'])) {
+            $this->users->updateLocale((int) $_SESSION['user_id'], $locale);
+        }
+
+        return $this->redirectBack($response, $request);
     }
 
     public function logout(Request $request, Response $response): Response

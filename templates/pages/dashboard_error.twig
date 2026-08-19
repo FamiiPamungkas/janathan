@@ -1,6 +1,6 @@
 {% extends "layout.twig" %}
 
-{% block title %}Router unreachable - Janathan{% endblock %}
+{% block title %}{{ trans('title.router_unreachable') }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto mt-10 w-full max-w-lg">
@@ -8,14 +8,14 @@
         <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20">
             <i class="ph ph-x-circle text-2xl text-amber-500" aria-hidden="true"></i>
         </div>
-        <h1 class="mt-4 text-lg font-bold">Cannot reach router</h1>
+        <h1 class="mt-4 text-lg font-bold">{{ trans('error.router_unreachable_title') }}</h1>
         <p class="mt-2 text-sm text-amber-800 dark:text-amber-200">{{ message }}</p>
         <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
-            Check that the router is powered on, reachable from this server, and that the saved credentials are correct.
+            {{ trans('error.router_unreachable_body') }}
         </p>
         <div class="mt-6 flex flex-col gap-2 sm:flex-row">
-            <a href="{{ url_for('routers.index') }}" class="rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-500/10">Manage routers</a>
-            <a href="{{ url_for('dashboard') }}" class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">Try again</a>
+            <a href="{{ url_for('routers.index') }}" class="rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-500/10">{{ trans('error.manage_routers') }}</a>
+            <a href="{{ url_for('dashboard') }}" class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">{{ trans('error.try_again') }}</a>
         </div>
     </div>
 </div>
