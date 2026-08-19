@@ -42,6 +42,7 @@ return function (App $app): void {
             $app->post('/users/{id}/delete', HotspotController::class . ':deleteUser')->setName('hotspot.users.delete');
             $app->get('/users/{id}/print', HotspotController::class . ':printUser')->setName('hotspot.users.print');
             $app->get('/users/print', HotspotController::class . ':printUsers')->setName('hotspot.users.printMany');
+            $app->post('/users/delete-by-comment', HotspotController::class . ':deleteUsersByComment')->setName('hotspot.users.deleteByComment');
             $app->get('/users/generate', HotspotController::class . ':showGenerate')->setName('hotspot.users.generate');
             $app->post('/users/generate', HotspotController::class . ':generateUsers')->setName('hotspot.users.generate.store');
 

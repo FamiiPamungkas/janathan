@@ -373,6 +373,69 @@ readonly class HotspotService
     }
 
     /**
+     * Bulk-remove hotspot users matching the given list filters (comment + the
+     * other active filters). When `$includeActive` is false, only users that
+     * have never connected (uptime still zero) are removed; when true, every
+     * matched user is removed regardless of uptime.
+     *
+     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @return array{deleted: int, skipped: int}
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function deleteUsersByComment(int $routerId, array $filters, bool $includeActive): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        if (!$hotspotAvailable) {
+            $client->disconnect();
+
+            return ['deleted' => 0, 'skipped' => 0];
+        }
+
+        $normalized = $this->normalizeUserListFilters($filters);
+        $built = $this->applyUserListFilters($this->buildUsers($rows), $normalized);
+
+        $deleted = 0;
+        $skipped = 0;
+
+        try {
+            foreach ($built as $user) {
+                if (($user['name'] ?? '') === 'default-trial') {
+                    continue;
+                }
+
+                if (!$includeActive && empty($user['neverConnected'])) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $client->removeHotspotUser((string)($user['id'] ?? ''));
+                $deleted++;
+            }
+        } catch (RouterosCommandException $e) {
+            $client->disconnect();
+
+            throw $e;
+        } catch (Throwable $e) {
+            $client->disconnect();
+
+            throw $this->unreachable($router, $e);
+        }
+
+        $client->disconnect();
+
+        return ['deleted' => $deleted, 'skipped' => $skipped];
+    }
+
+    /**
      * @return array{router: array, profiles: array, hotspotAvailable: bool}
      */
     public function getProfiles(int $routerId): array
@@ -655,6 +718,7 @@ readonly class HotspotService
             'uptime' => $this->formatUptime((string)($u['uptime'] ?? '')),
             'bytes_in' => $this->formatBytes((int)($u['bytes-in'] ?? 0)),
             'bytes_out' => $this->formatBytes((int)($u['bytes-out'] ?? 0)),
+            'neverConnected' => $this->isUptimeZero((string)($u['uptime'] ?? '')),
         ];
     }
 
@@ -733,6 +797,17 @@ readonly class HotspotService
         $v = strtolower(trim((string)$value));
 
         return $v === 'true' || $v === 'yes' || $v === '1';
+    }
+
+    /**
+     * A user is considered "never connected" when RouterOS reports no uptime
+     * (empty, "0", or "0s"). Such accounts have never logged in.
+     */
+    private function isUptimeZero(string $raw): bool
+    {
+        $raw = trim($raw);
+
+        return $raw === '' || $raw === '0' || $raw === '0s';
     }
 
     /**

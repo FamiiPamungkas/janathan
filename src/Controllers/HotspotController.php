@@ -52,6 +52,14 @@ class HotspotController
 
         $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
 
+        $deleteStats = ['total' => count($data['users']), 'neverConnected' => 0];
+        foreach ($data['users'] as $u) {
+            if (!empty($u['neverConnected'])) {
+                $deleteStats['neverConnected']++;
+            }
+        }
+        $data['deleteStats'] = $deleteStats;
+
         $html = $this->twig->render('pages/hotspot/users.twig', $data);
         $response->getBody()->write($html);
 
@@ -348,6 +356,48 @@ class HotspotController
         $this->flash->add('success', 'User removed.');
 
         return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+    }
+
+    public function deleteUsersByComment(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+        $filters = [
+            'q' => isset($body['q']) ? trim((string)$body['q']) : '',
+            'profile' => isset($body['profile']) ? trim((string)$body['profile']) : '',
+            'comment' => isset($body['comment']) ? trim((string)$body['comment']) : '',
+            'status' => isset($body['status']) ? trim((string)$body['status']) : 'all',
+        ];
+        $includeActive = !empty($body['include_active']);
+
+        if ($filters['comment'] === '') {
+            $this->flash->add('error', 'Select a comment filter before deleting users.');
+
+            return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, $filters['comment'] !== '' ? $filters['comment'] : null);
+        }
+
+        try {
+            $result = $this->hotspot->deleteUsersByComment((int)$_SESSION['router_id'], $filters, $includeActive);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, $filters['comment']);
+        }
+
+        if ($result['deleted'] > 0) {
+            $message = $result['deleted'] . ' user(s) with comment "' . $filters['comment'] . '" removed.';
+            if (!$includeActive && $result['skipped'] > 0) {
+                $message .= ' ' . $result['skipped'] . ' connected user(s) kept (checkbox not selected).';
+            }
+            $this->flash->add('success', $message);
+        } else {
+            $this->flash->add('info', 'No matching users were removed.');
+        }
+
+        return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, null);
     }
 
     public function profiles(Request $request, Response $response): Response
