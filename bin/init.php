@@ -34,15 +34,18 @@ $pdo->exec(
     );
 
     CREATE TABLE IF NOT EXISTS routers (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-        name         TEXT NOT NULL,
-        host         TEXT NOT NULL,
-        port         INTEGER NOT NULL DEFAULT 8728,
-        ssl          INTEGER NOT NULL DEFAULT 0,
-        username     TEXT NOT NULL,
-        password_enc TEXT NOT NULL,
-        created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        name          TEXT NOT NULL,
+        host          TEXT NOT NULL,
+        port          INTEGER NOT NULL DEFAULT 8728,
+        ssl           INTEGER NOT NULL DEFAULT 0,
+        username      TEXT NOT NULL,
+        password_enc  TEXT NOT NULL,
+        hotspot_name  TEXT NOT NULL DEFAULT '',
+        dns_name      TEXT NOT NULL DEFAULT '',
+        currency      TEXT NOT NULL DEFAULT 'IDR',
+        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS hotspot_profiles (
@@ -68,6 +71,24 @@ $pdo->exec(
     );
     SQL
 );
+
+/* Migrate existing databases that predate the app preferences columns. */
+$existingColumns = [];
+foreach ($pdo->query('PRAGMA table_info(routers)') as $col) {
+    $existingColumns[] = $col['name'];
+}
+
+$migrations = [
+    'hotspot_name' => 'TEXT NOT NULL DEFAULT \'\'',
+    'dns_name'     => 'TEXT NOT NULL DEFAULT \'\'',
+    'currency'     => 'TEXT NOT NULL DEFAULT \'IDR\'',
+];
+
+foreach ($migrations as $column => $definition) {
+    if (!in_array($column, $existingColumns, true)) {
+        $pdo->exec("ALTER TABLE routers ADD COLUMN {$column} {$definition}");
+    }
+}
 
 echo "Database ready at {$dbPath}\n";
 

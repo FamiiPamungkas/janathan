@@ -32,7 +32,9 @@ class RouterosClient
         private int    $port = 8728,
         private bool   $ssl = false,
         private bool   $legacy = false,
-        private int    $socketTimeout = 10
+        private int    $socketTimeout = 10,
+        private int    $attempts = 10,
+        private int    $timeout = 10
     )
     {
     }
@@ -50,6 +52,8 @@ class RouterosClient
             'port' => $this->port,
             'ssl' => $this->ssl,
             'socket_timeout' => $this->socketTimeout,
+            'timeout' => $this->timeout,
+            'attempts' => $this->attempts,
         ];
 
         if ($this->legacy) {

@@ -56,12 +56,16 @@ class RouterController
 
     public function showEdit(Request $request, Response $response, array $args): Response
     {
-        $router = $this->routers->find((int)$args['id']);
+        $id = (int)$args['id'];
+        $router = $this->routers->find($id);
 
         if ($router === null) {
             $this->flash->add('error', 'Router not found.');
             return $this->redirect($response, $request, 'routers.index');
         }
+
+        $credentials = $this->routers->getCredentials($id);
+        $router['password'] = $credentials['password'] ?? '';
 
         return $this->renderForm($request, $response, $router, []);
     }
@@ -77,7 +81,7 @@ class RouterController
         }
 
         $values = $this->extractValues($request->getParsedBody());
-        $errors = $this->validate($values, false);
+        $errors = $this->validate($values, true);
 
         if ($errors !== []) {
             return $this->renderForm($request, $response, $router, $errors, $values);
@@ -172,18 +176,57 @@ class RouterController
             'formAction' => $router === null ? 'routers.store' : 'routers.update',
             'formParams' => $router === null ? [] : ['id' => $router['id']],
             'isEdit' => $router !== null,
+            'currencies' => ['IDR', 'USD'],
         ]);
         $response->getBody()->write($html);
 
         return $response->withStatus($errors !== [] ? 422 : 200);
     }
 
+    public function testConnection(Request $request, Response $response): Response
+    {
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+
+        $port = trim((string)($body['port'] ?? ''));
+        $port = $port === '' ? 8728 : (int)$port;
+
+        $credentials = [
+            'host' => trim((string)($body['host'] ?? '')),
+            'username' => trim((string)($body['username'] ?? '')),
+            'password' => (string)($body['password'] ?? ''),
+            'port' => $port,
+            'ssl' => !empty($body['ssl']),
+        ];
+
+        $payload = ['ok' => false, 'error' => 'Unknown error.'];
+
+        try {
+            $client = $this->clientFactory->create($credentials, ['attempts' => 1, 'timeout' => 8]);
+            $client->test();
+            $client->disconnect();
+            $payload = ['ok' => true];
+        } catch (\Throwable $e) {
+            $payload = ['ok' => false, 'error' => $e->getMessage()];
+        }
+
+        $response->getBody()->write(json_encode($payload));
+        $response = $response->withHeader('Content-Type', 'application/json');
+        $response = $response->withHeader('Cache-Control', 'no-store');
+
+        return $response;
+    }
+
     /**
-     * @return array{name: string, host: string, port: string, ssl: bool, username: string, password: string}
+     * @return array{name: string, host: string, port: string, ssl: bool, username: string, password: string, hotspot_name: string, dns_name: string, currency: string}
      */
     private function extractValues(mixed $body): array
     {
         $body = is_array($body) ? $body : [];
+
+        $currency = trim((string)($body['currency'] ?? ''));
+        if ($currency === '' || !in_array($currency, ['IDR', 'USD'], true)) {
+            $currency = 'IDR';
+        }
 
         return [
             'name' => trim((string)($body['name'] ?? '')),
@@ -192,6 +235,9 @@ class RouterController
             'ssl' => !empty($body['ssl']),
             'username' => trim((string)($body['username'] ?? '')),
             'password' => (string)($body['password'] ?? ''),
+            'hotspot_name' => trim((string)($body['hotspot_name'] ?? '')),
+            'dns_name' => trim((string)($body['dns_name'] ?? '')),
+            'currency' => $currency,
         ];
     }
 
@@ -200,7 +246,7 @@ class RouterController
         $errors = [];
 
         if ($values['name'] === '') {
-            $errors['name'] = 'Name is required.';
+            $errors['name'] = 'Session name is required.';
         }
 
         if ($values['host'] === '') {

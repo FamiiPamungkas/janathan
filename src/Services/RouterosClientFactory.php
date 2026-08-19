@@ -6,7 +6,7 @@ namespace Fame1302\Janathan\Services;
 
 class RouterosClientFactory
 {
-    public function create(array $credentials): RouterosClient
+    public function create(array $credentials, array $options = []): RouterosClient
     {
         return new RouterosClient(
             host: $credentials['host'],
@@ -14,6 +14,8 @@ class RouterosClientFactory
             pass: $credentials['password'],
             port: (int) $credentials['port'],
             ssl: (bool) $credentials['ssl'],
+            attempts: (int) ($options['attempts'] ?? 10),
+            timeout: (int) ($options['timeout'] ?? 10),
         );
     }
 }

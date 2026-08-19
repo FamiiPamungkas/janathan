@@ -8,7 +8,7 @@ use PDO;
 
 class RouterRepository
 {
-    private const SELECT_COLUMNS = 'id, name, host, port, ssl, username, created_at, updated_at';
+    private const SELECT_COLUMNS = 'id, name, host, port, ssl, username, hotspot_name, dns_name, currency, created_at, updated_at';
 
     public function __construct(
         private PDO $pdo,
@@ -35,8 +35,8 @@ class RouterRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO routers (name, host, port, ssl, username, password_enc)
-             VALUES (:name, :host, :port, :ssl, :username, :password_enc)'
+            'INSERT INTO routers (name, host, port, ssl, username, password_enc, hotspot_name, dns_name, currency)
+             VALUES (:name, :host, :port, :ssl, :username, :password_enc, :hotspot_name, :dns_name, :currency)'
         );
         $stmt->execute([
             'name' => $data['name'],
@@ -45,6 +45,9 @@ class RouterRepository
             'ssl' => !empty($data['ssl']) ? 1 : 0,
             'username' => $data['username'],
             'password_enc' => $this->crypto->encrypt($data['password']),
+            'hotspot_name' => $data['hotspot_name'] ?? '',
+            'dns_name' => $data['dns_name'] ?? '',
+            'currency' => $data['currency'] ?? 'IDR',
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -60,6 +63,9 @@ class RouterRepository
             'port' => (int) $data['port'],
             'ssl' => !empty($data['ssl']) ? 1 : 0,
             'username' => $data['username'],
+            'hotspot_name' => $data['hotspot_name'] ?? '',
+            'dns_name' => $data['dns_name'] ?? '',
+            'currency' => $data['currency'] ?? 'IDR',
         ];
 
         if (isset($data['password']) && $data['password'] !== '') {
@@ -70,6 +76,7 @@ class RouterRepository
         $stmt = $this->pdo->prepare(
             'UPDATE routers
              SET name = :name, host = :host, port = :port, ssl = :ssl, username = :username'
+            . ', hotspot_name = :hotspot_name, dns_name = :dns_name, currency = :currency'
             . $passwordSql
             . ', updated_at = datetime(\'now\')
              WHERE id = :id'
