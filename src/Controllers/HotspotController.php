@@ -160,9 +160,9 @@ class HotspotController
         $template = $useDefault ? null : $this->templates->find((int)$templateId);
 
         if ($template === null) {
-            $html = $this->voucherRenderer->renderUsersDefault($result['users'], $result['profiles']);
+            $html = $this->voucherRenderer->renderUsersDefault($result['users'], $result['profiles'], $filters['comment']);
         } else {
-            $html = $this->voucherRenderer->renderUsersCustom($template, $result['users'], $result['profiles']);
+            $html = $this->voucherRenderer->renderUsersCustom($template, $result['users'], $result['profiles'], $filters['comment']);
         }
 
         $html = preg_replace('#</body>#i', '<script>window.print();</script></body>', $html, 1) ?? $html;

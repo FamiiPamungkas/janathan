@@ -20,7 +20,8 @@ class VoucherTemplateRenderer
 
     public function __construct(
         private readonly string $defaultTemplatePath = VoucherTemplateRepository::DEFAULT_TEMPLATE_PATH
-    ) {
+    )
+    {
     }
 
     /**
@@ -48,12 +49,15 @@ class VoucherTemplateRenderer
             }
         }
 
-        return preg_replace(
-            '#<div id="data"[^>]*>.*?<div id="result">#s',
-            '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
-            $file,
-            1
-        ) ?? $file;
+        return $this->withTitle(
+            preg_replace(
+                '#<div id="data"[^>]*>.*?<div id="result">#s',
+                '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
+                $file,
+                1
+            ) ?? $file,
+            'Voucher Preview'
+        );
     }
 
     /**
@@ -78,12 +82,17 @@ class VoucherTemplateRenderer
             . '        <p data-pass>' . htmlspecialchars((string)($user['password'] ?? '')) . "</p>\n"
             . "    </div>\n";
 
-        return preg_replace(
-            '#<div id="data"[^>]*>.*?<div id="result">#s',
-            '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
-            $file,
-            1
-        ) ?? $file;
+        $title = trim((string)($profile['name'] ?? '')) !== '' ? $profile['name'] : 'Voucher';
+
+        return $this->withTitle(
+            preg_replace(
+                '#<div id="data"[^>]*>.*?<div id="result">#s',
+                '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
+                $file,
+                1
+            ) ?? $file,
+            $title
+        );
     }
 
     /**
@@ -95,11 +104,14 @@ class VoucherTemplateRenderer
     {
         $row = $this->fillUser($template['row'], $profile, $user);
 
+        $title = trim((string)($profile['name'] ?? '')) !== '' ? $profile['name'] : 'Voucher';
+
         return '<!DOCTYPE html>'
             . '<html lang="en">'
             . '<head>'
             . '<meta charset="UTF-8">'
             . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>' . htmlspecialchars($title, ENT_HTML5, 'UTF-8') . '</title>'
             . '<style>'
             . '@media print { body { background: #fff; } }'
             . '* { box-sizing: border-box; }'
@@ -154,6 +166,7 @@ class VoucherTemplateRenderer
             . '<head>'
             . '<meta charset="UTF-8">'
             . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>Voucher Preview</title>'
             . '<style>'
             . '@media print { body { background: #fff; } }'
             . '* { box-sizing: border-box; }'
@@ -193,7 +206,7 @@ class VoucherTemplateRenderer
      * @param list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}> $users
      * @param array<string, array{name: string, color: string, price: string}> $profilesById
      */
-    public function renderUsersDefault(array $users, array $profilesById): string
+    public function renderUsersDefault(array $users, array $profilesById, string $comment = ''): string
     {
         $file = file_get_contents($this->defaultTemplatePath);
 
@@ -202,9 +215,12 @@ class VoucherTemplateRenderer
         }
 
         $items = '';
+        $profileNames = [];
         foreach ($users as $user) {
             $profile = $profilesById[(string)($user['profile'] ?? '')]
                 ?? ['name' => (string)($user['profile'] ?? ''), 'color' => '', 'price' => ''];
+
+            $profileNames[(string)($profile['name'] ?? '')] = true;
 
             $price = (string)($profile['price'] ?? '');
             $price = ($price === '' || $price === '0') ? '999999' : $price;
@@ -218,12 +234,17 @@ class VoucherTemplateRenderer
                 . "    </div>\n";
         }
 
-        return preg_replace(
-            '#<div id="data"[^>]*>.*?<div id="result">#s',
-            '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
-            $file,
-            1
-        ) ?? $file;
+        $title = $this->batchTitle($comment, array_keys($profileNames));
+
+        return $this->withTitle(
+            preg_replace(
+                '#<div id="data"[^>]*>.*?<div id="result">#s',
+                '<div id="data" class="d-none">' . "\n" . $items . "</div>\n<div id=\"result\">",
+                $file,
+                1
+            ) ?? $file,
+            $title
+        );
     }
 
     /**
@@ -231,21 +252,27 @@ class VoucherTemplateRenderer
      * @param list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}> $users
      * @param array<string, array{name: string, color: string, price: string}> $profilesById
      */
-    public function renderUsersCustom(array $template, array $users, array $profilesById): string
+    public function renderUsersCustom(array $template, array $users, array $profilesById, string $comment = ''): string
     {
         $rows = '';
+        $profileNames = [];
         foreach ($users as $user) {
             $profile = $profilesById[(string)($user['profile'] ?? '')]
                 ?? ['name' => (string)($user['profile'] ?? ''), 'color' => '', 'price' => ''];
 
+            $profileNames[(string)($profile['name'] ?? '')] = true;
+
             $rows .= $this->fillUser($template['row'], $profile, $user);
         }
+
+        $title = $this->batchTitle($comment, array_keys($profileNames));
 
         return '<!DOCTYPE html>'
             . '<html lang="en">'
             . '<head>'
             . '<meta charset="UTF-8">'
             . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>' . htmlspecialchars($title, ENT_HTML5, 'UTF-8') . '</title>'
             . '<style>'
             . '@media print { body { background: #fff; } }'
             . '* { box-sizing: border-box; }'
@@ -258,5 +285,31 @@ class VoucherTemplateRenderer
             . $template['footer']
             . '</body>'
             . '</html>';
+    }
+
+    private function batchTitle(string $comment, array $profileNames): string
+    {
+        $profiles = implode(', ', array_filter($profileNames, static fn(string $n): bool => $n !== ''));
+        $comment = trim($comment);
+
+        if ($comment !== '' && $profiles !== '') {
+            return "Voucher - " . $comment . ' - ' . $profiles;
+        }
+
+        if ($comment !== '') {
+            return "Voucher - " . $comment;
+        }
+
+        return $profiles !== '' ? "Voucher - $profiles" : 'Vouchers';
+    }
+
+    private function withTitle(string $html, string $title): string
+    {
+        return preg_replace(
+            '#<title>.*?</title>#is',
+            '<title>' . htmlspecialchars($title, ENT_HTML5, 'UTF-8') . '</title>',
+            $html,
+            1
+        ) ?? $html;
     }
 }
