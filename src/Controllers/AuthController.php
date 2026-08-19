@@ -99,4 +99,80 @@ class AuthController
 
         return $this->redirect($response, $request, 'login');
     }
+
+    public function showEdit(Request $request, Response $response): Response
+    {
+        $user = $this->users->find((int) $_SESSION['user_id']);
+
+        if ($user === null) {
+            return $this->redirect($response, $request, 'login');
+        }
+
+        $html = $this->twig->render('pages/admin/edit.twig', [
+            'user' => $user,
+            'locales' => $this->translator->getAvailable(),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    public function updateProfile(Request $request, Response $response): Response
+    {
+        $id = (int) $_SESSION['user_id'];
+        $user = $this->users->find($id);
+
+        if ($user === null) {
+            return $this->redirect($response, $request, 'login');
+        }
+
+        $body = (array) $request->getParsedBody();
+        $username = trim((string) ($body['username'] ?? ''));
+        $password = (string) ($body['password'] ?? '');
+        $locale = strtolower(trim((string) ($body['locale'] ?? '')));
+
+        $errors = [];
+
+        if ($username === '') {
+            $errors['username'] = 'Username is required.';
+        } elseif ($this->users->usernameExists($username, $id)) {
+            $errors['username'] = 'That username is already taken.';
+        }
+
+        $available = $this->translator->getAvailable();
+        if (!array_key_exists($locale, $available)) {
+            $locale = $user['locale'] ?? 'en';
+        }
+
+        if ($errors !== []) {
+            $html = $this->twig->render('pages/admin/edit.twig', [
+                'user' => $user,
+                'locales' => $available,
+                'values' => ['username' => $username, 'locale' => $locale],
+                'errors' => $errors,
+            ]);
+            $response->getBody()->write($html);
+
+            return $response;
+        }
+
+        $data = [
+            'username' => $username,
+            'locale' => $locale,
+        ];
+
+        if ($password !== '') {
+            $data['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+
+        $this->users->updateProfile($id, $data);
+
+        if ($locale !== ($user['locale'] ?? 'en')) {
+            $_SESSION['locale'] = $locale;
+        }
+
+        $this->flash->add('success', 'Your account has been updated.');
+
+        return $this->redirect($response, $request, 'admin.edit');
+    }
 }

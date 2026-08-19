@@ -9,9 +9,25 @@ return [
     ],
     'menu' => [
         'dashboard' => 'Dashboard',
+        'admin' => 'Pengaturan Admin',
     ],
     'ui' => [
         'language' => 'Bahasa',
+    ],
+    'admin' => [
+        'title' => 'Pengaturan Admin - Janathan',
+        'back' => 'Kembali ke dasbor',
+        'heading' => 'Pengaturan Admin',
+        'subtitle' => 'Perbarui login, kata sandi, dan bahasa akun Anda.',
+        'section_account' => 'Akun',
+        'section_account_help' => 'Identitas login dan kata sandi Anda untuk aplikasi ini.',
+        'username' => 'Nama pengguna',
+        'password' => 'Kata sandi baru',
+        'password_help' => 'Biarkan kosong untuk mempertahankan kata sandi saat ini.',
+        'section_prefs' => 'Preferensi',
+        'language' => 'Bahasa',
+        'cancel' => 'Batal',
+        'save' => 'Simpan perubahan',
     ],
     'dashboard' => [
         'connection_lost' => 'Koneksi terputus',

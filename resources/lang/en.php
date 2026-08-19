@@ -9,9 +9,25 @@ return [
     ],
     'menu' => [
         'dashboard' => 'Dashboard',
+        'admin' => 'Admin Setting',
     ],
     'ui' => [
         'language' => 'Language',
+    ],
+    'admin' => [
+        'title' => 'Admin Setting - Janathan',
+        'back' => 'Back to dashboard',
+        'heading' => 'Admin Setting',
+        'subtitle' => 'Update your account login, password, and language.',
+        'section_account' => 'Account',
+        'section_account_help' => 'Your login identity and password for this app.',
+        'username' => 'Username',
+        'password' => 'New password',
+        'password_help' => 'Leave blank to keep your current password.',
+        'section_prefs' => 'Preferences',
+        'language' => 'Language',
+        'cancel' => 'Cancel',
+        'save' => 'Save changes',
     ],
     'dashboard' => [
         'connection_lost' => 'Connection lost',

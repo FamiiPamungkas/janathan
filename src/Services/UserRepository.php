@@ -36,6 +36,34 @@ class UserRepository
         return $user === false ? null : $user;
     }
 
+    public function usernameExists(string $username, int $exceptId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM users WHERE username = :username AND id != :id LIMIT 1');
+        $stmt->execute(['username' => $username, 'id' => $exceptId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    public function updateProfile(int $id, array $data): void
+    {
+        $fields = [];
+        $params = ['id' => $id];
+
+        foreach (['username', 'locale', 'password_hash'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $fields[] = "{$field} = :{$field}";
+                $params[$field] = $data[$field];
+            }
+        }
+
+        if ($fields === []) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = :id');
+        $stmt->execute($params);
+    }
+
     public function create(string $username, string $passwordHash, string $name = '', string $role = 'admin'): void
     {
         $stmt = $this->pdo->prepare(
