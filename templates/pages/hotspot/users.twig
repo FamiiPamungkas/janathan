@@ -5,7 +5,7 @@
 {% block content %}
 {% set profileFilter = filters.profile|default('') %}
 {% set hasFilters = filtersActive|default(false) %}
-<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" x-data="{ exportModal: false }">
     <div>
         <h1 class="text-2xl font-bold tracking-tight">User List</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -20,11 +20,57 @@
             <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
         </p>
     </div>
-    <a href="{{ url_for('hotspot.users.create') }}{% if profileFilter %}?profile={{ profileFilter|url_encode }}{% endif %}"
-        class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
-        <i class="ph ph-plus text-base" aria-hidden="true"></i>
-        Add user
-    </a>
+    <div class="flex w-fit items-center gap-2">
+        {% if users is not empty %}
+        <button type="button" @click="exportModal = true"
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+            <i class="ph ph-export text-base" aria-hidden="true"></i>
+            Export
+        </button>
+        {% endif %}
+        <a href="{{ url_for('hotspot.users.create') }}{% if profileFilter %}?profile={{ profileFilter|url_encode }}{% endif %}"
+            class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+            <i class="ph ph-plus text-base" aria-hidden="true"></i>
+            Add user
+        </a>
+    </div>
+    {% if users is not empty %}
+    <div x-show="exportModal" x-cloak class="fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-4 sm:items-center" x-transition.opacity>
+        <div class="w-full max-w-sm rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+             @click.outside="exportModal = false" x-transition>
+            <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Export users</h2>
+                <button type="button" @click="exportModal = false"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="Close">
+                    <i class="ph ph-x text-xl" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="px-4 pt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                Choose a format for the <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ users|length }}</span> user{% if users|length != 1 %}s{% endif %} with the current filters.
+            </p>
+            <div class="flex flex-col gap-1 p-3">
+                <a href="{{ url_for('hotspot.users.export') }}?q={{ filters.q|url_encode }}&profile={{ filters.profile|url_encode }}&comment={{ filters.comment|url_encode }}&status={{ filters.status|url_encode }}&format=csv&preview=1"
+                    target="_blank" @click="exportModal = false"
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    <span class="inline-flex items-center gap-2">
+                        <i class="ph ph-table text-base text-zinc-400" aria-hidden="true"></i>
+                        CSV
+                    </span>
+                    <i class="ph ph-arrow-square-out text-base text-zinc-400" aria-hidden="true"></i>
+                </a>
+                <a href="{{ url_for('hotspot.users.export') }}?q={{ filters.q|url_encode }}&profile={{ filters.profile|url_encode }}&comment={{ filters.comment|url_encode }}&status={{ filters.status|url_encode }}&format=rsc&preview=1"
+                    target="_blank" @click="exportModal = false"
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    <span class="inline-flex items-center gap-2">
+                        <i class="ph ph-file-code text-base text-zinc-400" aria-hidden="true"></i>
+                        Script
+                    </span>
+                    <i class="ph ph-arrow-square-out text-base text-zinc-400" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">

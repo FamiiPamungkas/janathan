@@ -529,6 +529,66 @@ readonly class HotspotService
     }
 
     /**
+     * Fetch the raw hotspot user records (including plaintext password) for export.
+     * Reuses the same filters and default-trial exclusion as the list view.
+     *
+     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @return array{users: list<array<string, mixed>>}
+     */
+    public function getUsersForExport(int $routerId, array $filters = []): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        } finally {
+            $client->disconnect();
+        }
+
+        $normalized = $this->normalizeUserListFilters($filters);
+        $built = $this->buildUsers($rows);
+        $filtered = $this->applyUserListFilters($built, $normalized);
+
+        $users = [];
+        foreach ($filtered as $u) {
+            if (($u['name'] ?? '') === 'default-trial') {
+                continue;
+            }
+
+            $userId = $u['id'] ?? '';
+            $raw = null;
+            foreach ($rows as $row) {
+                if (($row['.id'] ?? '') === $userId) {
+                    $raw = $row;
+                    break;
+                }
+            }
+            if ($raw === null) {
+                continue;
+            }
+
+            $users[] = [
+                'name' => $raw['name'] ?? '',
+                'password' => $raw['password'] ?? '',
+                'profile' => $raw['profile'] ?? '',
+                'comment' => $raw['comment'] ?? '',
+                'disabled' => $this->isYes($raw['disabled'] ?? null),
+                'server' => $raw['server'] ?? '',
+                'mac_address' => $raw['mac-address'] ?? '',
+                'limit_bytes_in' => $raw['limit-bytes-in'] ?? '',
+                'limit_bytes_out' => $raw['limit-bytes-out'] ?? '',
+                'uptime' => $raw['uptime'] ?? '',
+                'bytes_in' => $raw['bytes-in'] ?? 0,
+                'bytes_out' => $raw['bytes-out'] ?? 0,
+            ];
+        }
+
+        return ['users' => $users];
+    }
+
+    /**
      * @return array|null The normalized profile, or null when it does not exist.
      */
     public function getProfile(int $routerId, string $id): ?array

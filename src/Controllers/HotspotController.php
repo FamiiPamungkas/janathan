@@ -13,6 +13,7 @@ use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Support\Logger;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Routing\RouteContext;
 use Twig\Environment;
 
 class HotspotController
@@ -169,6 +170,159 @@ class HotspotController
         $response->getBody()->write($html);
 
         return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    public function exportUsers(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $routerId = (int)$_SESSION['router_id'];
+        $params = $request->getQueryParams();
+        $filters = [
+            'q' => isset($params['q']) ? trim((string)$params['q']) : '',
+            'profile' => isset($params['profile']) ? trim((string)$params['profile']) : '',
+            'comment' => isset($params['comment']) ? trim((string)$params['comment']) : '',
+            'status' => isset($params['status']) ? trim((string)$params['status']) : 'all',
+        ];
+        $format = strtolower(trim((string)($params['format'] ?? 'csv')));
+        if (!in_array($format, ['csv', 'rsc'], true)) {
+            $format = 'csv';
+        }
+        $preview = isset($params['preview']) && $params['preview'] !== '' && $params['preview'] !== '0';
+
+        try {
+            $result = $this->hotspot->getUsersForExport($routerId, $filters);
+        } catch (\Throwable $e) {
+            return $this->renderExportError($response, $request, 'Cannot reach the router to export users.');
+        }
+
+        $users = $result['users'];
+        if ($users === []) {
+            return $this->renderExportError($response, $request, 'No users to export for the selected filters.');
+        }
+
+        if ($format === 'rsc') {
+            $downloadContent = $this->buildRscScript($users);
+            $downloadMime = 'text/plain';
+            $downloadFilename = 'hotspot-users-' . date('Ymd-His') . '.rsc';
+        } else {
+            $downloadContent = $this->buildCsv($users);
+            $downloadMime = 'text/csv';
+            $downloadFilename = 'hotspot-users-' . date('Ymd-His') . '.csv';
+        }
+
+        if ($preview) {
+            $html = $this->twig->render('pages/hotspot/export_preview.twig', [
+                'format' => $format,
+                'formatLabel' => $format === 'rsc' ? 'Script' : 'CSV',
+                'users' => $users,
+                'scriptText' => $format === 'rsc' ? $downloadContent : '',
+                'downloadContent' => $downloadContent,
+                'downloadFilename' => $downloadFilename,
+                'downloadMime' => $downloadMime,
+                'backUrl' => $this->urlFor($request, 'hotspot.users'),
+            ]);
+            $response->getBody()->write($html);
+
+            return $response;
+        }
+
+        $response->getBody()->write($downloadContent);
+
+        return $response
+            ->withHeader('Content-Type', $downloadMime . '; charset=utf-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $downloadFilename . '"')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    }
+
+    private function renderExportError(Response $response, Request $request, string $message): Response
+    {
+        $html = $this->twig->render('pages/hotspot/export_preview.twig', [
+            'format' => '',
+            'formatLabel' => '',
+            'users' => [],
+            'scriptText' => '',
+            'downloadContent' => '',
+            'downloadFilename' => '',
+            'downloadMime' => '',
+            'error' => $message,
+            'backUrl' => $this->urlFor($request, 'hotspot.users'),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $users
+     */
+    private function buildCsv(array $users): string
+    {
+        $stream = fopen('php://temp', 'r+');
+        fputcsv($stream, [
+            'name', 'password', 'profile', 'comment', 'disabled', 'server', 'mac_address',
+        ]);
+        foreach ($users as $u) {
+            fputcsv($stream, [
+                $u['name'], $u['password'], $u['profile'], $u['comment'],
+                $u['disabled'] ? 'yes' : 'no', $u['server'], $u['mac_address'],
+            ]);
+        }
+        rewind($stream);
+        $csv = (string)stream_get_contents($stream);
+        fclose($stream);
+
+        return $csv;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $users
+     */
+    private function buildRscScript(array $users): string
+    {
+        $lines = ['# Hotspot users export - ' . date('Y-m-d H:i:s')];
+        foreach ($users as $u) {
+            $parts = [
+                '/ip hotspot user add',
+                'name=' . $this->rscValue((string)$u['name']),
+                'profile=' . $this->rscValue((string)$u['profile']),
+                'comment=' . $this->rscValue((string)$u['comment']),
+                'disabled=' . ($u['disabled'] ? 'yes' : 'no'),
+            ];
+
+            $server = (string)$u['server'];
+            if ($server !== '' && $server !== 'all' && $server !== '*0') {
+                $parts[] = 'server=' . $this->rscValue($server);
+            }
+            if ((string)$u['mac_address'] !== '') {
+                $parts[] = 'mac-address=' . (string)$u['mac_address'];
+            }
+            if ((string)$u['password'] !== '' && (string)$u['password'] !== '**') {
+                $parts[] = 'password=' . $this->rscValue((string)$u['password']);
+            }
+
+            $line = implode(' ', $parts);
+            if ((string)$u['password'] === '**') {
+                $line = '# Password obscured by RouterOS - user not re-importable as-is:' . "\n" . '# ' . $line;
+            }
+            $lines[] = $line;
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    private function rscValue(string $value): string
+    {
+        $escaped = str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
+
+        return '"' . $escaped . '"';
+    }
+
+    private function urlFor(Request $request, string $name, array $params = []): string
+    {
+        return RouteContext::fromRequest($request)->getRouteParser()->urlFor($name, $params);
     }
 
     public function showGenerate(Request $request, Response $response): Response
