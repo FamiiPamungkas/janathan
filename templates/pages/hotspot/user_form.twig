@@ -1,6 +1,6 @@
 {% extends "layout.twig" %}
 
-{% block title %}{{ isEdit ? 'Edit user' : 'Add user' }} - Hotspot - Janathan{% endblock %}
+{% block title %}{{ trans(isEdit ? 'hotspot.user_form.title_edit' : 'hotspot.user_form.title_add') }}{% endblock %}
 
 {% block content %}
 {% set backUrl = url_for('hotspot.users') ~ (listProfile ? '?profile=' ~ listProfile|url_encode : '') %}
@@ -8,11 +8,11 @@
     <div>
         <a href="{{ backUrl }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
             <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
-            Back to users
+            {{ trans('hotspot.user_form.back') }}
         </a>
-        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ isEdit ? 'Edit user' : 'Add user' }}</h1>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ trans(isEdit ? 'hotspot.user_form.edit_title' : 'hotspot.user_form.add_title') }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {{ isEdit ? 'Update this hotspot user on the connected router.' : 'Create a new hotspot user on the connected router.' }}
+            {{ trans(isEdit ? 'hotspot.user_form.edit_subtitle' : 'hotspot.user_form.add_subtitle') }}
         </p>
     </div>
 
@@ -27,30 +27,30 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div>
-                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
-                <input type="text" id="name" name="name" required placeholder="e.g. user01" autocomplete="off"
+                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.name') }}</label>
+                <input type="text" id="name" name="name" required placeholder="{{ trans('hotspot.user_form.name_ph') }}" autocomplete="off"
                     value="{{ values.name|default(user.name|default('')) }}"
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.name %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                 {% if errors.name %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.name }}</p>{% endif %}
             </div>
 
             <div>
-                <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Password</label>
-                <input type="password" id="password" name="password" {% if not isEdit %}required{% endif %} placeholder="{{ isEdit ? 'Leave blank to keep current' : '' }}" autocomplete="new-password"
+                <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.password') }}</label>
+                <input type="password" id="password" name="password" {% if not isEdit %}required{% endif %} placeholder="{{ isEdit ? trans('hotspot.user_form.password_edit_ph') : '' }}" autocomplete="new-password"
                     value=""
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.password %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                 {% if isEdit %}
-                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Leave blank to keep the existing password.</p>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.password_help') }}</p>
                 {% endif %}
                 {% if errors.password %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.password }}</p>{% endif %}
             </div>
 
             <div>
-                <label for="profile" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Profile</label>
+                <label for="profile" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.profile') }}</label>
                 {% set currentProfile = values.profile|default(user.profile|default('')) %}
                 <select id="profile" name="profile" required
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.profile %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <option value="" {% if currentProfile == '' %}selected{% endif %}>— Select profile —</option>
+                    <option value="" {% if currentProfile == '' %}selected{% endif %}>{{ trans('hotspot.user_form.select_profile') }}</option>
                     {% for p in profiles %}
                         <option value="{{ p }}" {% if currentProfile == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
@@ -59,8 +59,8 @@
             </div>
 
             <div>
-                <label for="comment" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Comment</label>
-                <input type="text" id="comment" name="comment" placeholder="Optional note"
+                <label for="comment" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.comment') }}</label>
+                <input type="text" id="comment" name="comment" placeholder="{{ trans('hotspot.user_form.comment_ph') }}"
                     value="{{ values.comment|default(user.comment|default('')) }}"
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.comment %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                 {% if errors.comment %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.comment }}</p>{% endif %}
@@ -71,16 +71,16 @@
                     {% if values.disabled is defined ? values.disabled : (user.disabled|default(false)) %}checked{% endif %}
                     class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
                 <span>
-                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Disabled</span>
-                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">Prevent this user from logging in to the hotspot.</span>
+                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.disabled_label') }}</span>
+                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.disabled_help') }}</span>
                 </span>
             </label>
 
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <a href="{{ backUrl }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">Cancel</a>
-                <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
-                    {{ isEdit ? 'Save changes' : 'Add user' }}
-                </button>
+            <a href="{{ backUrl }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">{{ trans('hotspot.cancel') }}</a>
+            <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+                {{ trans(isEdit ? 'hotspot.save_changes' : 'hotspot.user_form.add') }}
+            </button>
             </div>
         </form>
     </div>

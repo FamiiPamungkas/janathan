@@ -1,17 +1,17 @@
 {% extends "layout.twig" %}
 
-{% block title %}{{ isEdit ? 'Edit profile' : 'Add profile' }} - Hotspot - Janathan{% endblock %}
+{% block title %}{{ trans(isEdit ? 'hotspot.profile_form.title_edit' : 'hotspot.profile_form.title_add') }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto w-full max-w-2xl">
     <div>
         <a href="{{ url_for('hotspot.profiles') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
             <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
-            Back to profiles
+            {{ trans('hotspot.profile_form.back') }}
         </a>
-        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ isEdit ? 'Edit profile' : 'Add profile' }}</h1>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ trans(isEdit ? 'hotspot.profile_form.edit_title' : 'hotspot.profile_form.add_title') }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {{ isEdit ? 'Update this hotspot user profile on the connected router.' : 'Create a new hotspot user profile on the connected router.' }}
+            {{ trans(isEdit ? 'hotspot.profile_form.edit_subtitle' : 'hotspot.profile_form.add_subtitle') }}
         </p>
     </div>
 
@@ -26,8 +26,8 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div>
-                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
-                <input type="text" id="name" name="name" required placeholder="e.g. Voucher 10M"
+                <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.name') }}</label>
+                <input type="text" id="name" name="name" required placeholder="{{ trans('hotspot.profile_form.name_ph') }}"
                     value="{{ values.name|default(profile.name|default('')) }}"
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.name %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
                 {% if errors.name %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.name }}</p>{% endif %}
@@ -39,7 +39,7 @@
                         colors: ['#14b8a6','#10b981','#22c55e','#84cc16','#f59e0b','#f97316','#ef4444','#f43f5e','#ec4899','#d946ef','#8b5cf6','#6366f1','#3b82f6','#0ea5e9','#64748b'],
                         selected: '{{ values.color|default(profile.color|default('#14b8a6')) }}'
                     }">
-                    <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Voucher color</label>
+                    <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.color') }}</label>
                     <input type="hidden" id="color" name="color" x-model="selected">
                     <div class="flex flex-wrap gap-2">
                         <template x-for="c in colors" :key="c">
@@ -52,55 +52,55 @@
                             </button>
                         </template>
                     </div>
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Used to distinguish this profile on printed vouchers.</p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.color_help') }}</p>
                     {% if errors.color %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.color }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="price" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Price</label>
+                    <label for="price" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.price') }}</label>
                     <input type="number" id="price" name="price" step="0.01" min="0" placeholder="0" inputmode="decimal"
                         value="{{ values.price|default(profile.price|default('')) }}"
                         class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.price %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Voucher price for this profile. Blank = 0.</p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.price_help') }}</p>
                     {% if errors.price %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.price }}</p>{% endif %}
                 </div>
             </div>
 
             <div>
-                <label for="prefix" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Default username prefix</label>
-                <input type="text" id="prefix" name="prefix" placeholder="e.g. vch" maxlength="100"
+                <label for="prefix" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.prefix') }}</label>
+                <input type="text" id="prefix" name="prefix" placeholder="{{ trans('hotspot.generate.prefix_ph') }}" maxlength="100"
                     value="{{ values.prefix|default(profile.prefix|default('')) }}"
                     class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.prefix %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Pre-filled into the username prefix when generating users with this profile.</p>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.prefix_help') }}</p>
                 {% if errors.prefix %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.prefix }}</p>{% endif %}
             </div>
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                    <label for="rate_limit" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Rate limit</label>
+                    <label for="rate_limit" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.rate_limit') }}</label>
                     <input type="text" id="rate_limit" name="rate_limit" placeholder="10M/10M" autocomplete="off"
                         value="{{ values.rate_limit|default(profile.rate_limit|default('')) }}"
                         class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.rate_limit %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">rx/tx, e.g. 10M/10M. Blank = unlimited.</p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.rate_limit_help') }}</p>
                     {% if errors.rate_limit %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.rate_limit }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="shared_users" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Shared users</label>
+                    <label for="shared_users" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.shared_users') }}</label>
                     <input type="number" id="shared_users" name="shared_users" min="1" max="255" required placeholder="1"
                         value="{{ values.shared_users|default(profile.shared_users|default('1')) }}"
                         class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.shared_users %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Max simultaneous logins per user.</p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.shared_users_help') }}</p>
                     {% if errors.shared_users %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.shared_users }}</p>{% endif %}
                 </div>
             </div>
 
             <div>
-                <label for="address_pool" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Address pool</label>
+                <label for="address_pool" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.address_pool') }}</label>
                 {% set currentPool = values.address_pool|default(profile.address_pool|default('')) %}
                 <select id="address_pool" name="address_pool"
                     class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.address_pool %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    <option value="" {% if currentPool == '' %}selected{% endif %}>— No pool —</option>
+                    <option value="" {% if currentPool == '' %}selected{% endif %}>{{ trans('hotspot.profile_form.no_pool') }}</option>
                     {% for pool in pools %}
                         <option value="{{ pool }}" {% if currentPool == pool %}selected{% endif %}>{{ pool }}</option>
                     {% endfor %}
@@ -113,21 +113,21 @@
                     {% if values.add_mac_cookie is defined ? values.add_mac_cookie : (profile.add_mac_cookie == 'true')|default(false) %}checked{% endif %}
                     class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
                 <span>
-                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">MAC cookie</span>
-                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">Remember this user's device so it skips the login page on return visits.</span>
+                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.mac_cookie') }}</span>
+                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.mac_cookie_help') }}</span>
                 </span>
             </label>
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                    <label for="on_login" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">On-login script</label>
+                    <label for="on_login" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.on_login') }}</label>
                     <textarea id="on_login" name="on_login" rows="4" placeholder=":local id &#10;/ip/hotspot/active/set..."
                         class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.on_login %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">{{ values.on_login|default(profile.on_login|default('')) }}</textarea>
                     {% if errors.on_login %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.on_login }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="on_logout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">On-logout script</label>
+                    <label for="on_logout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.on_logout') }}</label>
                     <textarea id="on_logout" name="on_logout" rows="4" placeholder=":local id &#10;/ip/hotspot/active/set..."
                         class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.on_logout %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">{{ values.on_logout|default(profile.on_logout|default('')) }}</textarea>
                     {% if errors.on_logout %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.on_logout }}</p>{% endif %}
@@ -135,10 +135,10 @@
             </div>
 
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <a href="{{ url_for('hotspot.profiles') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">Cancel</a>
-                <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
-                    {{ isEdit ? 'Save changes' : 'Add profile' }}
-                </button>
+            <a href="{{ url_for('hotspot.profiles') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">{{ trans('hotspot.cancel') }}</a>
+            <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+                {{ trans(isEdit ? 'hotspot.save_changes' : 'hotspot.profile_form.add') }}
+            </button>
             </div>
         </form>
     </div>

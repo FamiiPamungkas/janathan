@@ -1,11 +1,11 @@
 {% extends "layout.twig" %}
 
-{% block title %}Profile List - Hotspot - Janathan{% endblock %}
+{% block title %}{{ trans('hotspot.profiles.title') }}{% endblock %}
 
 {% block content %}
 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-        <h1 class="text-2xl font-bold tracking-tight">Profile List</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ trans('hotspot.profiles.heading') }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             <span class="inline-flex items-center gap-1.5">
                 <span class="relative flex size-2">
@@ -21,7 +21,7 @@
     <a href="{{ url_for('hotspot.profiles.create') }}"
         class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
         <i class="ph ph-plus text-base" aria-hidden="true"></i>
-        Add profile
+        {{ trans('hotspot.profiles.add') }}
     </a>
 </div>
 
@@ -29,8 +29,8 @@
 <div class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
     <i class="ph ph-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
     <div>
-        <p class="text-sm font-semibold">Hotspot is not available on this router</p>
-        <p class="mt-0.5 text-sm">Profiles cannot be listed. Check that the hotspot package is installed and configured, and that the API user has permission to read it.</p>
+        <p class="text-sm font-semibold">{{ trans('hotspot.unavailable_title') }}</p>
+        <p class="mt-0.5 text-sm">{{ trans('hotspot.profiles.unavailable_body') }}</p>
     </div>
 </div>
 {% endif %}
@@ -40,9 +40,9 @@
     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-700/50">
         <i class="ph ph-gear text-2xl text-zinc-400" aria-hidden="true"></i>
     </div>
-    <h2 class="mt-4 text-base font-semibold">No profiles found</h2>
+    <h2 class="mt-4 text-base font-semibold">{{ trans('hotspot.profiles.empty_title') }}</h2>
     <p class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
-        This router has no hotspot user profiles. Create one from the router's hotspot configuration.
+        {{ trans('hotspot.profiles.empty_text') }}
     </p>
 </div>
 {% else %}
@@ -65,20 +65,20 @@
         </div>
         <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm">
             <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Rate Limit</dt>
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_rate_limit') }}</dt>
                 <dd class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ profile.rate_limit }}</dd>
             </div>
             <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Price</dt>
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_price') }}</dt>
                 <dd class="font-medium tabular-nums">{{ profile.price is not null ? profile.price|number_format(2, '.', ',') : '—' }}</dd>
             </div>
             <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">Shared users</dt>
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_shared_users') }}</dt>
                 <dd class="font-medium tabular-nums">{{ profile.shared_users }}</dd>
             </div>
         </dl>
         <div class="mt-4 flex items-center gap-2">
-            <a href="{{ url_for('hotspot.users') }}?profile={{ profile.name|url_encode }}" title="View users" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+            <a href="{{ url_for('hotspot.users') }}?profile={{ profile.name|url_encode }}" title="{{ trans('hotspot.view_users') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <i class="ph ph-users-three text-xl" aria-hidden="true"></i>
             </a>
             <a href="{{ url_for('hotspot.profiles.edit', {id: profile.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
@@ -101,11 +101,11 @@
         <table class="min-w-full align-middle text-sm">
             <thead>
                 <tr class="border-b border-zinc-100 text-start dark:border-zinc-700/50">
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Name</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">Rate Limit</th>
-                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">Price</th>
-                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">Shared Users</th>
-                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">Actions</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_name') }}</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_rate_limit') }}</th>
+                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_price') }}</th>
+                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_shared_users') }}</th>
+                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -125,13 +125,13 @@
                     <td class="px-4 py-3 text-end font-medium tabular-nums">{{ profile.shared_users }}</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ url_for('hotspot.users') }}?profile={{ profile.name|url_encode }}" title="View users" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                            <a href="{{ url_for('hotspot.users') }}?profile={{ profile.name|url_encode }}" title="{{ trans('hotspot.view_users') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="ph ph-users-three text-xl" aria-hidden="true"></i>
                             </a>
                             <a href="{{ url_for('hotspot.profiles.edit', {id: profile.id}) }}" title="Edit" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                             </a>
-                            <form method="post" action="{{ url_for('hotspot.profiles.delete', {id: profile.id}) }}" x-data="{}" @submit="if (!window.confirm('Remove profile &quot;{{ profile.name }}&quot;?')) $event.preventDefault()">
+                            <form method="post" action="{{ url_for('hotspot.profiles.delete', {id: profile.id}) }}" x-data="{}" @submit="if (!window.confirm('{{ trans('hotspot.profiles.remove_confirm', {name: profile.name})|e('html_attr') }}')) $event.preventDefault()">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" title="Remove" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
                                     <i class="ph ph-trash text-xl" aria-hidden="true"></i>

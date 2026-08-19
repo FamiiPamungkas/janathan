@@ -1,6 +1,6 @@
 {% extends "layout.twig" %}
 
-{% block title %}Export Preview - Janathan{% endblock %}
+{% block title %}{{ trans('hotspot.export.title') }}{% endblock %}
 
 {% block content %}
 {% if error is defined and error %}
@@ -14,16 +14,16 @@
     <a href="{{ backUrl }}"
         class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
         <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
-        Back
+        {{ trans('hotspot.export.back') }}
     </a>
 </div>
 {% else %}
 {% set isScript = format == 'rsc' %}
 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-        <h1 class="text-2xl font-bold tracking-tight">Export preview</h1>
+        <h1 class="text-2xl font-bold tracking-tight">{{ trans('hotspot.export.heading') }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {% if isScript %}Mikrotik script (.rsc){% else %}CSV file{% endif %}
+            {% if isScript %}{{ trans('hotspot.export.subtitle_script') }}{% else %}{{ trans('hotspot.export.subtitle_csv') }}{% endif %}
             <span class="mx-1.5 text-zinc-300 dark:text-zinc-700">·</span>
             <span class="font-medium tabular-nums text-zinc-700 dark:text-zinc-300">{{ users|length }}</span>
             user{% if users|length != 1 %}s{% endif %}
@@ -33,13 +33,13 @@
         <a href="{{ backUrl }}"
             class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
             <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
-            Back
+            {{ trans('hotspot.export.back') }}
         </a>
         <button type="button"
             @click='exportBlob({{ downloadContent|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }}, {{ downloadFilename|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }}, {{ downloadMime|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }})'
             class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
             <i class="ph ph-download-simple text-base" aria-hidden="true"></i>
-            Download
+            {{ trans('hotspot.export.download') }}
         </button>
     </div>
 </div>
@@ -52,13 +52,13 @@
         <table class="min-w-full text-sm">
             <thead>
                 <tr class="border-b border-zinc-200 text-start font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
-                    <th class="px-4 py-3 text-start">Name</th>
-                    <th class="px-4 py-3 text-start">Password</th>
-                    <th class="px-4 py-3 text-start">Profile</th>
-                    <th class="px-4 py-3 text-start">Comment</th>
-                    <th class="px-4 py-3 text-start">Disabled</th>
-                    <th class="px-4 py-3 text-start">Server</th>
-                    <th class="px-4 py-3 text-start">MAC</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_name') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_password') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_profile') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_comment') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_disabled') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_server') }}</th>
+                    <th class="px-4 py-3 text-start">{{ trans('hotspot.export.th_mac') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,7 +68,7 @@
                     <td class="px-4 py-2 font-mono">{{ u.password|escape }}</td>
                     <td class="px-4 py-2">{{ u.profile|escape }}</td>
                     <td class="px-4 py-2">{{ u.comment|escape }}</td>
-                    <td class="px-4 py-2">{{ u.disabled ? 'yes' : 'no' }}</td>
+                    <td class="px-4 py-2">{{ u.disabled ? trans('hotspot.export.yes') : trans('hotspot.export.no') }}</td>
                     <td class="px-4 py-2">{{ u.server|escape }}</td>
                     <td class="px-4 py-2 font-mono">{{ u.mac_address|escape }}</td>
                 </tr>
