@@ -25,7 +25,7 @@ readonly class HotspotService
      *     router: array,
      *     users: array,
      *     profiles: string[],
-     *     comments: string[],
+     *     comments: list<array{comment: string, count: int}>,
      *     filters: array{q: string, profile: string, comment: string, status: string},
      *     filtersActive: bool,
      *     hotspotAvailable: bool
@@ -137,14 +137,14 @@ readonly class HotspotService
     }
 
     /**
-     * Unique non-empty comments for the filter select, excluding system users.
+     * Unique non-empty comments with their user counts, excluding system users.
      *
      * @param list<array<string, mixed>> $users
-     * @return string[]
+     * @return list<array{comment: string, count: int}>
      */
     private function extractCommentOptions(array $users): array
     {
-        $comments = [];
+        $counts = [];
         foreach ($users as $u) {
             if (($u['name'] ?? '') === 'default-trial') {
                 continue;
@@ -152,12 +152,18 @@ readonly class HotspotService
 
             $c = trim((string)($u['comment'] ?? ''));
             if ($c !== '') {
-                $comments[] = $c;
+                $counts[$c] = ($counts[$c] ?? 0) + 1;
             }
         }
 
-        $comments = array_values(array_unique($comments));
-        sort($comments, SORT_NATURAL | SORT_FLAG_CASE);
+        $comments = [];
+        foreach ($counts as $comment => $count) {
+            $comments[] = ['comment' => $comment, 'count' => $count];
+        }
+
+        usort($comments, static function (array $a, array $b): int {
+            return strnatcmp(mb_strtolower($a['comment']), mb_strtolower($b['comment']));
+        });
 
         return $comments;
     }
