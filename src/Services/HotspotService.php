@@ -279,13 +279,21 @@ readonly class HotspotService
      * connection is reused for the whole batch.
      *
      * @param array{qty: int, profile: string, prefix: string, comment: string, character: string, name_length: int, password_length: int, password_same_as_username: bool} $values
-     * @return array{created: int, failed: int, errors: string[]}
+     * @return array{created: int, failed: int, errors: string[], comment: string}
      * @throws RuntimeException When the router cannot be reached.
      */
     public function generateUsers(int $routerId, array $values): array
     {
         $charset = $this->characterCharset($values['character']);
         $result = ['created' => 0, 'failed' => 0, 'errors' => []];
+        $date = date('ymd');
+        $mode = $values['password_same_as_username'] ? 'vc' : 'up';
+        $seq = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        $comment = $mode . '-' . $date . '-' . $seq;
+        $customComment = trim($values['comment']);
+        if ($customComment !== '') {
+            $comment .= '-' . $customComment;
+        }
 
         [$router, $client] = $this->connect($routerId);
 
@@ -300,7 +308,7 @@ readonly class HotspotService
                     $client->addHotspotUser($this->normalizeUserFields([
                         'name' => $name,
                         'profile' => $values['profile'],
-                        'comment' => $values['comment'],
+                        'comment' => $comment,
                         'password' => $password,
                     ], false));
                     $result['created']++;
@@ -314,6 +322,8 @@ readonly class HotspotService
         } finally {
             $client->disconnect();
         }
+
+        $result['comment'] = $comment;
 
         return $result;
     }

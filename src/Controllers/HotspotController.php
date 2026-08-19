@@ -226,7 +226,7 @@ class HotspotController
             $this->flash->add('error', $result['failed'] . ' user(s) failed: ' . implode('; ', array_slice($result['errors'], 0, 5)));
         }
 
-        return $this->redirectUsers($response, $request, $values['profile']);
+        return $this->redirectUsers($response, $request, $values['profile'], $result['comment'] ?? null);
     }
 
     public function showCreateUser(Request $request, Response $response): Response
@@ -610,11 +610,20 @@ class HotspotController
         return $response->withStatus($errors !== [] ? 422 : 200);
     }
 
-    private function redirectUsers(Response $response, Request $request, ?string $profile): Response
+    private function redirectUsers(Response $response, Request $request, ?string $profile, ?string $comment = null): Response
     {
         $url = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser()->urlFor('hotspot.users');
+        $query = [];
+
         if ($profile !== null && $profile !== '') {
-            $url .= '?profile=' . rawurlencode($profile);
+            $query['profile'] = $profile;
+        }
+        if ($comment !== null && $comment !== '') {
+            $query['comment'] = $comment;
+        }
+
+        if ($query !== []) {
+            $url .= '?' . http_build_query($query);
         }
 
         return $response->withHeader('Location', $url)->withStatus(302);

@@ -86,7 +86,7 @@
                     <label for="name_length" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name length</label>
                     <select id="name_length" name="name_length"
                         class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.name_length %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                        {% set currentName = values.name_length|default(6) %}
+                        {% set currentName = values.name_length|default(4) %}
                         {% for len in [4, 6, 8, 10, 12, 16, 20, 24] %}
                             <option value="{{ len }}" {% if currentName == len %}selected{% endif %}>{{ len }} characters</option>
                         {% endfor %}
@@ -108,10 +108,11 @@
             </div>
 
             <div>
-                <label for="comment" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Comment</label>
+                <label for="comment" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Comment (optional suffix)</label>
                 <input type="text" id="comment" name="comment" placeholder="e.g. Promo 2026" maxlength="4096"
                     value="{{ values.comment|default('') }}"
                     class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.comment %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Appended as <code>-&lt;text&gt;</code> after the auto-generated <code>mode-YYMMDD-XXXX</code> prefix. Leave empty for none.</p>
                 {% if errors.comment %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.comment }}</p>{% endif %}
             </div>
 
