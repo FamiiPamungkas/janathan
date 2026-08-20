@@ -76,14 +76,14 @@ composer.json
 Before building features, verify the RouterOS API connection works standalone (`bin/test-connection.php` or similar) — confirm login, and a simple `/system/resource/print` call succeeds — before wiring it into Slim routes.
 
 ## ToDo
-- [ ] **Localization** — internationalize the app (extract UI strings, add translations, locale switching).
+- [x] **Localization** — internationalize the app (extract UI strings, add translations, locale switching).
   - [x] Infrastructure: `TranslationService`, `LocaleMiddleware`, `users.locale` column, navbar language switcher, `trans()` Twig helper, `en` + `id` message files.
   - [x] **Dashboard** menu (home + dashboard_error templates).
   - [x] **Routers** menu (list + form).
   - [x] **Hotspot** menu (users list, profiles, generate, user/profile forms, export preview, placeholder).
   - [x] **Voucher Templates** menu (list + form).
-  - [ ] **Auth / Login** page.
-  - [ ] PHP-side messages (controllers/services flash + JSON error strings).
+  - [x] **Auth / Login** page.
+  - [x] PHP-side messages (controllers/services flash + JSON error strings).
 
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.

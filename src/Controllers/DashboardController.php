@@ -6,6 +6,7 @@ namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\DashboardService;
 use Fame1302\Janathan\Services\RouterRepository;
+use Fame1302\Janathan\Services\TranslationService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Psr7\Response as SlimResponse;
@@ -18,7 +19,8 @@ class DashboardController
     public function __construct(
         private readonly Environment      $twig,
         private readonly DashboardService $dashboard,
-        private readonly RouterRepository $routers
+        private readonly RouterRepository $routers,
+        private readonly TranslationService $translator
     ) {
     }
 
@@ -56,7 +58,7 @@ class DashboardController
     public function data(Request $request, Response $response): Response
     {
         if (empty($_SESSION['router_id'])) {
-            return $this->json($response, ['error' => 'No router selected.'], 401);
+            return $this->json($response, ['error' => $this->translator->trans('common.no_router_selected')], 401);
         }
 
         try {
@@ -71,7 +73,7 @@ class DashboardController
     public function logs(Request $request, Response $response): Response
     {
         if (empty($_SESSION['router_id'])) {
-            return $this->json($response, ['error' => 'No router selected.'], 401);
+            return $this->json($response, ['error' => $this->translator->trans('common.no_router_selected')], 401);
         }
 
         try {

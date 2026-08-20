@@ -45,7 +45,7 @@ class AuthController
         $user = $this->users->findByUsername($username);
 
         if ($user === null || !password_verify($password, $user['password_hash'])) {
-            $this->flash->add('error', 'Invalid username or password.');
+            $this->flash->add('error', $this->translator->trans('auth.invalid_credentials'));
 
             return $this->redirect($response, $request, 'login');
         }
@@ -171,7 +171,7 @@ class AuthController
             $_SESSION['locale'] = $locale;
         }
 
-        $this->flash->add('success', 'Your account has been updated.');
+        $this->flash->add('success', $this->translator->trans('auth.account_updated'));
 
         return $this->redirect($response, $request, 'admin.edit');
     }

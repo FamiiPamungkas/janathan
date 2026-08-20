@@ -8,6 +8,7 @@ use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotService;
 use Fame1302\Janathan\Services\RouterRepository;
+use Fame1302\Janathan\Services\TranslationService;
 use Fame1302\Janathan\Services\VoucherTemplateRenderer;
 use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Support\Logger;
@@ -26,7 +27,8 @@ class HotspotController
         private readonly RouterRepository        $routers,
         private readonly FlashService            $flash,
         private readonly VoucherTemplateRepository $templates,
-        private readonly VoucherTemplateRenderer $voucherRenderer
+        private readonly VoucherTemplateRenderer $voucherRenderer,
+        private readonly TranslationService $translator
     )
     {
     }
@@ -81,12 +83,12 @@ class HotspotController
         try {
             $user = $this->hotspot->getUserForPrint($routerId, $id);
         } catch (\Throwable $e) {
-            $this->flash->add('error', 'Cannot reach the router to print this user.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_reach_error'));
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
         if ($user === null) {
-            $this->flash->add('error', 'User not found.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.not_found'));
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
@@ -137,7 +139,7 @@ class HotspotController
         $templateId = (string)($params['template'] ?? '0');
 
         if ($filters['comment'] === '') {
-            $this->flash->add('error', 'Select a comment filter before printing vouchers.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_comment_required'));
 
             return $this->redirect($response, $request, 'hotspot.users');
         }
@@ -145,13 +147,13 @@ class HotspotController
         try {
             $result = $this->hotspot->getUsersForPrint($routerId, $filters);
         } catch (\Throwable $e) {
-            $this->flash->add('error', 'Cannot reach the router to print these users.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_reach_error_many'));
 
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
         if ($result['users'] === []) {
-            $this->flash->add('error', 'No users found for the selected comment.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_no_users'));
 
             return $this->redirect($response, $request, 'hotspot.users');
         }
@@ -382,10 +384,13 @@ class HotspotController
         }
 
         if ($result['created'] > 0) {
-            $this->flash->add('success', $result['created'] . ' user(s) generated.');
+            $this->flash->add('success', $this->translator->trans('hotspot.users.flash.generated', ['count' => $result['created']]));
         }
         if ($result['failed'] > 0) {
-            $this->flash->add('error', $result['failed'] . ' user(s) failed: ' . implode('; ', array_slice($result['errors'], 0, 5)));
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.generated_failed', [
+                'count' => $result['failed'],
+                'errors' => implode('; ', array_slice($result['errors'], 0, 5)),
+            ]));
         }
 
         return $this->redirectUsers($response, $request, $values['profile'], $result['comment'] ?? null);
@@ -431,7 +436,7 @@ class HotspotController
             return $this->redirectUsers($response, $request, $values['profile'] ?? null);
         }
 
-        $this->flash->add('success', 'User "' . $values['name'] . '" created.');
+        $this->flash->add('success', $this->translator->trans('hotspot.users.flash.created', ['name' => $values['name']]));
 
         return $this->redirectUsers($response, $request, $values['profile'] ?? null);
     }
@@ -449,7 +454,7 @@ class HotspotController
         }
 
         if ($user === null) {
-            $this->flash->add('error', 'User not found.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.not_found'));
 
             return $this->redirect($response, $request, 'hotspot.users');
         }
@@ -485,7 +490,7 @@ class HotspotController
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
-        $this->flash->add('success', 'User "' . $values['name'] . '" updated.');
+        $this->flash->add('success', $this->translator->trans('hotspot.users.flash.updated', ['name' => $values['name']]));
 
         return $this->redirectUsers($response, $request, $values['profile'] ?? null);
     }
@@ -507,7 +512,7 @@ class HotspotController
             return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
         }
 
-        $this->flash->add('success', 'User removed.');
+        $this->flash->add('success', $this->translator->trans('hotspot.users.flash.removed'));
 
         return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
     }
@@ -528,7 +533,7 @@ class HotspotController
         $includeActive = !empty($body['include_active']);
 
         if ($filters['comment'] === '') {
-            $this->flash->add('error', 'Select a comment filter before deleting users.');
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.delete_comment_required'));
 
             return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, $filters['comment'] !== '' ? $filters['comment'] : null);
         }
@@ -542,13 +547,18 @@ class HotspotController
         }
 
         if ($result['deleted'] > 0) {
-            $message = $result['deleted'] . ' user(s) with comment "' . $filters['comment'] . '" removed.';
+            $message = $this->translator->trans('hotspot.users.flash.deleted_by_comment', [
+                'count' => $result['deleted'],
+                'comment' => $filters['comment'],
+            ]);
             if (!$includeActive && $result['skipped'] > 0) {
-                $message .= ' ' . $result['skipped'] . ' connected user(s) kept (checkbox not selected).';
+                $message .= ' ' . $this->translator->trans('hotspot.users.flash.deleted_skipped', [
+                    'count' => $result['skipped'],
+                ]);
             }
             $this->flash->add('success', $message);
         } else {
-            $this->flash->add('info', 'No matching users were removed.');
+            $this->flash->add('info', $this->translator->trans('hotspot.users.flash.deleted_none'));
         }
 
         return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, null);
@@ -608,7 +618,7 @@ class HotspotController
             return $this->redirect($response, $request, 'hotspot.profiles');
         }
 
-        $this->flash->add('success', 'Profile "' . $values['name'] . '" created.');
+        $this->flash->add('success', $this->translator->trans('hotspot.profiles.flash.created', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'hotspot.profiles');
     }
@@ -626,7 +636,7 @@ class HotspotController
         }
 
         if ($profile === null) {
-            $this->flash->add('error', 'Profile not found.');
+            $this->flash->add('error', $this->translator->trans('hotspot.profiles.flash.not_found'));
 
             return $this->redirect($response, $request, 'hotspot.profiles');
         }
@@ -662,7 +672,7 @@ class HotspotController
             return $this->redirect($response, $request, 'hotspot.profiles');
         }
 
-        $this->flash->add('success', 'Profile "' . $values['name'] . '" updated.');
+        $this->flash->add('success', $this->translator->trans('hotspot.profiles.flash.updated', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'hotspot.profiles');
     }
@@ -681,7 +691,7 @@ class HotspotController
             return $this->redirect($response, $request, 'hotspot.profiles');
         }
 
-        $this->flash->add('success', 'Profile removed.');
+        $this->flash->add('success', $this->translator->trans('hotspot.profiles.flash.removed'));
 
         return $this->redirect($response, $request, 'hotspot.profiles');
     }

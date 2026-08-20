@@ -6,6 +6,7 @@ namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotService;
+use Fame1302\Janathan\Services\TranslationService;
 use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Services\VoucherTemplateRenderer;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -21,7 +22,8 @@ class VoucherTemplateController
         private readonly VoucherTemplateRepository $templates,
         private readonly VoucherTemplateRenderer $renderer,
         private readonly HotspotService $hotspot,
-        private readonly FlashService $flash
+        private readonly FlashService $flash,
+        private readonly TranslationService $translator
     ) {
     }
 
@@ -57,7 +59,7 @@ class VoucherTemplateController
             return $this->renderForm($request, $response, null, $errors, $values);
         }
 
-        $this->flash->add('success', 'Voucher template "' . $values['name'] . '" created.');
+        $this->flash->add('success', $this->translator->trans('voucher_templates.flash.created', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'voucher_templates.index');
     }
@@ -67,14 +69,14 @@ class VoucherTemplateController
         $id = (int)$args['id'];
 
         if ($id === VoucherTemplateRepository::DEFAULT_ID) {
-            $this->flash->add('error', 'The default voucher template is read-only.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.readonly'));
             return $this->redirect($response, $request, 'voucher_templates.index');
         }
 
         $template = $this->templates->find($id);
 
         if ($template === null) {
-            $this->flash->add('error', 'Voucher template not found.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.not_found'));
             return $this->redirect($response, $request, 'voucher_templates.index');
         }
 
@@ -86,14 +88,14 @@ class VoucherTemplateController
         $id = (int)$args['id'];
 
         if ($id === VoucherTemplateRepository::DEFAULT_ID) {
-            $this->flash->add('error', 'The default voucher template is read-only.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.readonly'));
             return $this->redirect($response, $request, 'voucher_templates.index');
         }
 
         $template = $this->templates->find($id);
 
         if ($template === null) {
-            $this->flash->add('error', 'Voucher template not found.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.not_found'));
             return $this->redirect($response, $request, 'voucher_templates.index');
         }
 
@@ -111,7 +113,7 @@ class VoucherTemplateController
             return $this->renderForm($request, $response, $template, $errors, $values);
         }
 
-        $this->flash->add('success', 'Voucher template "' . $values['name'] . '" updated.');
+        $this->flash->add('success', $this->translator->trans('voucher_templates.flash.updated', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'voucher_templates.index');
     }
@@ -121,17 +123,17 @@ class VoucherTemplateController
         $id = (int)$args['id'];
 
         if ($id === VoucherTemplateRepository::DEFAULT_ID) {
-            $this->flash->add('error', 'The default voucher template is read-only.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.readonly'));
             return $this->redirect($response, $request, 'voucher_templates.index');
         }
 
         $template = $this->templates->find($id);
 
         if ($template === null) {
-            $this->flash->add('error', 'Voucher template not found.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.not_found'));
         } else {
             $this->templates->delete($id);
-            $this->flash->add('success', 'Voucher template "' . $template['name'] . '" removed.');
+            $this->flash->add('success', $this->translator->trans('voucher_templates.flash.removed', ['name' => $template['name']]));
         }
 
         return $this->redirect($response, $request, 'voucher_templates.index');
@@ -225,7 +227,7 @@ class VoucherTemplateController
         $template = $this->templates->find($intId);
 
         if ($template === null) {
-            $this->flash->add('error', 'Voucher template not found.');
+            $this->flash->add('error', $this->translator->trans('voucher_templates.flash.not_found'));
         }
 
         return $template;

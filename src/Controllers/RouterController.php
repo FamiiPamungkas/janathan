@@ -7,6 +7,7 @@ namespace Fame1302\Janathan\Controllers;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\RouterosClientFactory;
 use Fame1302\Janathan\Services\RouterRepository;
+use Fame1302\Janathan\Services\TranslationService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -19,7 +20,8 @@ class RouterController
         private readonly Environment           $twig,
         private readonly RouterRepository      $routers,
         private readonly RouterosClientFactory $clientFactory,
-        private readonly FlashService $flash
+        private readonly FlashService $flash,
+        private readonly TranslationService $translator
     ) {
     }
 
@@ -49,7 +51,7 @@ class RouterController
         }
 
         $this->routers->create($values);
-        $this->flash->add('success', 'Router "' . $values['name'] . '" added.');
+        $this->flash->add('success', $this->translator->trans('routers.flash.added', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'routers.index');
     }
@@ -60,7 +62,7 @@ class RouterController
         $router = $this->routers->find($id);
 
         if ($router === null) {
-            $this->flash->add('error', 'Router not found.');
+            $this->flash->add('error', $this->translator->trans('routers.flash.not_found'));
             return $this->redirect($response, $request, 'routers.index');
         }
 
@@ -76,7 +78,7 @@ class RouterController
         $router = $this->routers->find($id);
 
         if ($router === null) {
-            $this->flash->add('error', 'Router not found.');
+            $this->flash->add('error', $this->translator->trans('routers.flash.not_found'));
             return $this->redirect($response, $request, 'routers.index');
         }
 
@@ -88,7 +90,7 @@ class RouterController
         }
 
         $this->routers->update($id, $values);
-        $this->flash->add('success', 'Router "' . $values['name'] . '" updated.');
+        $this->flash->add('success', $this->translator->trans('routers.flash.updated', ['name' => $values['name']]));
 
         return $this->redirect($response, $request, 'routers.index');
     }
@@ -99,7 +101,7 @@ class RouterController
         $router = $this->routers->find($id);
 
         if ($router === null) {
-            $this->flash->add('error', 'Router not found.');
+            $this->flash->add('error', $this->translator->trans('routers.flash.not_found'));
         } else {
             $this->routers->delete($id);
 
@@ -107,7 +109,7 @@ class RouterController
                 unset($_SESSION['router_id']);
             }
 
-            $this->flash->add('success', 'Router "' . $router['name'] . '" removed.');
+            $this->flash->add('success', $this->translator->trans('routers.flash.removed', ['name' => $router['name']]));
         }
 
         return $this->redirect($response, $request, 'routers.index');
@@ -119,7 +121,7 @@ class RouterController
         $router = $this->routers->find($id);
 
         if ($router === null) {
-            $this->flash->add('error', 'Router not found.');
+            $this->flash->add('error', $this->translator->trans('routers.flash.not_found'));
             return $this->redirect($response, $request, 'routers.index');
         }
 
@@ -131,14 +133,14 @@ class RouterController
         } catch (\Throwable $e) {
             $this->flash->add(
                 'error',
-                'Cannot connect to "' . $router['name'] . '" (' . $router['host'] . '). Check that the router is reachable and the credentials are correct.'
+                $this->translator->trans('routers.flash.connect_error', ['name' => $router['name'], 'host' => $router['host']])
             );
 
             return $this->redirect($response, $request, 'routers.index');
         }
 
         $_SESSION['router_id'] = $id;
-        $this->flash->add('success', 'Connected to "' . $router['name'] . '".');
+        $this->flash->add('success', $this->translator->trans('routers.flash.connected', ['name' => $router['name']]));
 
         return $this->redirect($response, $request, 'dashboard');
     }
@@ -155,7 +157,7 @@ class RouterController
         unset($_SESSION['router_id']);
 
         if ($name !== null) {
-            $this->flash->add('success', 'Disconnected from "' . $name . '".');
+            $this->flash->add('success', $this->translator->trans('routers.flash.disconnected', ['name' => $name]));
         }
 
         return $this->redirect($response, $request, 'routers.index');
@@ -198,7 +200,7 @@ class RouterController
             'ssl' => !empty($body['ssl']),
         ];
 
-        $payload = ['ok' => false, 'error' => 'Unknown error.'];
+        $payload = ['ok' => false, 'error' => $this->translator->trans('common.unknown_error')];
 
         try {
             $client = $this->clientFactory->create($credentials, ['attempts' => 1, 'timeout' => 8]);
