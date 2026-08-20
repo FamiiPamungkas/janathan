@@ -203,7 +203,7 @@ class RouterController
         $payload = ['ok' => false, 'error' => $this->translator->trans('common.unknown_error')];
 
         try {
-            $client = $this->clientFactory->create($credentials, ['attempts' => 1, 'timeout' => 8]);
+            $client = $this->clientFactory->create($credentials, ['attempts' => 1]);
             $client->test();
             $client->disconnect();
             $payload = ['ok' => true];

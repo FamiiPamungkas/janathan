@@ -132,7 +132,12 @@ readonly class DashboardService
             throw new \RuntimeException('The selected router no longer exists.');
         }
 
-        return [$router, $this->clientFactory->create($this->routers->getCredentials($routerId))];
+        return [
+            $router,
+            $this->clientFactory->create(
+                $this->routers->getCredentials($routerId), ['attempts' => 1]
+            )
+        ];
     }
 
     private function unreachable(array $router, Throwable $e): \RuntimeException

@@ -752,8 +752,6 @@ readonly class HotspotService
 
     private function unreachable(array $router, Throwable $e): RuntimeException
     {
-        error_log("ERROR " . $e->getMessage());
-
         if ($e instanceof RouterosConnectionException) {
             return new RuntimeException($e->getMessage(), 0, $e);
         }
