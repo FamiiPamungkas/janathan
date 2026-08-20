@@ -58,6 +58,12 @@ class RouterosClient
             'socket_timeout' => $this->socketTimeout,
             'timeout' => $this->timeout,
             'attempts' => $this->attempts,
+            // The vendor's ResourceStream throws "Stream timed out" on partial
+            // reads when PHP's timed_out meta flag trips spuriously (a known
+            // Windows/PHP quirk). Disabling it lets reads finish normally; a
+            // genuinely dead connection is still caught by the vendor's total
+            // read deadline ("Socket timeout reached").
+            'throw_timeout_exception' => false,
         ];
 
         if ($this->legacy) {
@@ -90,10 +96,7 @@ class RouterosClient
 
             return $this->client->query($query)->read();
         } catch (Throwable $e) {
-            error_log("-> THERE ARE ERROR " . $e->getMessage());
-            $isConnectionError = $this->isConnectionError($e);
-            error_log("-> is ConnectionError $isConnectionError");
-            if ($isConnectionError) {
+            if ($this->isConnectionError($e)) {
                 $this->disconnect();
             }
 
@@ -165,14 +168,12 @@ class RouterosClient
 
     public function getActiveUsers(): array
     {
-        return $this->hotspotQuery('/ip/hotspot/active/print', ['stats' => 'true']);
+        return $this->hotspotQuery('/ip/hotspot/active/print');
     }
 
     public function getHotspotUsers(): array
     {
-        $q = $this->hotspotQuery('/ip/hotspot/user/print');
-        Logger::log("-> Q ", $q);
-        return $q;
+        return $this->hotspotQuery('/ip/hotspot/user/print');
     }
 
     public function getHotspotUser(string $id): ?array
@@ -338,12 +339,7 @@ class RouterosClient
      */
     private function hotspotQuery(string $command, array $attributes = []): array
     {
-        Logger::log("-> HOTSPOT QUERY $command", $attributes);
-        $result = $this->query($command, $attributes);
-        Logger::log("-> RESULT ", $result);
-//        $this->hotspotAvailable = !$this->isTrap($result);
-
-        return $result;
+        return $this->query($command, $attributes);
     }
 
     /**

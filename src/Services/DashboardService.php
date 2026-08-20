@@ -90,32 +90,30 @@ readonly class DashboardService
     {
         /** @var $client RouterosClient */
         [$router, $client] = $this->connect($routerId);
-        Logger::log("CLIENT ",$client);
 
         $hotspotAvailable = false;
+        $users = [];
+        $clock = [];
+        $resource = [];
+        $board = [];
+        $active = [];
+        $identity = null;
+        $logs = [];
 
-        try {
-            error_log("-> 0");
-            $users = $client->getHotspotUsers();
-            error_log("-> 1");
-            $clock = $client->getClock();
-            error_log("-> 2");
-            $resource = $client->getSystemResource();
-            error_log("-> 3");
-            $board = $client->getRouterBoard();
-            error_log("-> 4");
-            $active = $client->getActiveUsers();
-            error_log("-> 5");
-            $identity = $client->getIdentity();
-            error_log("-> 6");
-            $logs = $withLogs ? $client->getHotspotLogs() : [];
-            error_log("-> 7");
-            $hotspotAvailable = $client->isHotspotAvailable();
-            error_log("-> 8");
-        } catch (Throwable $e) {
-            error_log("-> THROW ".$e->getMessage());
-            throw $this->unreachable($router, $e);
+        // Each query is isolated: a flaky/slow query fails on its own connection
+        // and the next query reconnects on a fresh session instead of tearing
+        // down the whole dashboard. RouterosClient drops the connection on a
+        // transport error and lazily re-establishes it on the next call.
+        try { $users = $client->getHotspotUsers(); } catch (Throwable $e) { $this->logQueryFailure('users', $e); }
+        try { $clock = $client->getClock(); } catch (Throwable $e) { $this->logQueryFailure('clock', $e); }
+        try { $resource = $client->getSystemResource(); } catch (Throwable $e) { $this->logQueryFailure('resource', $e); }
+        try { $board = $client->getRouterBoard(); } catch (Throwable $e) { $this->logQueryFailure('board', $e); }
+        try { $active = $client->getActiveUsers(); } catch (Throwable $e) { $this->logQueryFailure('active', $e); }
+        try { $identity = $client->getIdentity(); } catch (Throwable $e) { $this->logQueryFailure('identity', $e); }
+        if ($withLogs) {
+            try { $logs = $client->getHotspotLogs(); } catch (Throwable $e) { $this->logQueryFailure('logs', $e); }
         }
+        try { $hotspotAvailable = $client->isHotspotAvailable(); } catch (Throwable $e) { $this->logQueryFailure('hotspot', $e); }
 
         return [
             'router' => $router,
@@ -128,6 +126,11 @@ readonly class DashboardService
             'logs' => $logs,
             'hotspotAvailable' => $hotspotAvailable,
         ];
+    }
+
+    private function logQueryFailure(string $name, Throwable $e): void
+    {
+        error_log("dashboard query '$name' failed: " . $e->getMessage());
     }
 
     /**
