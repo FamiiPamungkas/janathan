@@ -41,6 +41,7 @@ class DashboardController
         try {
             $data = $this->dashboard->getDashboardData($routerId);
         } catch (\Throwable $e) {
+            error_log("-> ERROR BUNG ".$e->getMessage());
             $html = $this->twig->render('pages/dashboard_error.twig', [
                 'message' => $e->getMessage(),
             ]);

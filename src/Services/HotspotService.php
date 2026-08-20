@@ -13,9 +13,9 @@ use Throwable;
 readonly class HotspotService
 {
     public function __construct(
-        private RouterRepository           $routers,
-        private RouterosClientFactory      $clientFactory,
-        private HotspotProfileRepository   $profileMeta
+        private RouterRepository            $routers,
+        private RouterConnectionManager     $connections,
+        private HotspotProfileRepository    $profileMeta
     )
     {
     }
@@ -42,8 +42,6 @@ readonly class HotspotService
             $hotspotAvailable = $client->isHotspotAvailable();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         $normalized = $this->normalizeUserListFilters($filters);
@@ -198,8 +196,6 @@ readonly class HotspotService
             $user = $client->getHotspotUser($id);
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         return $user === null ? null : $this->buildUser($user);
@@ -220,8 +216,6 @@ readonly class HotspotService
             $user = $client->getHotspotUser($id);
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         if ($user === null) {
@@ -265,8 +259,6 @@ readonly class HotspotService
             $rows = $client->getHotspotProfiles();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         return $this->extractProfileNames($rows);
@@ -326,8 +318,6 @@ readonly class HotspotService
             }
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         $result['comment'] = $comment;
@@ -401,8 +391,6 @@ readonly class HotspotService
         }
 
         if (!$hotspotAvailable) {
-            $client->disconnect();
-
             return ['deleted' => 0, 'skipped' => 0];
         }
 
@@ -428,16 +416,10 @@ readonly class HotspotService
                 $deleted++;
             }
         } catch (RouterosCommandException $e) {
-            $client->disconnect();
-
             throw $e;
         } catch (Throwable $e) {
-            $client->disconnect();
-
             throw $this->unreachable($router, $e);
         }
-
-        $client->disconnect();
 
         return ['deleted' => $deleted, 'skipped' => $skipped];
     }
@@ -454,8 +436,6 @@ readonly class HotspotService
             $hotspotAvailable = $client->isHotspotAvailable();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         return [
@@ -486,8 +466,6 @@ readonly class HotspotService
             $hotspotAvailable = $client->isHotspotAvailable();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         $normalized = $this->normalizeUserListFilters($filters);
@@ -550,8 +528,6 @@ readonly class HotspotService
             $rows = $client->getHotspotUsers();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         $normalized = $this->normalizeUserListFilters($filters);
@@ -607,8 +583,6 @@ readonly class HotspotService
             $profile = $client->getHotspotProfile($id);
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         if ($profile === null) {
@@ -644,8 +618,6 @@ readonly class HotspotService
             $rows = $client->getIpPools();
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         $names = [];
@@ -709,8 +681,6 @@ readonly class HotspotService
             throw $e;
         } catch (Throwable $e) {
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
     }
 
@@ -747,7 +717,7 @@ readonly class HotspotService
             throw new RuntimeException('The selected router no longer exists.');
         }
 
-        return [$router, $this->clientFactory->create($this->routers->getCredentials($routerId))];
+        return [$router, $this->connections->get($routerId)];
     }
 
     private function unreachable(array $router, Throwable $e): RuntimeException

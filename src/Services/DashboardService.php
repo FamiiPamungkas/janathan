@@ -6,13 +6,14 @@ namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Models\RouterosVersion;
+use Fame1302\Janathan\Support\Logger;
 use Throwable;
 
 readonly class DashboardService
 {
     public function __construct(
-        private RouterRepository      $routers,
-        private RouterosClientFactory $clientFactory
+        private RouterRepository         $routers,
+        private RouterConnectionManager  $connections
     )
     {
     }
@@ -77,8 +78,6 @@ readonly class DashboardService
             $logs = $client->getHotspotLogs();
         } catch (Throwable $e) {
             return ['logs' => [], 'ok' => false];
-        } finally {
-            $client->disconnect();
         }
 
         return ['logs' => $this->buildHotspotLogs($logs), 'ok' => true];
@@ -89,23 +88,33 @@ readonly class DashboardService
      */
     private function collect(int $routerId, bool $withLogs): array
     {
+        /** @var $client RouterosClient */
         [$router, $client] = $this->connect($routerId);
+        Logger::log("CLIENT ",$client);
 
         $hotspotAvailable = false;
 
         try {
+            error_log("-> 0");
             $users = $client->getHotspotUsers();
+            error_log("-> 1");
             $clock = $client->getClock();
+            error_log("-> 2");
             $resource = $client->getSystemResource();
+            error_log("-> 3");
             $board = $client->getRouterBoard();
+            error_log("-> 4");
             $active = $client->getActiveUsers();
+            error_log("-> 5");
             $identity = $client->getIdentity();
+            error_log("-> 6");
             $logs = $withLogs ? $client->getHotspotLogs() : [];
+            error_log("-> 7");
             $hotspotAvailable = $client->isHotspotAvailable();
+            error_log("-> 8");
         } catch (Throwable $e) {
+            error_log("-> THROW ".$e->getMessage());
             throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
         }
 
         return [
@@ -132,12 +141,7 @@ readonly class DashboardService
             throw new \RuntimeException('The selected router no longer exists.');
         }
 
-        return [
-            $router,
-            $this->clientFactory->create(
-                $this->routers->getCredentials($routerId), ['attempts' => 1]
-            )
-        ];
+        return [$router, $this->connections->get($routerId)];
     }
 
     private function unreachable(array $router, Throwable $e): \RuntimeException

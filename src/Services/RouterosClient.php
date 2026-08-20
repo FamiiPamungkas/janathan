@@ -28,15 +28,15 @@ class RouterosClient
     private ?bool $hotspotAvailable = null;
 
     public function __construct(
-        private string $host,
-        private string $user,
-        private string $pass,
-        private int    $port = 8728,
-        private bool   $ssl = false,
-        private bool   $legacy = false,
-        private int    $socketTimeout = 10,
-        private int    $attempts = 10,
-        private int    $timeout = 10,
+        private string    $host,
+        private string    $user,
+        private string    $pass,
+        private int       $port = 8728,
+        private bool      $ssl = false,
+        private bool      $legacy = false,
+        private int       $socketTimeout = 10,
+        private int       $attempts = 10,
+        private int       $timeout = 10,
         ?\RouterOS\Client $client = null
     )
     {
@@ -90,7 +90,13 @@ class RouterosClient
 
             return $this->client->query($query)->read();
         } catch (Throwable $e) {
-            $this->disconnect();
+            error_log("-> THERE ARE ERROR " . $e->getMessage());
+            $isConnectionError = $this->isConnectionError($e);
+            error_log("-> is ConnectionError $isConnectionError");
+            if ($isConnectionError) {
+                $this->disconnect();
+            }
+
             throw $this->wrapConnectionError($e);
         }
     }
@@ -164,7 +170,9 @@ class RouterosClient
 
     public function getHotspotUsers(): array
     {
-        return $this->hotspotQuery('/ip/hotspot/user/print');
+        $q = $this->hotspotQuery('/ip/hotspot/user/print');
+        Logger::log("-> Q ", $q);
+        return $q;
     }
 
     public function getHotspotUser(string $id): ?array
@@ -279,7 +287,10 @@ class RouterosClient
 
             return $this->client->query($query)->read();
         } catch (Throwable $e) {
-            $this->disconnect();
+            if ($this->isConnectionError($e)) {
+                $this->disconnect();
+            }
+
             throw $this->wrapConnectionError($e);
         }
     }
@@ -305,16 +316,34 @@ class RouterosClient
     }
 
     /**
+     * A genuine transport failure (no socket, broken session, read timeout)
+     * invalidates the cached client, so the next call re-establishes it. A
+     * RouterOS `!trap` or bad query is not a transport error and must leave the
+     * connection usable for subsequent calls.
+     */
+    private function isConnectionError(Throwable $e): bool
+    {
+        if ($e instanceof ConnectException || $e instanceof ConfigException) {
+            return true;
+        }
+
+        return $e instanceof ClientException
+            && str_contains(strtolower($e->getMessage()), 'timeout');
+    }
+
+    /**
      * Execute a hotspot query with graceful fallback: when the hotspot menu is
      * not available on the router (package missing, not configured, or denied),
      * an empty result is returned instead of a trap payload.
      */
     private function hotspotQuery(string $command, array $attributes = []): array
     {
-        $result = $this->rawQuery($command, $attributes);
-        $this->hotspotAvailable = !$this->isTrap($result);
+        Logger::log("-> HOTSPOT QUERY $command", $attributes);
+        $result = $this->query($command, $attributes);
+        Logger::log("-> RESULT ", $result);
+//        $this->hotspotAvailable = !$this->isTrap($result);
 
-        return $this->hotspotAvailable ? $result : [];
+        return $result;
     }
 
     /**
