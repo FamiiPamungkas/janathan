@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\FlashService;
+use Fame1302\Janathan\Services\RouterConnectionManager;
 use Fame1302\Janathan\Services\RouterosClientFactory;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\TranslationService;
@@ -17,9 +18,10 @@ class RouterController
     use RedirectsTrait;
 
     public function __construct(
-        private readonly Environment           $twig,
-        private readonly RouterRepository      $routers,
-        private readonly RouterosClientFactory $clientFactory,
+        private readonly Environment              $twig,
+        private readonly RouterRepository         $routers,
+        private readonly RouterConnectionManager  $connections,
+        private readonly RouterosClientFactory    $clientFactory,
         private readonly FlashService $flash,
         private readonly TranslationService $translator
     ) {
@@ -126,10 +128,8 @@ class RouterController
         }
 
         try {
-            $credentials = $this->routers->getCredentials($id);
-            $client = $this->clientFactory->create($credentials);
+            $client = $this->connections->get($id);
             $client->test();
-            $client->disconnect();
         } catch (\Throwable $e) {
             $this->flash->add(
                 'error',

@@ -138,7 +138,7 @@
                         <button @click="langOpen = !langOpen" type="button" class="flex w-full items-center gap-2 px-3 py-2 text-start text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/40">
                             <i class="ph ph-translate flex-none text-base" aria-hidden="true"></i>
                             <span class="flex-1">{{ trans('ui.language') }}</span>
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text="({{ locales|json_encode|raw }})[document.documentElement.lang] || document.documentElement.lang"></span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400" x-text='({{ locales|json_encode|raw }}) [document.documentElement.lang] || document.documentElement.lang'></span>
                             <i class="ph ph-caret-down text-xs opacity-60" aria-hidden="true"></i>
                         </button>
                         <div x-show="langOpen" x-cloak @click.outside="langOpen = false" class="py-1">

@@ -6,13 +6,14 @@ namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Models\RouterosVersion;
+use Fame1302\Janathan\Support\Logger;
 use Throwable;
 
 readonly class DashboardService
 {
     public function __construct(
-        private RouterRepository      $routers,
-        private RouterosClientFactory $clientFactory
+        private RouterRepository         $routers,
+        private RouterConnectionManager  $connections
     )
     {
     }
@@ -77,8 +78,6 @@ readonly class DashboardService
             $logs = $client->getHotspotLogs();
         } catch (Throwable $e) {
             return ['logs' => [], 'ok' => false];
-        } finally {
-            $client->disconnect();
         }
 
         return ['logs' => $this->buildHotspotLogs($logs), 'ok' => true];
@@ -89,24 +88,32 @@ readonly class DashboardService
      */
     private function collect(int $routerId, bool $withLogs): array
     {
+        /** @var $client RouterosClient */
         [$router, $client] = $this->connect($routerId);
 
         $hotspotAvailable = false;
+        $users = [];
+        $clock = [];
+        $resource = [];
+        $board = [];
+        $active = [];
+        $identity = null;
+        $logs = [];
 
-        try {
-            $users = $client->getHotspotUsers();
-            $clock = $client->getClock();
-            $resource = $client->getSystemResource();
-            $board = $client->getRouterBoard();
-            $active = $client->getActiveUsers();
-            $identity = $client->getIdentity();
-            $logs = $withLogs ? $client->getHotspotLogs() : [];
-            $hotspotAvailable = $client->isHotspotAvailable();
-        } catch (Throwable $e) {
-            throw $this->unreachable($router, $e);
-        } finally {
-            $client->disconnect();
+        // Each query is isolated: a flaky/slow query fails on its own connection
+        // and the next query reconnects on a fresh session instead of tearing
+        // down the whole dashboard. RouterosClient drops the connection on a
+        // transport error and lazily re-establishes it on the next call.
+        try { $users = $client->getHotspotUsers(); } catch (Throwable $e) { $this->logQueryFailure('users', $e); }
+        try { $clock = $client->getClock(); } catch (Throwable $e) { $this->logQueryFailure('clock', $e); }
+        try { $resource = $client->getSystemResource(); } catch (Throwable $e) { $this->logQueryFailure('resource', $e); }
+        try { $board = $client->getRouterBoard(); } catch (Throwable $e) { $this->logQueryFailure('board', $e); }
+        try { $active = $client->getActiveUsers(); } catch (Throwable $e) { $this->logQueryFailure('active', $e); }
+        try { $identity = $client->getIdentity(); } catch (Throwable $e) { $this->logQueryFailure('identity', $e); }
+        if ($withLogs) {
+            try { $logs = $client->getHotspotLogs(); } catch (Throwable $e) { $this->logQueryFailure('logs', $e); }
         }
+        try { $hotspotAvailable = $client->isHotspotAvailable(); } catch (Throwable $e) { $this->logQueryFailure('hotspot', $e); }
 
         return [
             'router' => $router,
@@ -121,6 +128,11 @@ readonly class DashboardService
         ];
     }
 
+    private function logQueryFailure(string $name, Throwable $e): void
+    {
+        error_log("dashboard query '$name' failed: " . $e->getMessage());
+    }
+
     /**
      * @return array{router: array, client: RouterosClient}
      */
@@ -132,12 +144,7 @@ readonly class DashboardService
             throw new \RuntimeException('The selected router no longer exists.');
         }
 
-        return [
-            $router,
-            $this->clientFactory->create(
-                $this->routers->getCredentials($routerId), ['attempts' => 1]
-            )
-        ];
+        return [$router, $this->connections->get($routerId)];
     }
 
     private function unreachable(array $router, Throwable $e): \RuntimeException

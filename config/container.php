@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Fame1302\Janathan\Services\CryptoService;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotProfileRepository;
+use Fame1302\Janathan\Services\RouterConnectionManager;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
 use Fame1302\Janathan\Services\TranslationService;
@@ -111,6 +112,11 @@ return [
     },
 
     RouterosClientFactory::class => fn (ContainerInterface $container) => new RouterosClientFactory(),
+
+    RouterConnectionManager::class => fn (ContainerInterface $container) => new RouterConnectionManager(
+        $container->get(RouterosClientFactory::class),
+        $container->get(RouterRepository::class)
+    ),
 
     Environment::class => function (ContainerInterface $container) {
         $loader = new FilesystemLoader(
