@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
+use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotService;
 use Fame1302\Janathan\Services\RouterRepository;
@@ -50,7 +51,7 @@ class HotspotController
         try {
             $data = $this->hotspot->getUsers((int)$_SESSION['router_id'], $filters);
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
 
         $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
@@ -341,7 +342,7 @@ class HotspotController
             $profiles = $this->hotspot->getProfileNames($routerId);
             $profilesWithPrefix = $this->hotspot->getProfiles($routerId)['profiles'];
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
 
         $prefixMap = [];
@@ -450,7 +451,7 @@ class HotspotController
         try {
             $user = $this->hotspot->getUser((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
 
         if ($user === null) {
@@ -573,7 +574,7 @@ class HotspotController
         try {
             $data = $this->hotspot->getProfiles((int)$_SESSION['router_id']);
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.profiles');
         }
 
         $html = $this->twig->render('pages/hotspot/profiles.twig', $data);
@@ -632,7 +633,7 @@ class HotspotController
         try {
             $profile = $this->hotspot->getProfile((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.profiles');
         }
 
         if ($profile === null) {
@@ -711,10 +712,18 @@ class HotspotController
         return null;
     }
 
-    private function renderUnreachable(Response $response, \Throwable $e): Response
+    private function renderUnreachable(Request $request, Response $response, \Throwable $e, string $retryRoute = 'dashboard'): Response
     {
+        if ($e instanceof RouterosConnectionException) {
+            $errorType = str_contains(strtolower($e->getMessage()), 'timeout') ? 'timeout' : 'connection';
+        } else {
+            $errorType = 'unreachable';
+        }
+
         $html = $this->twig->render('pages/dashboard_error.twig', [
             'message' => $e->getMessage(),
+            'errorType' => $errorType,
+            'retryUrl' => $this->urlFor($request, $retryRoute),
         ]);
         $response->getBody()->write($html);
 
@@ -808,7 +817,7 @@ class HotspotController
                 $prefixMap[$p['name']] = $p['prefix'] ?? '';
             }
         } catch (\Throwable $e) {
-            return $this->renderUnreachable($response, $e);
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
 
         $html = $this->twig->render('pages/hotspot/generate.twig', [

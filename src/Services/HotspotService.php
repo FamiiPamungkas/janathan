@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
+use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Support\Logger;
 use RuntimeException;
 use Throwable;
@@ -752,6 +753,11 @@ readonly class HotspotService
     private function unreachable(array $router, Throwable $e): RuntimeException
     {
         error_log("ERROR " . $e->getMessage());
+
+        if ($e instanceof RouterosConnectionException) {
+            return new RuntimeException($e->getMessage(), 0, $e);
+        }
+
         return new RuntimeException(
             'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
             0,

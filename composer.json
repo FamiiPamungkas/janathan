@@ -6,6 +6,11 @@
             "Fame1302\\Janathan\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Fame1302\\Janathan\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "fame1302",
@@ -20,5 +25,8 @@
         "twig/twig": "^3.8",
         "evilfreelancer/routeros-api-php": "^1.7",
         "symfony/process": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10"
     }
 }

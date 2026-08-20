@@ -81,6 +81,10 @@ return [
         'router_unreachable_body' => 'Check that the router is powered on, reachable from this server, and that the saved credentials are correct.',
         'manage_routers' => 'Manage routers',
         'try_again' => 'Try again',
+        'connection_timeout_title' => 'Connection timed out',
+        'connection_timeout_body'  => 'The MikroTik API did not respond in time. Check that the router is reachable from this server and try again.',
+        'api_connection_title'     => 'Cannot connect to router',
+        'api_connection_body'      => 'A connection to the MikroTik API could not be established. Check the router address, port, and saved credentials, then try again.',
     ],
     'routers' => [
         'title' => 'Routers - Janathan',

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
+use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Models\RouterosVersion;
 use Fame1302\Janathan\Support\Logger;
 use RouterOS\Client;
 use RouterOS\Config;
 use RouterOS\Exceptions\ClientException;
 use RouterOS\Exceptions\ConfigException;
+use RouterOS\Exceptions\ConnectException;
 use RouterOS\Exceptions\QueryException;
 use RouterOS\Query;
 use Throwable;
@@ -34,9 +36,11 @@ class RouterosClient
         private bool   $legacy = false,
         private int    $socketTimeout = 10,
         private int    $attempts = 10,
-        private int    $timeout = 10
+        private int    $timeout = 10,
+        ?\RouterOS\Client $client = null
     )
     {
+        $this->client = $client;
     }
 
     public function connect(): void
@@ -60,7 +64,11 @@ class RouterosClient
             $options['legacy'] = true;
         }
 
-        $this->client = new Client(new Config($options));
+        try {
+            $this->client = new Client(new Config($options));
+        } catch (Throwable $e) {
+            throw $this->wrapConnectionError($e);
+        }
     }
 
     /**
@@ -83,7 +91,7 @@ class RouterosClient
             return $this->client->query($query)->read();
         } catch (Throwable $e) {
             $this->disconnect();
-            throw $e;
+            throw $this->wrapConnectionError($e);
         }
     }
 
@@ -272,8 +280,28 @@ class RouterosClient
             return $this->client->query($query)->read();
         } catch (Throwable $e) {
             $this->disconnect();
-            throw $e;
+            throw $this->wrapConnectionError($e);
         }
+    }
+
+    /**
+     * Map a connection-level vendor exception to a clear, credential-safe
+     * RouterosConnectionException. Other exceptions pass through unchanged.
+     */
+    private function wrapConnectionError(Throwable $e): Throwable
+    {
+        $isTimeout = $e instanceof ClientException
+            && str_contains(strtolower($e->getMessage()), 'timeout');
+
+        if ($e instanceof ConnectException || $e instanceof ConfigException || $isTimeout) {
+            $message = $isTimeout
+                ? 'Connection to the MikroTik API timed out.'
+                : 'Could not connect to the MikroTik API.';
+
+            return new RouterosConnectionException($message, 0, $e);
+        }
+
+        return $e;
     }
 
     /**
@@ -283,16 +311,10 @@ class RouterosClient
      */
     private function hotspotQuery(string $command, array $attributes = []): array
     {
-        try {
-            $result = $this->rawQuery($command, $attributes);
-            $this->hotspotAvailable = !$this->isTrap($result);
+        $result = $this->rawQuery($command, $attributes);
+        $this->hotspotAvailable = !$this->isTrap($result);
 
-            return $this->hotspotAvailable ? $result : [];
-        } catch (Throwable $e) {
-            $this->hotspotAvailable = false;
-
-            return [];
-        }
+        return $this->hotspotAvailable ? $result : [];
     }
 
     /**

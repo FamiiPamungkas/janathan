@@ -81,6 +81,10 @@ return [
         'router_unreachable_body' => 'Pastikan router dalam keadaan menyala, dapat dijangkau dari server ini, dan kredensial yang tersimpan sudah benar.',
         'manage_routers' => 'Kelola router',
         'try_again' => 'Coba lagi',
+        'connection_timeout_title' => 'Koneksi habis waktu',
+        'connection_timeout_body'  => 'API MikroTik tidak merespons tepat waktu. Pastikan router dapat dijangkau dari server ini dan coba lagi.',
+        'api_connection_title'     => 'Tidak dapat menyambung ke router',
+        'api_connection_body'      => 'Koneksi ke API MikroTik tidak dapat dibuat. Periksa alamat router, port, dan kredensial yang tersimpan, lalu coba lagi.',
     ],
     'routers' => [
         'title' => 'Router - Janathan',

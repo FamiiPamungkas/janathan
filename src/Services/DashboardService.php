@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Services;
 
+use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Models\RouterosVersion;
 use Throwable;
 
@@ -136,6 +137,10 @@ readonly class DashboardService
 
     private function unreachable(array $router, Throwable $e): \RuntimeException
     {
+        if ($e instanceof RouterosConnectionException) {
+            return new \RuntimeException($e->getMessage(), 0, $e);
+        }
+
         return new \RuntimeException(
             'Cannot reach router "' . $router['name'] . '" (' . $router['host'] . ').',
             0,
