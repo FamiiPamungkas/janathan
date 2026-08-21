@@ -1,1 +1,0 @@
-{"version":2,"defects":[],"times":{"Fame1302\\Janathan\\Tests\\RouterosClientTest::testConnectionFailureThrowsRouterosConnectionException":0.023,"Fame1302\\Janathan\\Tests\\RouterosClientTest::testTimeoutFailureHasTimeoutMessage":0.001,"Fame1302\\Janathan\\Tests\\RouterosClientTest::testTrapReplyReturnsEmptyAndUnavailable":0.001}}
