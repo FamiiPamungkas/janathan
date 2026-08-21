@@ -264,7 +264,9 @@
                 <p class="truncate font-semibold">{{ user.name }}</p>
                 <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ user.profile ?: '—' }}</p>
             </div>
-            {% if user.disabled %}
+            {% if user.expired and not user.disabled %}
+            <span class="inline-flex flex-none items-center rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">{{ trans('hotspot.users.expired') }}</span>
+            {% elseif user.disabled %}
             <span class="inline-flex flex-none items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">{{ trans('hotspot.status_disabled') }}</span>
             {% else %}
             <span class="inline-flex flex-none items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ trans('hotspot.status_enabled') }}</span>
@@ -280,6 +282,10 @@
             <div class="flex items-center justify-between gap-4">
                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.col_uptime') }}</dt>
                 <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.uptime ?: '—' }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.col_expires') }}</dt>
+                <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.expires_at ?: '—' }}</dd>
             </div>
             <div class="flex items-center justify-between gap-4">
                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.col_bytes_in') }}</dt>
@@ -322,6 +328,7 @@
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_uptime') }}</th>
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_bytes_in') }}</th>
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_bytes_out') }}</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_expires') }}</th>
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_status') }}</th>
                     <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_actions') }}</th>
                 </tr>
@@ -340,8 +347,11 @@
                     <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.uptime ?: '—' }}</td>
                     <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_in }}</td>
                     <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.bytes_out }}</td>
+                    <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">{{ user.expires_at ?: '—' }}</td>
                     <td class="px-4 py-3">
-                        {% if user.disabled %}
+                        {% if user.expired and not user.disabled %}
+                        <span class="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">{{ trans('hotspot.users.expired') }}</span>
+                        {% elseif user.disabled %}
                         <span class="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">{{ trans('hotspot.status_disabled') }}</span>
                         {% else %}
                         <span class="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ trans('hotspot.status_enabled') }}</span>

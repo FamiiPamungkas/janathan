@@ -6,16 +6,15 @@ namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Exceptions\RouterosConnectionException;
-use Fame1302\Janathan\Support\Logger;
 use RuntimeException;
 use Throwable;
 
 readonly class HotspotService
 {
     public function __construct(
-        private RouterRepository            $routers,
-        private RouterConnectionManager     $connections,
-        private HotspotProfileRepository    $profileMeta
+        private RouterRepository         $routers,
+        private RouterConnectionManager  $connections,
+        private HotspotProfileRepository $profileMeta
     )
     {
     }
@@ -269,6 +268,8 @@ readonly class HotspotService
      */
     public function createUser(int $routerId, array $values): void
     {
+        $values['comment'] = $this->applyCreationExpiry($routerId, $values['profile'] ?? '', $values['comment'] ?? '');
+
         $this->write($routerId, fn(RouterosClient $client) => $client->addHotspotUser($this->normalizeUserFields($values, false)));
     }
 
@@ -287,12 +288,13 @@ readonly class HotspotService
         $result = ['created' => 0, 'failed' => 0, 'errors' => []];
         $date = date('ymd');
         $mode = $values['password_same_as_username'] ? 'vc' : 'up';
-        $seq = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        $seq = str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
         $comment = $mode . '-' . $date . '-' . $seq;
         $customComment = trim($values['comment']);
         if ($customComment !== '') {
             $comment .= '-' . $customComment;
         }
+        $comment = $this->applyCreationExpiry($routerId, $values['profile'], $comment);
 
         [$router, $client] = $this->connect($routerId);
 
@@ -602,6 +604,8 @@ readonly class HotspotService
         $built['color'] = (string)($meta['color'] ?? '');
         $built['price'] = $meta !== null ? (string)(float)$meta['price'] : '';
         $built['prefix'] = (string)($meta['prefix'] ?? '');
+        $built['validity_days'] = $meta !== null ? (string)($meta['validity_days'] ?? '') : '';
+        $built['start_on'] = $meta !== null ? (string)($meta['start_on'] ?? 'first_login') : 'first_login';
 
         return $built;
     }
@@ -638,6 +642,9 @@ readonly class HotspotService
      */
     public function createProfile(int $routerId, array $values): void
     {
+        $values['on_login'] = $this->buildOnLoginScript($values);
+        $values['on_logout'] = '';
+
         $newId = $this->write(
             $routerId,
             fn(RouterosClient $client) => $client->addHotspotProfile($this->normalizeFields($values))
@@ -645,6 +652,13 @@ readonly class HotspotService
 
         if (is_string($newId) && $newId !== '') {
             $this->saveProfileMeta($routerId, $newId, $values);
+            if ($this->normalizeValidityDays($values['validity_days'] ?? null) !== null) {
+                try {
+                    $this->installProfileExpiryScheduler($routerId, $newId, (string)$values['name']);
+                } catch (Throwable $e) {
+                    // Scheduler install is best-effort; never fail the profile save.
+                }
+            }
         }
     }
 
@@ -653,12 +667,26 @@ readonly class HotspotService
      */
     public function updateProfile(int $routerId, string $id, array $values): void
     {
+        $values['on_login'] = $this->buildOnLoginScript($values);
+        $values['on_logout'] = '';
+
         $this->write(
             $routerId,
             fn(RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values))
         );
 
         $this->saveProfileMeta($routerId, $id, $values);
+
+        $days = $this->normalizeValidityDays($values['validity_days'] ?? null);
+        try {
+            if ($days !== null) {
+                $this->installProfileExpiryScheduler($routerId, $id, (string)$values['name']);
+            } else {
+                $this->removeProfileExpiryScheduler($routerId, $id);
+            }
+        } catch (Throwable $e) {
+            // Scheduler (un)install is best-effort; never fail the profile save.
+        }
     }
 
     /**
@@ -669,6 +697,12 @@ readonly class HotspotService
         $this->write($routerId, fn(RouterosClient $client) => $client->removeHotspotProfile($id));
 
         $this->profileMeta->delete($routerId, $id);
+
+        try {
+            $this->removeProfileExpiryScheduler($routerId, $id);
+        } catch (Throwable $e) {
+            // Scheduler removal is best-effort; the profile is already gone.
+        }
     }
 
     private function write(int $routerId, callable $operation): mixed
@@ -695,8 +729,28 @@ readonly class HotspotService
             (string)$values['name'],
             (string)($values['color'] ?? ''),
             $this->normalizePrice($values['price'] ?? ''),
-            (string)($values['prefix'] ?? '')
+            (string)($values['prefix'] ?? ''),
+            $this->normalizeValidityDays($values['validity_days'] ?? null),
+            $this->normalizeStartOn($values['start_on'] ?? 'first_login')
         );
+    }
+
+    private function normalizeValidityDays(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $days = (int)$value;
+
+        return $days > 0 ? $days : null;
+    }
+
+    private function normalizeStartOn(mixed $value): string
+    {
+        $value = strtolower(trim((string)($value ?? '')));
+
+        return $value === 'user_creation' ? 'user_creation' : 'first_login';
     }
 
     private function normalizePrice(mixed $price): float
@@ -749,6 +803,9 @@ readonly class HotspotService
 
     private function buildUserListRow(array $u): array
     {
+        $expiry = $this->parseExpiry((string)($u['comment'] ?? ''));
+        $now = date('Y-m-d H:i:s');
+
         return [
             'id' => $u['.id'] ?? '',
             'name' => $u['name'] ?? '',
@@ -759,6 +816,8 @@ readonly class HotspotService
             'bytes_in' => $this->formatBytes((int)($u['bytes-in'] ?? 0)),
             'bytes_out' => $this->formatBytes((int)($u['bytes-out'] ?? 0)),
             'neverConnected' => $this->isUptimeZero((string)($u['uptime'] ?? '')),
+            'expires_at' => $expiry,
+            'expired' => $expiry !== null && $expiry <= $now,
         ];
     }
 
@@ -771,6 +830,260 @@ readonly class HotspotService
             'comment' => $u['comment'] ?? '',
             'disabled' => $this->isYes($u['disabled'] ?? null),
         ];
+    }
+
+    /**
+     * Extract a `exp=YYYY-MM-DD HH:mm:ss` token from a user comment.
+     */
+    private function parseExpiry(string $comment): ?string
+    {
+        $pos = strpos($comment, 'exp=');
+        if ($pos === false) {
+            return null;
+        }
+
+        $token = substr($comment, $pos + 4, 19);
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $token) === 1) {
+            return $token;
+        }
+
+        return null;
+    }
+
+    /**
+     * Append an `exp=` token (issue date + N days) to a comment. No-op when the
+     * validity period is empty, preserving the current comment otherwise.
+     */
+    private function appendExpiry(string $comment, ?int $days): string
+    {
+        if ($days === null || $days <= 0) {
+            return $comment;
+        }
+
+        $expiry = date('Y-m-d H:i:s', strtotime('+' . $days . ' days'));
+        $comment = trim($comment);
+
+        return $comment === '' ? ('exp=' . $expiry) : ($comment . ' exp=' . $expiry);
+    }
+
+    /**
+     * For profiles whose validity is anchored at user creation, stamp the
+     * expiry into the comment before the user is added to the router.
+     */
+    private function applyCreationExpiry(int $routerId, string $profileName, string $comment): string
+    {
+        if ($profileName === '') {
+            return $comment;
+        }
+
+        $meta = $this->profileMeta->findByName($routerId, $profileName);
+        if ($meta === null || ($meta['start_on'] ?? '') !== 'user_creation') {
+            return $comment;
+        }
+
+        $days = $this->normalizeValidityDays($meta['validity_days'] ?? null);
+        if ($days === null) {
+            return $comment;
+        }
+
+        return $this->appendExpiry($comment, $days);
+    }
+
+    /**
+     * RouterOS snippet that reads `/system clock` into local vars `jy`, `jm`,
+     * `jd`, `jhh`, `jmm`, `jss` (handling both v7 `2026-08-21` and v6
+     * `aug/21/2026` date formats) and defines a `jpad` zero-padding helper.
+     */
+    private function routerDateParseRoutine(): string
+    {
+        return <<<'ROS'
+:local jclkdate [/system clock get date]
+:local jclktime [/system clock get time]
+:local jy 0; :local jm 0; :local jd 0
+:if ([:pick $jclkdate 4 5] = "-") do={
+  :set jy [:tonum [:pick $jclkdate 0 4]]
+  :set jm [:tonum [:pick $jclkdate 5 7]]
+  :set jd [:tonum [:pick $jclkdate 8 10]]
+} else={
+  :local jml {"jan";"feb";"mar";"apr";"may";"jun";"jul";"aug";"sep";"oct";"nov";"dec"}
+  :set jm ([:find $jml [:pick $jclkdate 0 3]] + 1)
+  :set jd [:tonum [:pick $jclkdate 4 6]]
+  :set jy [:tonum [:pick $jclkdate 7 11]]
+}
+:local jhh [:tonum [:pick $jclktime 0 2]]
+:local jmm [:tonum [:pick $jclktime 3 5]]
+:local jss [:tonum [:pick $jclktime 6 8]]
+:local jpad do={ :return [:pick [:tostr (100 + $1)] 1 3] }
+ROS;
+    }
+
+    /**
+     * Build the `on-login` script for a profile. When the profile is in
+     * `first_login` mode with a validity period, the script stamps `exp=` onto
+     * the user the first time they log in (only if not already present, so
+     * later logins never reset the window). Returns '' otherwise.
+     */
+    private function buildOnLoginScript(array $values): string
+    {
+        $days = $this->normalizeValidityDays($values['validity_days'] ?? null);
+        if ($days === null || $this->normalizeStartOn($values['start_on'] ?? 'first_login') !== 'first_login') {
+            return '';
+        }
+
+        $routine = $this->routerDateParseRoutine();
+
+        return <<<ROS
+# janathan: stamp expiry at first login
+:local juid [/ip hotspot user find name=\$user]
+:local jcur [/ip hotspot user get \$juid comment]
+:if ([:find \$jcur "exp="] = -1) do={
+{$routine}
+  :local jn {$days}
+  :local jd2 (\$jd + \$jn)
+  :local jdim 30
+  :while (true) do={
+    :if (\$jm = 2) do={
+      :if ((\$jy mod 4) = 0 && ((\$jy mod 100) != 0 || (\$jy mod 400) = 0)) do={ :set jdim 29 } else={ :set jdim 28 }
+    } else={
+      :if (\$jm = 4 || \$jm = 6 || \$jm = 9 || \$jm = 11) do={ :set jdim 30 } else={ :set jdim 31 }
+    }
+    :if (\$jd2 <= \$jdim) do={ :break }
+    :set jd2 (\$jd2 - \$jdim)
+    :set jm (\$jm + 1)
+    :if (\$jm > 12) do={ :set jm 1; :set jy (\$jy + 1) }
+  }
+  :local jexp (\$jy . "-" . [\$jpad \$jm] . "-" . [\$jpad \$jd2] . " " . [\$jpad \$jhh] . ":" . [\$jpad \$jmm] . ":" . [\$jpad \$jss])
+  /ip hotspot user set \$juid comment=(\$jcur . " exp=" . \$jexp)
+}
+ROS;
+    }
+
+    /**
+     * Deterministic name for a profile's expiry scheduler/script on the router,
+     * derived from the profile's RouterOS `.id` (e.g. *2 -> janathan-expire-2).
+     */
+    private function scheduleName(string $profileId): string
+    {
+        return 'janathan-expire-' . ltrim($profileId, '*');
+    }
+
+    /**
+     * Build the per-profile router expiry-enforcement script: disables any
+     * hotspot user of the given profile whose `exp=` token is in the past and
+     * kicks the active session.
+     */
+    private function buildProfileExpiryScript(string $profileName): string
+    {
+        $routine = $this->routerDateParseRoutine();
+        $profileName = str_replace('"', '', $profileName);
+
+        return <<<ROS
+# janathan: disable expired users of profile {$profileName}
+{$routine}
+:local jnow (\$jy . "-" . [\$jpad \$jm] . "-" . [\$jpad \$jd] . " " . [\$jpad \$jhh] . ":" . [\$jpad \$jmm] . ":" . [\$jpad \$jss])
+:foreach ju in=[/ip hotspot user find where profile="{$profileName}"] do={
+  :local jc [/ip hotspot user get \$ju comment]
+  :local jp [:find \$jc "exp="]
+  :if (\$jp >= 0) do={
+    :local je [:pick \$jc (\$jp + 4) 9999]
+    :local jec [:pick \$je 0 19]
+    :if (\$jec < \$jnow) do={
+      /ip hotspot user set \$ju disabled=yes
+      :local jun [/ip hotspot user get \$ju name]
+      :local jaids [/ip hotspot active find user=\$jun]
+      :foreach jaid in=\$jaids do={ /ip hotspot active remove \$jaid }
+    }
+  }
+}
+ROS;
+    }
+
+    /**
+     * Install (or update) the per-profile expiry scheduler that disables users
+     * of the given profile past their `exp=` token. Idempotent: re-running
+     * updates the script. Best-effort from callers (catches its own errors).
+     *
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function installProfileExpiryScheduler(
+        int $routerId, string $profileId, string $profileName, int $intervalMinutes = 60
+    ): void
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($routerId);
+        $name = $this->scheduleName($profileId);
+        $body = $this->buildProfileExpiryScript($profileName);
+        $interval = $intervalMinutes . 'm';
+        $comment = 'Monitor Profile ' . $profileName;
+
+        try {
+            $scripts = $client->query('/system/script/print', ['name' => $name]);
+            if (isset($scripts[0]['.id'])) {
+                $client->writeQuery('/system/script/set', [
+                    '.id' => $scripts[0]['.id'],
+                    'source' => $body,
+                    'policy' => 'read,write',
+                    'comment' => $comment,
+                ]);
+            } else {
+                $client->writeQuery('/system/script/add', [
+                    'name' => $name,
+                    'source' => $body,
+                    'policy' => 'read,write',
+                    'comment' => $comment,
+                ]);
+            }
+
+            $schedulers = $client->query('/system/scheduler/print', ['name' => $name]);
+            if (isset($schedulers[0]['.id'])) {
+                $client->writeQuery('/system/scheduler/set', [
+                    '.id' => $schedulers[0]['.id'],
+                    'on-event' => $name,
+                    'interval' => $interval,
+                    'policy' => 'read,write',
+                    'comment' => $comment,
+                ]);
+            } else {
+                $client->writeQuery('/system/scheduler/add', [
+                    'name' => $name,
+                    'on-event' => $name,
+                    'interval' => $interval,
+                    'policy' => 'read,write',
+                    'comment' => $comment,
+                ]);
+            }
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+    }
+
+    /**
+     * Remove a profile's expiry scheduler and its backing script.
+     *
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function removeProfileExpiryScheduler(int $routerId, string $profileId): void
+    {
+        [$router, $client] = $this->connect($routerId);
+        $scriptName = $this->scheduleName($profileId);
+
+        try {
+            $schedulers = $client->query('/system/scheduler/print', ['name' => $scriptName]);
+            foreach ($schedulers as $s) {
+                if (isset($s['.id'])) {
+                    $client->query('/system/scheduler/remove', ['.id' => $s['.id']]);
+                }
+            }
+
+            $scripts = $client->query('/system/script/print', ['name' => $scriptName]);
+            foreach ($scripts as $s) {
+                if (isset($s['.id'])) {
+                    $client->query('/system/script/remove', ['.id' => $s['.id']]);
+                }
+            }
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
     }
 
     /**
@@ -980,7 +1293,6 @@ readonly class HotspotService
 
     private function buildProfile(array $p): array
     {
-        Logger::log("ADD MAC COOKIE ", $p['add-mac-cookie']);
         return [
             'id' => $p['.id'] ?? '',
             'name' => $p['name'] ?? '',

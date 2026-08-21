@@ -631,7 +631,7 @@ class HotspotController
         return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, null);
     }
 
-    public function profiles(Request $request, Response $response): Response
+    public function indexProfiles(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -649,7 +649,7 @@ class HotspotController
         return $response;
     }
 
-    public function showCreate(Request $request, Response $response): Response
+    public function createProfileForm(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -658,7 +658,7 @@ class HotspotController
         return $this->renderForm($request, $response, null, []);
     }
 
-    public function create(Request $request, Response $response): Response
+    public function storeProfile(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -690,7 +690,7 @@ class HotspotController
         return $this->redirect($response, $request, 'hotspot.profiles');
     }
 
-    public function showEdit(Request $request, Response $response, array $args): Response
+    public function editProfileForm(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -711,7 +711,7 @@ class HotspotController
         return $this->renderForm($request, $response, $profile, []);
     }
 
-    public function update(Request $request, Response $response, array $args): Response
+    public function updateProfile(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -744,7 +744,7 @@ class HotspotController
         return $this->redirect($response, $request, 'hotspot.profiles');
     }
 
-    public function delete(Request $request, Response $response, array $args): Response
+    public function deleteProfile(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
@@ -1044,7 +1044,7 @@ class HotspotController
     }
 
     /**
-     * @return array{name: string, rate_limit: string, shared_users: string, add_mac_cookie: bool, address_pool: string, on_login: string, on_logout: string, color: string, price: string}
+     * @return array{name: string, rate_limit: string, shared_users: string, add_mac_cookie: bool, address_pool: string, color: string, price: string, prefix: string, validity_days: string, start_on: string}
      */
     private function extractValues(mixed $body): array
     {
@@ -1056,11 +1056,11 @@ class HotspotController
             'shared_users' => trim((string)($body['shared_users'] ?? '')),
             'add_mac_cookie' => !empty($body['add_mac_cookie']),
             'address_pool' => trim((string)($body['address_pool'] ?? '')),
-            'on_login' => trim((string)($body['on_login'] ?? '')),
-            'on_logout' => trim((string)($body['on_logout'] ?? '')),
             'color' => trim((string)($body['color'] ?? '')),
             'price' => trim((string)($body['price'] ?? '')),
             'prefix' => trim((string)($body['prefix'] ?? '')),
+            'validity_days' => trim((string)($body['validity_days'] ?? '')),
+            'start_on' => trim((string)($body['start_on'] ?? 'first_login')),
         ];
     }
 
@@ -1088,10 +1088,14 @@ class HotspotController
             $errors['address_pool'] = 'Invalid pool name.';
         }
 
-        foreach (['on_login', 'on_logout'] as $field) {
-            if (strlen($values[$field]) > 4096) {
-                $errors[$field] = 'Script must be 4096 characters or fewer.';
+        if ($values['validity_days'] !== '') {
+            if (!ctype_digit($values['validity_days']) || (int)$values['validity_days'] < 1 || (int)$values['validity_days'] > 3650) {
+                $errors['validity_days'] = 'Validity must be a number of days between 1 and 3650.';
             }
+        }
+
+        if (!in_array($values['start_on'], ['first_login', 'user_creation'], true)) {
+            $errors['start_on'] = 'Choose when the validity period starts.';
         }
 
         if ($values['color'] !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $values['color']) !== 1) {

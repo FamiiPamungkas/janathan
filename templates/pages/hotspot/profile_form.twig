@@ -120,17 +120,23 @@
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                    <label for="on_login" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.on_login') }}</label>
-                    <textarea id="on_login" name="on_login" rows="4" placeholder=":local id &#10;/ip/hotspot/active/set..."
-                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.on_login %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">{{ values.on_login|default(profile.on_login|default('')) }}</textarea>
-                    {% if errors.on_login %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.on_login }}</p>{% endif %}
+                    <label for="validity_days" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.validity_days') }}</label>
+                    <input type="number" id="validity_days" name="validity_days" min="1" max="3650" placeholder="—"
+                        value="{{ values.validity_days|default(profile.validity_days|default('')) }}"
+                        class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.validity_days %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.validity_help') }}</p>
+                    {% if errors.validity_days %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.validity_days }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label for="on_logout" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.on_logout') }}</label>
-                    <textarea id="on_logout" name="on_logout" rows="4" placeholder=":local id &#10;/ip/hotspot/active/set..."
-                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.on_logout %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">{{ values.on_logout|default(profile.on_logout|default('')) }}</textarea>
-                    {% if errors.on_logout %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.on_logout }}</p>{% endif %}
+                    <label for="start_on" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.profile_form.start_on') }}</label>
+                    <select id="start_on" name="start_on"
+                        class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.start_on %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                        <option value="first_login" {% if (values.start_on|default(profile.start_on|default('first_login'))) == 'first_login' %}selected{% endif %}>{{ trans('hotspot.profile_form.start_on_first_login') }}</option>
+                        <option value="user_creation" {% if (values.start_on|default(profile.start_on|default('first_login'))) == 'user_creation' %}selected{% endif %}>{{ trans('hotspot.profile_form.start_on_user_creation') }}</option>
+                    </select>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profile_form.start_on_help') }}</p>
+                    {% if errors.start_on %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.start_on }}</p>{% endif %}
                 </div>
             </div>
 

@@ -50,14 +50,17 @@ $pdo->exec(
     );
 
     CREATE TABLE IF NOT EXISTS hotspot_profiles (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        router_id  INTEGER NOT NULL,
-        profile_id TEXT NOT NULL,
-        name       TEXT NOT NULL,
-        color      TEXT NOT NULL DEFAULT '',
-        price      REAL NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        router_id     INTEGER NOT NULL,
+        profile_id    TEXT NOT NULL,
+        name          TEXT NOT NULL,
+        color         TEXT NOT NULL DEFAULT '',
+        price         REAL NOT NULL DEFAULT 0,
+        prefix        TEXT NOT NULL DEFAULT '',
+        validity_days INTEGER,
+        start_on      TEXT NOT NULL DEFAULT 'first_login',
+        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE (router_id, profile_id)
     );
 
@@ -98,6 +101,23 @@ foreach ($pdo->query('PRAGMA table_info(users)') as $col) {
 
 if (!in_array('locale', $userColumns, true)) {
     $pdo->exec("ALTER TABLE users ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'");
+}
+
+/* Migrate existing databases that predate profile validity settings. */
+$profileColumns = [];
+foreach ($pdo->query('PRAGMA table_info(hotspot_profiles)') as $col) {
+    $profileColumns[] = $col['name'];
+}
+
+$profileMigrations = [
+    'validity_days' => 'INTEGER',
+    'start_on' => "TEXT NOT NULL DEFAULT 'first_login'",
+];
+
+foreach ($profileMigrations as $column => $definition) {
+    if (!in_array($column, $profileColumns, true)) {
+        $pdo->exec("ALTER TABLE hotspot_profiles ADD COLUMN {$column} {$definition}");
+    }
 }
 
 echo "Database ready at {$dbPath}\n";

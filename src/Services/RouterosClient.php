@@ -185,25 +185,25 @@ class RouterosClient
 
     public function addHotspotUser(array $fields): void
     {
-        $result = $this->rawQuery('/ip/hotspot/user/add', $fields);
+        $result = $this->writeQuery('/ip/hotspot/user/add', $fields);
         $this->assertNotTrap($result);
     }
 
     public function setHotspotUser(string $id, array $fields): void
     {
-        $result = $this->rawQuery('/ip/hotspot/user/set', ['.id' => $id] + $fields);
+        $result = $this->writeQuery('/ip/hotspot/user/set', ['.id' => $id] + $fields);
         $this->assertNotTrap($result);
     }
 
     public function removeHotspotUser(string $id): void
     {
-        $result = $this->rawQuery('/ip/hotspot/user/remove', ['.id' => $id]);
+        $result = $this->writeQuery('/ip/hotspot/user/remove', ['.id' => $id]);
         $this->assertNotTrap($result);
     }
 
     public function removeActiveUser(string $id): void
     {
-        $result = $this->rawQuery('/ip/hotspot/active/remove', ['.id' => $id]);
+        $result = $this->writeQuery('/ip/hotspot/active/remove', ['.id' => $id]);
         $this->assertNotTrap($result);
     }
 
@@ -231,7 +231,7 @@ class RouterosClient
     public function addHotspotProfile(array $fields): ?string
     {
         Logger::log("ADD HOTSPOT PROFILE ", $fields);
-        $result = $this->rawQuery('/ip/hotspot/user/profile/add', $fields);
+        $result = $this->writeQuery('/ip/hotspot/user/profile/add', $fields);
         $this->assertNotTrap($result);
 
         $ret = $result['after']['ret'] ?? null;
@@ -241,13 +241,13 @@ class RouterosClient
 
     public function setHotspotProfile(string $id, array $fields): void
     {
-        $result = $this->rawQuery('/ip/hotspot/user/profile/set', ['.id' => $id] + $fields);
+        $result = $this->writeQuery('/ip/hotspot/user/profile/set', ['.id' => $id] + $fields);
         $this->assertNotTrap($result);
     }
 
     public function removeHotspotProfile(string $id): void
     {
-        $result = $this->rawQuery('/ip/hotspot/user/profile/remove', ['.id' => $id]);
+        $result = $this->writeQuery('/ip/hotspot/user/profile/remove', ['.id' => $id]);
         $this->assertNotTrap($result);
     }
 
@@ -278,10 +278,10 @@ class RouterosClient
     }
 
     /**
-     * Run a query that sends raw API attributes (e.g. `=stats=true`) instead
-     * of `where()` filters.
+     * Run a write command that sends API attributes (e.g. `=name=value`) via
+     * `equal()` instead of `where()` query filters. Used for add/set/remove.
      */
-    private function rawQuery(string $command, array $attributes = []): array
+    public function writeQuery(string $command, array $attributes = []): array
     {
         $this->connect();
 

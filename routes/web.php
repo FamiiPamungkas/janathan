@@ -51,12 +51,12 @@ return function (App $app): void {
             $app->get('/users/generate', HotspotController::class . ':showGenerate')->setName('hotspot.users.generate');
             $app->post('/users/generate', HotspotController::class . ':generateUsers')->setName('hotspot.users.generate.store');
 
-            $app->get('/profiles', HotspotController::class . ':profiles')->setName('hotspot.profiles');
-            $app->get('/profiles/create', HotspotController::class . ':showCreate')->setName('hotspot.profiles.create');
-            $app->post('/profiles', HotspotController::class . ':create')->setName('hotspot.profiles.store');
-            $app->get('/profiles/{id}/edit', HotspotController::class . ':showEdit')->setName('hotspot.profiles.edit');
-            $app->post('/profiles/{id}/edit', HotspotController::class . ':update')->setName('hotspot.profiles.update');
-            $app->post('/profiles/{id}/delete', HotspotController::class . ':delete')->setName('hotspot.profiles.delete');
+            $app->get('/profiles', HotspotController::class . ':indexProfiles')->setName('hotspot.profiles');
+            $app->get('/profiles/create', HotspotController::class . ':createProfileForm')->setName('hotspot.profiles.create');
+            $app->post('/profiles', HotspotController::class . ':storeProfile')->setName('hotspot.profiles.store');
+            $app->get('/profiles/{id}/edit', HotspotController::class . ':editProfileForm')->setName('hotspot.profiles.edit');
+            $app->post('/profiles/{id}/edit', HotspotController::class . ':updateProfile')->setName('hotspot.profiles.update');
+            $app->post('/profiles/{id}/delete', HotspotController::class . ':deleteProfile')->setName('hotspot.profiles.delete');
         });
 
         $app->group('/voucher-templates', function (RouteCollectorProxy $app) {

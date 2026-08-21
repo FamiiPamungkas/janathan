@@ -6,7 +6,7 @@ namespace Fame1302\Janathan\Support;
 
 class Logger
 {
-    public static function log(string $label, mixed $value): void
+    public static function log(string $label, mixed $value = []): void
     {
         error_log($label . ' ' . self::format($value));
     }
