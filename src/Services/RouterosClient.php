@@ -178,7 +178,7 @@ class RouterosClient
 
     public function getHotspotUser(string $id): ?array
     {
-        $result = $this->query('/ip/hotspot/user/print', ['.id' => $id]);
+        $result = $this->hotspotQuery('/ip/hotspot/user/print', ['.id' => $id]);
 
         return $result[0] ?? null;
     }
@@ -213,7 +213,7 @@ class RouterosClient
 
     public function getHotspotProfile(string $id): ?array
     {
-        $result = $this->query('/ip/hotspot/user/profile/print', ['.id' => $id]);
+        $result = $this->hotspotQuery('/ip/hotspot/user/profile/print', ['.id' => $id]);
         return $result[0] ?? null;
     }
 
@@ -335,11 +335,23 @@ class RouterosClient
     /**
      * Execute a hotspot query with graceful fallback: when the hotspot menu is
      * not available on the router (package missing, not configured, or denied),
-     * an empty result is returned instead of a trap payload.
+     * the reply comes back as a RouterOS `!trap` (e.g. "no such command"). In
+     * that case we cache availability as false and return an empty list instead
+     * of leaking the trap payload. A successful reply marks the menu available.
      */
     private function hotspotQuery(string $command, array $attributes = []): array
     {
-        return $this->query($command, $attributes);
+        $result = $this->query($command, $attributes);
+
+        if ($this->isTrap($result)) {
+            $this->hotspotAvailable = false;
+
+            return [];
+        }
+
+        $this->hotspotAvailable = true;
+
+        return $result;
     }
 
     /**
