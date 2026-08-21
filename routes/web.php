@@ -36,6 +36,9 @@ return function (App $app): void {
 
         $app->group('/hotspot', function (RouteCollectorProxy $app) {
             $app->get('/users', HotspotController::class . ':users')->setName('hotspot.users');
+            $app->get('/active', HotspotController::class . ':activeUsers')->setName('hotspot.active');
+            $app->get('/active/data', HotspotController::class . ':activeData')->setName('hotspot.active.data');
+            $app->post('/active/{id}/remove', HotspotController::class . ':removeActiveUser')->setName('hotspot.active.remove');
             $app->get('/users/create', HotspotController::class . ':showCreateUser')->setName('hotspot.users.create');
             $app->post('/users', HotspotController::class . ':createUser')->setName('hotspot.users.store');
             $app->get('/users/{id}/edit', HotspotController::class . ':showEditUser')->setName('hotspot.users.edit');

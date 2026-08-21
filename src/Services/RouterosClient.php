@@ -201,6 +201,12 @@ class RouterosClient
         $this->assertNotTrap($result);
     }
 
+    public function removeActiveUser(string $id): void
+    {
+        $result = $this->rawQuery('/ip/hotspot/active/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     public function getHotspotProfiles(): array
     {
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');

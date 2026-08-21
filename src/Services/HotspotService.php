@@ -871,6 +871,60 @@ readonly class HotspotService
     }
 
     /**
+     * Fetch the list of currently connected (active) hotspot sessions.
+     *
+     * @return array{router: array, sessions: list<array{id: string, user: string, ip: string, mac: string, uptime: string, bytes_in: string, bytes_out: string, server: string}>, hotspotAvailable: bool}
+     */
+    public function getActiveUsers(int $routerId): array
+    {
+        [$router, $client] = $this->connect($routerId);
+
+        try {
+            $rows = $client->getActiveUsers();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $sessions = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if (($row['user'] ?? '') === '' && ($row['.id'] ?? '') === '') {
+                continue;
+            }
+            $sessions[] = [
+                'id' => $row['.id'] ?? '',
+                'user' => $row['user'] ?? '',
+                'ip' => $row['address'] ?? $row['ip'] ?? '',
+                'mac' => $row['mac-address'] ?? '',
+                'comment' => $row['comment'] ?? '',
+                'uptime' => $this->formatUptime((string)($row['uptime'] ?? '')),
+                'bytes_in' => $this->formatBytes((int)($row['bytes-in'] ?? 0)),
+                'bytes_out' => $this->formatBytes((int)($row['bytes-out'] ?? 0)),
+                'server' => $row['server'] ?? '',
+            ];
+        }
+
+        return [
+            'router' => $router,
+            'sessions' => $sessions,
+            'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    /**
+     * Disconnect (kick) a single active hotspot session by its RouterOS `.id`.
+     *
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
+     */
+    public function removeActiveUser(int $routerId, string $id): void
+    {
+        $this->write($routerId, fn(RouterosClient $client) => $client->removeActiveUser($id));
+    }
+
+    /**
      * Merge RouterOS profiles with their local metadata. Meta rows are matched
      * by profile_id first and by name second; mismatches are healed so rows
      * survive both renames and `.id` changes (backup restore / netinstall).
