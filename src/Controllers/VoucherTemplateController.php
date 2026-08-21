@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Controllers;
 
 use Fame1302\Janathan\Services\FlashService;
-use Fame1302\Janathan\Services\HotspotService;
+use Fame1302\Janathan\Services\ProfileService;
 use Fame1302\Janathan\Services\TranslationService;
 use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Services\VoucherTemplateRenderer;
@@ -21,7 +21,7 @@ class VoucherTemplateController
         private readonly Environment $twig,
         private readonly VoucherTemplateRepository $templates,
         private readonly VoucherTemplateRenderer $renderer,
-        private readonly HotspotService $hotspot,
+        private readonly ProfileService $profiles,
         private readonly FlashService $flash,
         private readonly TranslationService $translator
     ) {
@@ -145,7 +145,7 @@ class VoucherTemplateController
 
         if (!empty($_SESSION['router_id'])) {
             try {
-                $data = $this->hotspot->getProfiles((int)$_SESSION['router_id']);
+                $data = $this->profiles->getProfiles((int)$_SESSION['router_id']);
                 foreach ($data['profiles'] as $profile) {
                     $profiles[] = [
                         'name' => (string)$profile['name'],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Fame1302\Janathan\Controllers\AuthController;
 use Fame1302\Janathan\Controllers\DashboardController;
 use Fame1302\Janathan\Controllers\HotspotController;
+use Fame1302\Janathan\Controllers\ProfileController;
 use Fame1302\Janathan\Controllers\RouterController;
 use Fame1302\Janathan\Controllers\VoucherTemplateController;
 use Fame1302\Janathan\Middleware\AuthMiddleware;
@@ -51,12 +52,12 @@ return function (App $app): void {
             $app->get('/users/generate', HotspotController::class . ':showGenerate')->setName('hotspot.users.generate');
             $app->post('/users/generate', HotspotController::class . ':generateUsers')->setName('hotspot.users.generate.store');
 
-            $app->get('/profiles', HotspotController::class . ':indexProfiles')->setName('hotspot.profiles');
-            $app->get('/profiles/create', HotspotController::class . ':createProfileForm')->setName('hotspot.profiles.create');
-            $app->post('/profiles', HotspotController::class . ':storeProfile')->setName('hotspot.profiles.store');
-            $app->get('/profiles/{id}/edit', HotspotController::class . ':editProfileForm')->setName('hotspot.profiles.edit');
-            $app->post('/profiles/{id}/edit', HotspotController::class . ':updateProfile')->setName('hotspot.profiles.update');
-            $app->post('/profiles/{id}/delete', HotspotController::class . ':deleteProfile')->setName('hotspot.profiles.delete');
+            $app->get('/profiles', ProfileController::class . ':index')->setName('hotspot.profiles');
+            $app->get('/profiles/create', ProfileController::class . ':showCreate')->setName('hotspot.profiles.create');
+            $app->post('/profiles', ProfileController::class . ':create')->setName('hotspot.profiles.store');
+            $app->get('/profiles/{id}/edit', ProfileController::class . ':showEdit')->setName('hotspot.profiles.edit');
+            $app->post('/profiles/{id}/edit', ProfileController::class . ':update')->setName('hotspot.profiles.update');
+            $app->post('/profiles/{id}/delete', ProfileController::class . ':delete')->setName('hotspot.profiles.delete');
         });
 
         $app->group('/voucher-templates', function (RouteCollectorProxy $app) {

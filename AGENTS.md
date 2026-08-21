@@ -36,6 +36,8 @@ composer.json
 ## Coding Conventions
 - PSR-12 coding style.
 - Controllers stay thin — delegate RouterOS calls to a Service class, never call the RouterOS API client directly from a controller.
+- **Shared logic via inheritance, not duplication.** When the same helper method (or near-identical logic) is needed in two or more controllers, extract it into `RedirectsTrait`; when needed in two or more services, extract it into a shared `trait` (e.g. `ConnectsRouter` holds the RouterOS connect/write/unreachable plumbing). Prefer this over copy-pasting the same method across classes. A service that needs another service's logic should depend on it via DI (constructor) and call the public method, rather than re-implementing it.
+- Add IDE type hints for untyped destructuring. The service `connect()` returns `[$router, $client]`; at every `[$router, $client] = $this->connect(...)` call site add `/** @var $client RouterosClient */` on the line above so editors (PhpStorm/IntelliJ) can resolve `$client` to `RouterosClient` and `ctrl+click` its methods.
 - One RouterOS connection per request via DI container (avoid reconnecting per call).
 - All router credentials/config load from `.env` (use `vlucas/phpdotenv`) — never hardcode IP/user/pass.
 - Twig templates: use `layout.twig` as base, blocks for `content` and `scripts`. Keep logic out of templates — pass pre-formatted data from controllers.
