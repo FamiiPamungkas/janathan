@@ -294,30 +294,29 @@ readonly class ProfileService
     }
 
     /**
-     * RouterOS snippet that reads `/system clock` into local vars `jy`, `jm`,
-     * `jd`, `jhh`, `jmm`, `jss` (handling both v7 `2026-08-21` and v6
-     * `aug/21/2026` date formats) and defines a `jpad` zero-padding helper.
+     * RouterOS snippet that reads `/system clock` into local vars `year`,
+     * `month`, `day`, `hour`, `minute`, `second` (handling both v7
+     * `2026-08-21` and v6 `aug/21/2026` date formats).
      */
     private function routerDateParseRoutine(): string
     {
         return <<<'ROS'
-:local jclkdate [/system clock get date]
-:local jclktime [/system clock get time]
-:local jy 0; :local jm 0; :local jd 0
-:if ([:pick $jclkdate 4 5] = "-") do={
-  :set jy [:tonum [:pick $jclkdate 0 4]]
-  :set jm [:tonum [:pick $jclkdate 5 7]]
-  :set jd [:tonum [:pick $jclkdate 8 10]]
+:local clockDate [/system clock get date];
+:local clockTime [/system clock get time];
+:local year 0; :local month 0; :local day 0;
+:if ([:pick $clockDate 4 5] = "-") do={
+  :set year [:tonum [:pick $clockDate 0 4]];
+  :set month [:tonum [:pick $clockDate 5 7]];
+  :set day [:tonum [:pick $clockDate 8 10]];
 } else={
-  :local jml {"jan";"feb";"mar";"apr";"may";"jun";"jul";"aug";"sep";"oct";"nov";"dec"}
-  :set jm ([:find $jml [:pick $jclkdate 0 3]] + 1)
-  :set jd [:tonum [:pick $jclkdate 4 6]]
-  :set jy [:tonum [:pick $jclkdate 7 11]]
-}
-:local jhh [:tonum [:pick $jclktime 0 2]]
-:local jmm [:tonum [:pick $jclktime 3 5]]
-:local jss [:tonum [:pick $jclktime 6 8]]
-:local jpad do={ :return [:pick [:tostr (100 + $1)] 1 3] }
+  :local monthNames {"jan";"feb";"mar";"apr";"may";"jun";"jul";"aug";"sep";"oct";"nov";"dec"};
+  :set month ([:find $monthNames [:pick $clockDate 0 3]] + 1);
+  :set day [:tonum [:pick $clockDate 4 6]];
+  :set year [:tonum [:pick $clockDate 7 11]];
+};
+:local hour [:tonum [:pick $clockTime 0 2]];
+:local minute [:tonum [:pick $clockTime 3 5]];
+:local second [:tonum [:pick $clockTime 6 8]];
 ROS;
     }
 
@@ -338,27 +337,35 @@ ROS;
 
         return <<<ROS
 # janathan: stamp expiry at first login
-:local juid [/ip hotspot user find name=\$user]
-:local jcur [/ip hotspot user get \$juid comment]
-:if ([:find \$jcur "exp="] = -1) do={
+:log info "janathan on-login: fired user=\$user";
+:local uid [/ip hotspot user find where name="\$user"];
+:log info "janathan on-login: uid=\$uid";
+:local currentComment [/ip hotspot user get \$uid comment];
+:log info "janathan on-login: comment='\$currentComment'";
+:if ([:typeof [:find \$currentComment "exp="]] = "nil") do={
 {$routine}
-  :local jn {$days}
-  :local jd2 (\$jd + \$jn)
-  :local jdim 30
+  :log info "janathan on-login: y=\$year m=\$month d=\$day h=\$hour i=\$minute s=\$second";
+  :local validityDays {$days};
+  :local expiryDay (\$day + \$validityDays);
+  :local daysInMonth 30;
   :while (true) do={
-    :if (\$jm = 2) do={
-      :if ((\$jy mod 4) = 0 && ((\$jy mod 100) != 0 || (\$jy mod 400) = 0)) do={ :set jdim 29 } else={ :set jdim 28 }
+    :if (\$month = 2) do={
+      :if ((\$year mod 4) = 0 && ((\$year mod 100) != 0 || (\$year mod 400) = 0)) do={ :set daysInMonth 29; } else={ :set daysInMonth 28; };
     } else={
-      :if (\$jm = 4 || \$jm = 6 || \$jm = 9 || \$jm = 11) do={ :set jdim 30 } else={ :set jdim 31 }
-    }
-    :if (\$jd2 <= \$jdim) do={ :break }
-    :set jd2 (\$jd2 - \$jdim)
-    :set jm (\$jm + 1)
-    :if (\$jm > 12) do={ :set jm 1; :set jy (\$jy + 1) }
-  }
-  :local jexp (\$jy . "-" . [\$jpad \$jm] . "-" . [\$jpad \$jd2] . " " . [\$jpad \$jhh] . ":" . [\$jpad \$jmm] . ":" . [\$jpad \$jss])
-  /ip hotspot user set \$juid comment=(\$jcur . " exp=" . \$jexp)
-}
+      :if (\$month = 4 || \$month = 6 || \$month = 9 || \$month = 11) do={ :set daysInMonth 30; } else={ :set daysInMonth 31; };
+    };
+    :if (\$expiryDay <= \$daysInMonth) do={ :break; };
+    :set expiryDay (\$expiryDay - \$daysInMonth);
+    :set month (\$month + 1);
+    :if (\$month > 12) do={ :set month 1; :set year (\$year + 1); };
+  };
+  :local expiryText (\$year . "-" . [:pick [:tostr (100 + \$month)] 1 3] . "-" . [:pick [:tostr (100 + \$expiryDay)] 1 3] . " " . [:pick [:tostr (100 + \$hour)] 1 3] . ":" . [:pick [:tostr (100 + \$minute)] 1 3] . ":" . [:pick [:tostr (100 + \$second)] 1 3]);
+  :log info "janathan on-login: expiry=\$expiryText";
+  /ip hotspot user set \$uid comment=(\$currentComment . " exp=" . \$expiryText);
+  :log info "janathan on-login: comment written";
+} else={
+  :log info "janathan on-login: exp= already present, skipped";
+};
 ROS;
     }
 
@@ -384,21 +391,21 @@ ROS;
         return <<<ROS
 # janathan: disable expired users of profile {$profileName}
 {$routine}
-:local jnow (\$jy . "-" . [\$jpad \$jm] . "-" . [\$jpad \$jd] . " " . [\$jpad \$jhh] . ":" . [\$jpad \$jmm] . ":" . [\$jpad \$jss])
-:foreach ju in=[/ip hotspot user find where profile="{$profileName}"] do={
-  :local jc [/ip hotspot user get \$ju comment]
-  :local jp [:find \$jc "exp="]
-  :if (\$jp >= 0) do={
-    :local je [:pick \$jc (\$jp + 4) 9999]
-    :local jec [:pick \$je 0 19]
-    :if (\$jec < \$jnow) do={
-      /ip hotspot user set \$ju disabled=yes
-      :local jun [/ip hotspot user get \$ju name]
-      :local jaids [/ip hotspot active find user=\$jun]
-      :foreach jaid in=\$jaids do={ /ip hotspot active remove \$jaid }
-    }
-  }
-}
+:local nowStr (\$year . "-" . [:pick [:tostr (100 + \$month)] 1 3] . "-" . [:pick [:tostr (100 + \$day)] 1 3] . " " . [:pick [:tostr (100 + \$hour)] 1 3] . ":" . [:pick [:tostr (100 + \$minute)] 1 3] . ":" . [:pick [:tostr (100 + \$second)] 1 3]);
+:foreach uid in=[/ip hotspot user find where profile="{$profileName}"] do={
+  :local commentText [/ip hotspot user get \$uid comment];
+  :local expPos [:find \$commentText "exp="];
+  :if ([:typeof \$expPos] = "num") do={
+    :local expValue [:pick \$commentText (\$expPos + 4) 9999];
+    :local expDate [:pick \$expValue 0 19];
+    :if (\$expDate < \$nowStr) do={
+      /ip hotspot user set \$uid disabled=yes;
+      :local userName [/ip hotspot user get \$uid name];
+      :local activeIds [/ip hotspot active find where user="\$userName"];
+      :foreach activeId in=\$activeIds do={ /ip hotspot active remove \$activeId; };
+    };
+  };
+};
 ROS;
     }
 
