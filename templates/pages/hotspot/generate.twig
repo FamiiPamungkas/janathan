@@ -22,7 +22,13 @@
                 <span>{{ errorBanner }}</span>
             </div>
         {% endif %}
-        <form method="post" action="{{ url_for(formAction) }}" x-data="{ sameAsUser: {{ values.password_same_as_username|default(false) ? 'true' : 'false' }} }" class="space-y-5">
+        {% set charLower = values.char_lowercase is defined ? values.char_lowercase : true %}
+        {% set charUpper = values.char_uppercase is defined ? values.char_uppercase : false %}
+        {% set charNumbers = values.char_numbers is defined ? values.char_numbers : true %}
+        <form method="post" action="{{ url_for(formAction) }}"
+            x-data="{ sameAsUser: {{ values.password_same_as_username|default(false) ? 'true' : 'false' }}, charLower: {{ charLower ? 'true' : 'false' }}, charUpper: {{ charUpper ? 'true' : 'false' }}, charNumbers: {{ charNumbers ? 'true' : 'false' }}, charsetError: {{ errors.character ? 'true' : 'false' }} }"
+            @submit="charsetError = !(charLower || charUpper || charNumbers); if (charsetError) $event.preventDefault()"
+            class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -57,18 +63,39 @@
                 {% if errors.prefix %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.prefix }}</p>{% endif %}
             </div>
 
-            <div>
-                    <label for="character" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.generate.char_set') }}</label>
-                <select id="character" name="character"
-                    class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.character %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
-                    {% set currentChar = values.character|default('lowercase') %}
-                    <option value="lowercase" {% if currentChar == 'lowercase' %}selected{% endif %}>abcde…</option>
-                    <option value="uppercase" {% if currentChar == 'uppercase' %}selected{% endif %}>ABCDE…</option>
-                    <option value="combined" {% if currentChar == 'combined' %}selected{% endif %}>aBcDe…</option>
-                    <option value="alphanumeric" {% if currentChar == 'alphanumeric' %}selected{% endif %}>aBcD1…</option>
-                </select>
-                {% if errors.character %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.character }}</p>{% endif %}
-            </div>
+            <fieldset>
+                <legend class="mb-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.generate.char_set') }}</legend>
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
+                    <label class="flex items-center gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="char_uppercase" name="char_uppercase" value="1"
+                               x-model="charUpper"
+                               @change="charsetError = !(charLower || charUpper || charNumbers)"
+                               {% if charUpper %}checked{% endif %}
+                               class="h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
+                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.generate.char_uppercase') }}</span>
+                        <span class="font-mono text-xs text-zinc-500 dark:text-zinc-400">(ABC)</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="char_lowercase" name="char_lowercase" value="1"
+                            x-model="charLower"
+                            @change="charsetError = !(charLower || charUpper || charNumbers)"
+                            {% if charLower %}checked{% endif %}
+                            class="h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
+                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.generate.char_lowercase') }}</span>
+                        <span class="font-mono text-xs text-zinc-500 dark:text-zinc-400">(abc)</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="char_numbers" name="char_numbers" value="1"
+                            x-model="charNumbers"
+                            @change="charsetError = !(charLower || charUpper || charNumbers)"
+                            {% if charNumbers %}checked{% endif %}
+                            class="h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
+                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.generate.char_numbers') }}</span>
+                        <span class="font-mono text-xs text-zinc-500 dark:text-zinc-400">(123)</span>
+                    </label>
+                </div>
+                <p x-show="charsetError" x-cloak class="mt-1 text-xs text-red-600 dark:text-red-400">{{ trans('hotspot.generate.char_set_required') }}</p>
+            </fieldset>
 
             <label class="flex items-start gap-2.5 cursor-pointer">
                 <input type="checkbox" id="password_same_as_username" name="password_same_as_username" value="1"

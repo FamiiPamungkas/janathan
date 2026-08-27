@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Services;
 
 use Fame1302\Janathan\Exceptions\RouterosCommandException;
+use RuntimeException;
 use Throwable;
 
 readonly class HotspotService
@@ -237,13 +238,13 @@ readonly class HotspotService
      * by random characters; each password is random characters. One router
      * connection is reused for the whole batch.
      *
-     * @param array{qty: int, profile: string, prefix: string, comment: string, character: string, name_length: int, password_length: int, password_same_as_username: bool} $values
+     * @param array{qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool} $values
      * @return array{created: int, failed: int, errors: string[], comment: string}
      * @throws RuntimeException When the router cannot be reached.
      */
     public function generateUsers(int $routerId, array $values): array
     {
-        $charset = $this->characterCharset($values['character']);
+        $charset = $this->characterCharset($values);
         $result = ['created' => 0, 'failed' => 0, 'errors' => []];
         $date = date('ymd');
         $mode = $values['password_same_as_username'] ? 'vc' : 'up';
@@ -288,16 +289,23 @@ readonly class HotspotService
     }
 
     /**
+     * @param array{char_lowercase: bool, char_uppercase: bool, char_numbers: bool} $values
      * @return non-empty-string
      */
-    private function characterCharset(string $character): string
+    private function characterCharset(array $values): string
     {
-        return match ($character) {
-            'uppercase' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-            'combined' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-            'alphanumeric' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-            default => 'abcdefghijklmnopqrstuvwxyz',
-        };
+        $charset = '';
+        if ($values['char_lowercase']) {
+            $charset .= 'abcdefghijklmnopqrstuvwxyz';
+        }
+        if ($values['char_uppercase']) {
+            $charset .= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        }
+        if ($values['char_numbers']) {
+            $charset .= '0123456789';
+        }
+
+        return $charset;
     }
 
     /**

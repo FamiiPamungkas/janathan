@@ -758,7 +758,7 @@ class HotspotController
     }
 
     /**
-     * @return array{qty: int, profile: string, prefix: string, comment: string, character: string, name_length: int, password_length: int, password_same_as_username: bool}
+     * @return array{qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool}
      */
     private function extractGenerateValues(mixed $body): array
     {
@@ -772,7 +772,9 @@ class HotspotController
             'profile' => trim((string)($body['profile'] ?? '')),
             'prefix' => trim((string)($body['prefix'] ?? '')),
             'comment' => trim((string)($body['comment'] ?? '')),
-            'character' => trim((string)($body['character'] ?? 'lowercase')),
+            'char_lowercase' => !empty($body['char_lowercase']),
+            'char_uppercase' => !empty($body['char_uppercase']),
+            'char_numbers' => !empty($body['char_numbers']),
             'name_length' => $nameLength < 1 ? 1 : $nameLength,
             'password_length' => $passwordLength < 1 ? 1 : $passwordLength,
             'password_same_as_username' => !empty($body['password_same_as_username']),
@@ -793,9 +795,8 @@ class HotspotController
             $errors['profile'] = 'Profile is required.';
         }
 
-        $characters = ['lowercase', 'uppercase', 'combined', 'alphanumeric'];
-        if (!in_array($values['character'], $characters, true)) {
-            $errors['character'] = 'Select a character set.';
+        if (!$values['char_lowercase'] && !$values['char_uppercase'] && !$values['char_numbers']) {
+            $errors['character'] = $this->translator->trans('hotspot.generate.char_set_required');
         }
 
         $lengths = [4, 6, 8, 10, 12, 16, 20, 24];
