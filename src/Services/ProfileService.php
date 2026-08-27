@@ -337,34 +337,30 @@ ROS;
 
         return <<<ROS
 # janathan: stamp expiry at first login
-:log info "janathan on-login: fired user=\$user";
 :local uid [/ip hotspot user find where name="\$user"];
-:log info "janathan on-login: uid=\$uid";
 :local currentComment [/ip hotspot user get \$uid comment];
-:log info "janathan on-login: comment='\$currentComment'";
 :if ([:typeof [:find \$currentComment "exp="]] = "nil") do={
 {$routine}
-  :log info "janathan on-login: y=\$year m=\$month d=\$day h=\$hour i=\$minute s=\$second";
   :local validityDays {$days};
   :local expiryDay (\$day + \$validityDays);
   :local daysInMonth 30;
-  :while (true) do={
+  :local overflow true;
+  :while (\$overflow) do={
     :if (\$month = 2) do={
       :if ((\$year mod 4) = 0 && ((\$year mod 100) != 0 || (\$year mod 400) = 0)) do={ :set daysInMonth 29; } else={ :set daysInMonth 28; };
     } else={
       :if (\$month = 4 || \$month = 6 || \$month = 9 || \$month = 11) do={ :set daysInMonth 30; } else={ :set daysInMonth 31; };
     };
-    :if (\$expiryDay <= \$daysInMonth) do={ :break; };
-    :set expiryDay (\$expiryDay - \$daysInMonth);
-    :set month (\$month + 1);
-    :if (\$month > 12) do={ :set month 1; :set year (\$year + 1); };
+    :if (\$expiryDay <= \$daysInMonth) do={
+        :set overflow false;
+    } else={
+        :set expiryDay (\$expiryDay - \$daysInMonth);
+        :set month (\$month + 1);
+        :if (\$month > 12) do={ :set month 1; :set year (\$year + 1); };
+    };
   };
   :local expiryText (\$year . "-" . [:pick [:tostr (100 + \$month)] 1 3] . "-" . [:pick [:tostr (100 + \$expiryDay)] 1 3] . " " . [:pick [:tostr (100 + \$hour)] 1 3] . ":" . [:pick [:tostr (100 + \$minute)] 1 3] . ":" . [:pick [:tostr (100 + \$second)] 1 3]);
-  :log info "janathan on-login: expiry=\$expiryText";
   /ip hotspot user set \$uid comment=(\$currentComment . " exp=" . \$expiryText);
-  :log info "janathan on-login: comment written";
-} else={
-  :log info "janathan on-login: exp= already present, skipped";
 };
 ROS;
     }
@@ -391,14 +387,17 @@ ROS;
         return <<<ROS
 # janathan: disable expired users of profile {$profileName}
 {$routine}
-:local nowStr (\$year . "-" . [:pick [:tostr (100 + \$month)] 1 3] . "-" . [:pick [:tostr (100 + \$day)] 1 3] . " " . [:pick [:tostr (100 + \$hour)] 1 3] . ":" . [:pick [:tostr (100 + \$minute)] 1 3] . ":" . [:pick [:tostr (100 + \$second)] 1 3]);
+:local nowDateNum ((\$year * 10000) + (\$month * 100) + \$day);
+:local nowTimeNum ((\$hour * 10000) + (\$minute * 100) + \$second);
 :foreach uid in=[/ip hotspot user find where profile="{$profileName}"] do={
   :local commentText [/ip hotspot user get \$uid comment];
   :local expPos [:find \$commentText "exp="];
   :if ([:typeof \$expPos] = "num") do={
     :local expValue [:pick \$commentText (\$expPos + 4) 9999];
     :local expDate [:pick \$expValue 0 19];
-    :if (\$expDate < \$nowStr) do={
+    :local expDateNum [:tonum ([:pick \$expDate 0 4] . [:pick \$expDate 5 7] . [:pick \$expDate 8 10])];
+    :local expTimeNum [:tonum ([:pick \$expDate 11 13] . [:pick \$expDate 14 16] . [:pick \$expDate 17 19])];
+    :if ((\$expDateNum < \$nowDateNum) || ((\$expDateNum = \$nowDateNum) && (\$expTimeNum < \$nowTimeNum))) do={
       /ip hotspot user set \$uid disabled=yes;
       :local userName [/ip hotspot user get \$uid name];
       :local activeIds [/ip hotspot active find where user="\$userName"];
