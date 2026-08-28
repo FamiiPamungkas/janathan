@@ -171,6 +171,11 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/active/print');
     }
 
+    public function getHotspotHosts(): array
+    {
+        return $this->hotspotQuery('/ip/hotspot/host/print');
+    }
+
     public function getHotspotUsers(): array
     {
         return $this->hotspotQuery('/ip/hotspot/user/print');
@@ -204,6 +209,12 @@ class RouterosClient
     public function removeActiveUser(string $id): void
     {
         $result = $this->writeQuery('/ip/hotspot/active/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
+    public function removeHotspotHost(string $id): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/host/remove', ['.id' => $id]);
         $this->assertNotTrap($result);
     }
 

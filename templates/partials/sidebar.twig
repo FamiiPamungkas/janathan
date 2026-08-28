@@ -3,6 +3,7 @@
 {% set hotspot_active = current_path starts with '/hotspot' %}
 {% set users_active = current_path starts with '/hotspot/users' and current_path != '/hotspot/users/generate' %}
 {% set active_active = current_path starts with '/hotspot/active' %}
+{% set hosts_active = current_path starts with '/hotspot/hosts' %}
 {% set generate_active = current_path starts with '/hotspot/users/generate' %}
 {% set profiles_active = current_path starts with '/hotspot/profiles' %}
 {% set routers_active = current_path starts with '/routers' %}
@@ -78,6 +79,12 @@
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if active_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-wifi-high flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Active Users</span>
+                    </a>
+
+                    <a href="{{ url_for('hotspot.hosts') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if hosts_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                        <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if hosts_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
+                        <i class="ph ph-desktop flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <span class="truncate">Hosts</span>
                     </a>
                 </div>
             </div>

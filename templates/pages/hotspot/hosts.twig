@@ -1,0 +1,261 @@
+{% extends "layout.twig" %}
+
+{% block title %}{{ trans('hotspot.hosts.title') }}{% endblock %}
+
+{% block content %}
+<div x-data="hostsPoller()" x-init="init()" class="flex flex-col gap-4">
+    <input type="hidden" x-ref="csrf" value="{{ csrf_token }}">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight">{{ trans('hotspot.hosts.heading') }}</h1>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="relative flex size-2">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" x-show="!error"></span>
+                        <span class="relative inline-flex size-2 rounded-full" :class="error ? 'bg-red-500' : 'bg-teal-500'"></span>
+                    </span>
+                    {{ router.name }}
+                </span>
+                <span class="mx-1.5 text-zinc-300 dark:text-zinc-700">·</span>
+                <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
+            </p>
+        </div>
+        <div class="flex w-fit items-center gap-2">
+            <span class="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline" x-show="updatedAt" x-text="lastUpdatedLabel"></span>
+            <button type="button" @click="refresh()"
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600"
+                :disabled="loading" :class="loading ? 'opacity-60' : ''">
+                <i class="ph ph-arrows-clockwise text-base" :class="loading ? 'animate-spin' : ''" aria-hidden="true"></i>
+                {{ trans('hotspot.hosts.refresh') }}
+            </button>
+        </div>
+    </div>
+
+    <div x-show="error" x-cloak class="mt-2 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+        <i class="ph ph-warning-circle mt-0.5 flex-none text-xl" aria-hidden="true"></i>
+        <p class="text-sm" x-text="error"></p>
+    </div>
+
+    {% if not hotspotAvailable %}
+    <div class="mt-2 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+        <i class="ph ph-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
+        <div>
+            <p class="text-sm font-semibold">{{ trans('hotspot.unavailable_title') }}</p>
+            <p class="mt-0.5 text-sm">{{ trans('hotspot.hosts.unavailable_body') }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty state -->
+    <div x-show="!error && hosts.length === 0" x-cloak class="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-700/50">
+            <i class="ph ph-desktop text-2xl text-zinc-400" aria-hidden="true"></i>
+        </div>
+        <h2 class="mt-4 text-base font-semibold">{{ trans('hotspot.hosts.empty_title') }}</h2>
+        <p class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.empty_text') }}</p>
+    </div>
+
+    <!-- Mobile: stacked cards -->
+    <div class="mt-6 grid grid-cols-1 gap-3 md:hidden" x-show="hosts.length > 0" x-cloak>
+        <template x-for="h in hosts" :key="h.id">
+            <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
+                        <i class="ph ph-desktop text-xl" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate font-semibold font-mono text-xs" x-text="h.mac || '—'"></p>
+                        <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-text="h.ip || '—'"></p>
+                    </div>
+<div class="flex items-center gap-1.5">
+                            <template x-if="h.bypassed">
+                                <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{{ trans('hotspot.hosts.bypassed') }}</span>
+                            </template>
+                            <template x-if="!h.bypassed && h.authorized">
+                                <span class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ trans('hotspot.hosts.authorized') }}</span>
+                            </template>
+                            <template x-if="!h.bypassed && !h.authorized">
+                                <span class="inline-flex items-center rounded-full bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300">{{ trans('hotspot.hosts.unauthorized') }}</span>
+                            </template>
+                        </div>
+                        <button type="button" title="{{ trans('hotspot.remove') }}" @click="remove(h.id, h.mac)"
+                        class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10"
+                        :disabled="removing[h.id]" x-show="!removing[h.id]">
+                        <i class="ph ph-x-circle text-xl" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm">
+                    <template x-if="h.ip">
+                        <div class="flex items-center justify-between gap-4">
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_ip') }}</dt>
+                            <dd class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="h.ip"></dd>
+                        </div>
+                    </template>
+                    <template x-if="h.to_address && h.to_address !== h.ip">
+                        <div class="flex items-center justify-between gap-4">
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">To Address</dt>
+                            <dd class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="h.to_address"></dd>
+                        </div>
+                    </template>
+                    <template x-if="h.server">
+                        <div class="flex items-center justify-between gap-4">
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_server') }}</dt>
+                            <dd class="truncate text-xs text-zinc-600 dark:text-zinc-400" x-text="h.server"></dd>
+                        </div>
+                    </template>
+                    <template x-if="h.comment">
+                        <div class="flex items-center justify-between gap-4">
+                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_comment') }}</dt>
+                            <dd class="truncate text-xs text-zinc-600 dark:text-zinc-400" x-text="h.comment"></dd>
+                        </div>
+                    </template>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_uptime') }}</dt>
+                        <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.uptime || '—'"></dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_idle') }}</dt>
+                        <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.idle_time || '—'"></dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_bytes_in') }}</dt>
+                        <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.bytes_in"></dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.hosts.col_bytes_out') }}</dt>
+                        <dd class="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.bytes_out"></dd>
+                    </div>
+                </dl>
+            </div>
+        </template>
+    </div>
+
+    <!-- Desktop: table -->
+    <div class="mt-6 hidden overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 md:block" x-show="hosts.length > 0" x-cloak>
+        <div class="overflow-x-auto">
+            <table class="min-w-full align-middle text-sm">
+                <thead>
+                    <tr class="border-b border-zinc-100 text-start dark:border-zinc-700/50">
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_mac') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_ip') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_server') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_status') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_comment') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_uptime') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_bytes_in') }}</th>
+                        <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_bytes_out') }}</th>
+                        <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.hosts.th_actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="h in hosts" :key="h.id">
+                        <tr class="border-t border-zinc-100 even:bg-secondary-50 dark:border-zinc-700/50 dark:even:bg-secondary-900/50">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="font-mono text-xs" x-text="h.mac || '—'"></span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400" x-text="h.ip || '—'"></td>
+                            <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400" x-text="h.server || '—'"></td>
+                            <td class="px-4 py-3">
+                                <template x-if="h.bypassed">
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{{ trans('hotspot.hosts.bypassed') }}</span>
+                                </template>
+                                <template x-if="!h.bypassed && h.authorized">
+                                    <span class="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ trans('hotspot.hosts.authorized') }}</span>
+                                </template>
+                                <template x-if="!h.bypassed && !h.authorized">
+                                    <span class="inline-flex items-center rounded-full bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300">{{ trans('hotspot.hosts.unauthorized') }}</span>
+                                </template>
+                            </td>
+                            <td class="max-w-[12rem] truncate px-4 py-3 text-zinc-600 dark:text-zinc-400" x-text="h.comment || '—'"></td>
+                            <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.uptime || '—'"></td>
+                            <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.bytes_in"></td>
+                            <td class="px-4 py-3 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400" x-text="h.bytes_out"></td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end">
+                                    <button type="button" title="{{ trans('hotspot.remove') }}" @click="remove(h.id, h.mac)"
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10"
+                                        :disabled="removing[h.id]" x-show="!removing[h.id]">
+                                        <i class="ph ph-x-circle text-xl" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function hostsPoller() {
+        return {
+            hosts: [],
+            error: '',
+            updatedAt: '',
+            loading: false,
+            removing: {},
+            interval: 5000,
+            timer: null,
+            init() {
+                this.refresh();
+                this.timer = setInterval(() => this.refresh(), this.interval);
+            },
+            get lastUpdatedLabel() {
+                if (!this.updatedAt) return '';
+                try {
+                    return new Date(this.updatedAt).toLocaleTimeString();
+                } catch (e) {
+                    return '';
+                }
+            },
+            async refresh() {
+                this.loading = true;
+                try {
+                    const res = await fetch('{{ url_for('hotspot.hosts.data')|e('js') }}');
+                    const data = await res.json();
+                    if (data.error) {
+                        this.error = data.error;
+                    } else {
+                        this.error = '';
+                        this.hosts = data.hosts || [];
+                    }
+                    this.updatedAt = data.updatedAt || '';
+                } catch (e) {
+                    this.error = e.message || '{{ trans('hotspot.hosts.flash.reach_error')|e('js') }}';
+                } finally {
+                    this.loading = false;
+                }
+            },
+            async remove(id, name) {
+                if (!window.confirm('{{ trans('hotspot.hosts.remove_confirm')|e('js') }}'.replace('{name}', name))) {
+                    return;
+                }
+                this.removing[id] = true;
+                try {
+                    const token = this.$refs.csrf ? this.$refs.csrf.value : '';
+                    const url = '{{ url_for('hotspot.hosts.remove', {id: '__ID__'})|e('js') }}'.replace('__ID__', encodeURIComponent(id));
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'csrf_token=' + encodeURIComponent(token)
+                    });
+                    if (res.ok) {
+                        this.refresh();
+                    } else {
+                        this.error = '{{ trans('hotspot.hosts.flash.reach_error')|e('js') }}';
+                    }
+                } catch (e) {
+                    this.error = e.message || '{{ trans('hotspot.hosts.flash.reach_error')|e('js') }}';
+                } finally {
+                    this.removing[id] = false;
+                }
+            }
+        };
+    }
+</script>
+{% endblock %}

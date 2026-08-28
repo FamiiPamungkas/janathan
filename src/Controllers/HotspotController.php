@@ -135,6 +135,72 @@ class HotspotController
         return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
 
+    public function hosts(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $data = $this->hotspot->getHosts((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.hosts');
+        }
+
+        $html = $this->twig->render('pages/hotspot/hosts.twig', $data);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    public function removeHost(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $this->hotspot->removeHost((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.hosts');
+        }
+
+        $this->flash->add('success', $this->translator->trans('hotspot.hosts.flash.removed'));
+
+        return $this->redirect($response, $request, 'hotspot.hosts');
+    }
+
+    public function hostsData(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $data = $this->hotspot->getHosts((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            $payload = [
+                'error' => $e->getMessage(),
+                'hosts' => [],
+                'updatedAt' => date('c'),
+            ];
+            $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+            return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus(200);
+        }
+
+        $payload = [
+            'error' => null,
+            'hosts' => $data['hosts'],
+            'updatedAt' => date('c'),
+        ];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
     public function printUser(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

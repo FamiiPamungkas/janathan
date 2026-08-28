@@ -46,6 +46,7 @@ $queries = [
     'resource' => static fn ($c) => $c->getSystemResource(),
     'board'    => static fn ($c) => $c->getRouterBoard(),
     'active'   => static fn ($c) => $c->getActiveUsers(),
+    'hosts'    => static fn ($c) => $c->getHotspotHosts(),
     'identity' => static fn ($c) => $c->getIdentity(),
     'logs'     => static fn ($c) => $c->getHotspotLogs(),
 ];

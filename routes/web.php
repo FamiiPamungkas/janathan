@@ -40,6 +40,9 @@ return function (App $app): void {
             $app->get('/active', HotspotController::class . ':activeUsers')->setName('hotspot.active');
             $app->get('/active/data', HotspotController::class . ':activeData')->setName('hotspot.active.data');
             $app->post('/active/{id}/remove', HotspotController::class . ':removeActiveUser')->setName('hotspot.active.remove');
+            $app->get('/hosts', HotspotController::class . ':hosts')->setName('hotspot.hosts');
+            $app->get('/hosts/data', HotspotController::class . ':hostsData')->setName('hotspot.hosts.data');
+            $app->post('/hosts/{id}/remove', HotspotController::class . ':removeHost')->setName('hotspot.hosts.remove');
             $app->get('/users/create', HotspotController::class . ':showCreateUser')->setName('hotspot.users.create');
             $app->post('/users', HotspotController::class . ':createUser')->setName('hotspot.users.store');
             $app->get('/users/{id}/edit', HotspotController::class . ':showEditUser')->setName('hotspot.users.edit');

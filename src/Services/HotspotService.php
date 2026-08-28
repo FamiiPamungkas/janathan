@@ -791,4 +791,57 @@ readonly class HotspotService
             fn(RouterosClient $client) => $client->removeActiveUser($id)
         );
     }
+
+    public function getHosts(int $routerId): array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotHosts();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $hosts = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if (($row['mac-address'] ?? '') === '' && ($row['.id'] ?? '') === '') {
+                continue;
+            }
+            $hosts[] = [
+                'id' => $row['.id'] ?? '',
+                'mac' => $row['mac-address'] ?? '',
+                'ip' => $row['address'] ?? $row['ip'] ?? '',
+                'to_address' => $row['to-address'] ?? '',
+                'server' => $row['server'] ?? '',
+                'authorized' => $this->isYes($row['authorized'] ?? false),
+                'bypassed' => $this->isYes($row['bypassed'] ?? false),
+                'comment' => $row['comment'] ?? '',
+                'uptime' => $this->formatUptime((string)($row['uptime'] ?? '')),
+                'idle_time' => $this->formatUptime((string)($row['idle-time'] ?? '')),
+                'bytes_in' => $this->formatBytes((int)($row['bytes-in'] ?? 0)),
+                'bytes_out' => $this->formatBytes((int)($row['bytes-out'] ?? 0)),
+            ];
+        }
+
+        return [
+            'router' => $router,
+            'hosts' => $hosts,
+            'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    public function removeHost(int $routerId, string $id): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->removeHotspotHost($id)
+        );
+    }
 }
