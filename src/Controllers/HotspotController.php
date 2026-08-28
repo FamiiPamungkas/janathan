@@ -238,6 +238,250 @@ class HotspotController
         return $this->redirect($response, $request, 'hotspot.cookies');
     }
 
+    public function ipBindings(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $data = $this->hotspot->getIpBindings((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.ip_bindings');
+        }
+
+        $html = $this->twig->render('pages/hotspot/ip_bindings.twig', $data);
+        $response->getBody()->write($html);
+
+        return $response;
+    }
+
+    public function ipBindingsData(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $data = $this->hotspot->getIpBindings((int)$_SESSION['router_id']);
+        } catch (\Throwable $e) {
+            $payload = [
+                'error' => $e->getMessage(),
+                'bindings' => [],
+                'updatedAt' => date('c'),
+            ];
+            $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+            return $response->withHeader('Content-Type', 'application/json; charset=utf-8')->withStatus(200);
+        }
+
+        $payload = [
+            'error' => null,
+            'bindings' => $data['bindings'],
+            'updatedAt' => date('c'),
+        ];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    public function showCreateIpBinding(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        return $this->renderIpBindingForm($request, $response, null, []);
+    }
+
+    public function createIpBinding(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $values = $this->extractIpBindingValues($request->getParsedBody());
+        $errors = $this->validateIpBinding($values);
+
+        if ($errors !== []) {
+            return $this->renderIpBindingForm($request, $response, null, $errors, $values);
+        }
+
+        try {
+            $this->hotspot->createIpBinding((int)$_SESSION['router_id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapIpBindingRouterError($e->getMessage());
+
+            return $this->renderIpBindingForm($request, $response, null, $fieldErrors + $errors, $values, $banner);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.ip_bindings');
+        }
+
+        $this->flash->add('success', $this->translator->trans('hotspot.ip_bindings.flash.created'));
+
+        return $this->redirect($response, $request, 'hotspot.ip_bindings');
+    }
+
+    public function showEditIpBinding(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $binding = $this->hotspot->getIpBinding((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            return $this->renderUnreachable($request, $response, $e, 'hotspot.ip_bindings');
+        }
+
+        if ($binding === null) {
+            $this->flash->add('error', $this->translator->trans('hotspot.ip_bindings.flash.not_found'));
+
+            return $this->redirect($response, $request, 'hotspot.ip_bindings');
+        }
+
+        return $this->renderIpBindingForm($request, $response, $binding, []);
+    }
+
+    public function updateIpBinding(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $values = $this->extractIpBindingValues($request->getParsedBody());
+        $errors = $this->validateIpBinding($values, true);
+
+        if ($errors !== []) {
+            $values['id'] = $args['id'];
+
+            return $this->renderIpBindingForm($request, $response, $values, $errors, $values);
+        }
+
+        try {
+            $this->hotspot->updateIpBinding((int)$_SESSION['router_id'], $args['id'], $values);
+        } catch (RouterosCommandException $e) {
+            [$banner, $fieldErrors] = $this->mapIpBindingRouterError($e->getMessage());
+            $values['id'] = $args['id'];
+
+            return $this->renderIpBindingForm($request, $response, $values, $fieldErrors + $errors, $values, $banner);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.ip_bindings');
+        }
+
+        $this->flash->add('success', $this->translator->trans('hotspot.ip_bindings.flash.updated'));
+
+        return $this->redirect($response, $request, 'hotspot.ip_bindings');
+    }
+
+    public function removeIpBinding(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $this->hotspot->removeIpBinding((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirect($response, $request, 'hotspot.ip_bindings');
+        }
+
+        $this->flash->add('success', $this->translator->trans('hotspot.ip_bindings.flash.removed'));
+
+        return $this->redirect($response, $request, 'hotspot.ip_bindings');
+    }
+
+    /**
+     * @return array{address: string, mac: string, type: string, comment: string, disabled: bool}
+     */
+    private function extractIpBindingValues(mixed $body): array
+    {
+        $body = is_array($body) ? $body : [];
+
+        return [
+            'address' => trim((string)($body['address'] ?? '')),
+            'mac' => trim((string)($body['mac'] ?? '')),
+            'type' => $this->normalizeBindingType($body['type'] ?? ''),
+            'comment' => trim((string)($body['comment'] ?? '')),
+            'disabled' => !empty($body['disabled']),
+        ];
+    }
+
+    private function normalizeBindingType(string $type): string
+    {
+        return in_array($type, ['regular', 'bypassed', 'blocked'], true) ? $type : 'regular';
+    }
+
+    private function validateIpBinding(array $values, bool $isEdit = false): array
+    {
+        $errors = [];
+
+        if ($values['address'] === '' && $values['mac'] === '') {
+            $errors['address'] = $this->translator->trans('hotspot.ip_bindings.address_or_mac_required');
+        }
+
+        if (mb_strlen($values['comment']) > 4096) {
+            $errors['comment'] = $this->translator->trans('hotspot.ip_bindings.comment_too_long');
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @return array{0: string|null, 1: array<string, string>}
+     */
+    private function mapIpBindingRouterError(string $message): array
+    {
+        $messageLower = strtolower($message);
+
+        if (str_contains($messageLower, 'invalid') && str_contains($messageLower, 'mac')) {
+            return [
+                $message,
+                ['mac' => $message],
+            ];
+        }
+
+        if (str_contains($messageLower, 'invalid') && (str_contains($messageLower, 'ip') || str_contains($messageLower, 'address'))) {
+            return [
+                $message,
+                ['address' => $message],
+            ];
+        }
+
+        return [$message, []];
+    }
+
+    private function renderIpBindingForm(
+        Request  $request,
+        Response $response,
+        ?array   $binding,
+        array    $errors,
+        array    $values = [],
+        ?string  $errorBanner = null
+    ): Response
+    {
+        $isEdit = $binding !== null;
+
+        $html = $this->twig->render('pages/hotspot/ip_binding_form.twig', [
+            'binding' => $binding,
+            'errors' => $errors,
+            'values' => $values,
+            'errorBanner' => $errorBanner,
+            'formAction' => $isEdit ? 'hotspot.ip_bindings.update' : 'hotspot.ip_bindings.store',
+            'formParams' => $isEdit ? ['id' => $binding['id']] : [],
+            'isEdit' => $isEdit,
+        ]);
+        $response->getBody()->write($html);
+
+        return $response->withStatus($errors !== [] ? 422 : 200);
+    }
+
     public function hostsData(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

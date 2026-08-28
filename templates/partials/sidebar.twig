@@ -5,6 +5,7 @@
 {% set active_active = current_path starts with '/hotspot/active' %}
 {% set hosts_active = current_path starts with '/hotspot/hosts' %}
 {% set cookies_active = current_path starts with '/hotspot/cookies' %}
+{% set ip_bindings_active = current_path starts with '/hotspot/ip-bindings' %}
 {% set generate_active = current_path starts with '/hotspot/users/generate' %}
 {% set profiles_active = current_path starts with '/hotspot/profiles' %}
 {% set routers_active = current_path starts with '/routers' %}
@@ -92,6 +93,12 @@
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if cookies_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-cookie flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Cookies</span>
+                    </a>
+
+                    <a href="{{ url_for('hotspot.ip_bindings') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if ip_bindings_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                        <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if ip_bindings_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
+                        <i class="ph ph-link-simple flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
+                        <span class="truncate">IP Bindings</span>
                     </a>
                 </div>
             </div>

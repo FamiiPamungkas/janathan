@@ -48,6 +48,14 @@ $app->get('/hosts', HotspotController::class . ':hosts')->setName('hotspot.hosts
             $app->get('/cookies/data', HotspotController::class . ':cookiesData')->setName('hotspot.cookies.data');
             $app->post('/cookies/{id}/remove', HotspotController::class . ':removeCookie')->setName('hotspot.cookies.remove');
 
+            $app->get('/ip-bindings', HotspotController::class . ':ipBindings')->setName('hotspot.ip_bindings');
+            $app->get('/ip-bindings/data', HotspotController::class . ':ipBindingsData')->setName('hotspot.ip_bindings.data');
+            $app->get('/ip-bindings/create', HotspotController::class . ':showCreateIpBinding')->setName('hotspot.ip_bindings.create');
+            $app->post('/ip-bindings', HotspotController::class . ':createIpBinding')->setName('hotspot.ip_bindings.store');
+            $app->get('/ip-bindings/{id}/edit', HotspotController::class . ':showEditIpBinding')->setName('hotspot.ip_bindings.edit');
+            $app->post('/ip-bindings/{id}/edit', HotspotController::class . ':updateIpBinding')->setName('hotspot.ip_bindings.update');
+            $app->post('/ip-bindings/{id}/remove', HotspotController::class . ':removeIpBinding')->setName('hotspot.ip_bindings.remove');
+
             $app->get('/users/create', HotspotController::class . ':showCreateUser')->setName('hotspot.users.create');
             $app->post('/users', HotspotController::class . ':createUser')->setName('hotspot.users.store');
             $app->get('/users/{id}/edit', HotspotController::class . ':showEditUser')->setName('hotspot.users.edit');

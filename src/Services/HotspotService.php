@@ -890,4 +890,151 @@ readonly class HotspotService
             fn(RouterosClient $client) => $client->removeHotspotCookie($id)
         );
     }
+
+    /**
+     * Fetch the list of hotspot IP bindings.
+     *
+     * @return array{router: array, bindings: list<array{id: string, address: string, mac: string, type: string, comment: string, disabled: bool}>, hotspotAvailable: bool}
+     */
+    public function getIpBindings(int $routerId): array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotIpBindings();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $bindings = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if (($row['address'] ?? '') === '' && ($row['mac-address'] ?? '') === '' && ($row['.id'] ?? '') === '') {
+                continue;
+            }
+            $type = $row['type'] ?? 'regular';
+            if (!in_array($type, ['regular', 'bypassed', 'blocked'], true)) {
+                $type = 'regular';
+            }
+            $bindings[] = [
+                'id' => $row['.id'] ?? '',
+                'address' => $row['address'] ?? '',
+                'mac' => $row['mac-address'] ?? '',
+                'type' => $type,
+                'comment' => $row['comment'] ?? '',
+                'disabled' => $this->isYes($row['disabled'] ?? null),
+            ];
+        }
+
+        return [
+            'router' => $router,
+            'bindings' => $bindings,
+            'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    /**
+     * Fetch a single IP binding.
+     *
+     * @return array{id: string, address: string, mac: string, type: string, comment: string, disabled: bool}|null
+     */
+    public function getIpBinding(int $routerId, string $id): ?array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $row = $client->getHotspotIpBinding($id);
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        if ($row === null) {
+            return null;
+        }
+
+        $type = $row['type'] ?? 'regular';
+        if (!in_array($type, ['regular', 'bypassed', 'blocked'], true)) {
+            $type = 'regular';
+        }
+
+        return [
+            'id' => $row['.id'] ?? '',
+            'address' => $row['address'] ?? '',
+            'mac' => $row['mac-address'] ?? '',
+            'type' => $type,
+            'comment' => $row['comment'] ?? '',
+            'disabled' => $this->isYes($row['disabled'] ?? null),
+        ];
+    }
+
+    /**
+     * Create a new IP binding.
+     *
+     * @param array{address: string, mac: string, type: string, comment: string, disabled: bool} $values
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
+     */
+    public function createIpBinding(int $routerId, array $values): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->addHotspotIpBinding($this->normalizeIpBindingFields($values))
+        );
+    }
+
+    /**
+     * Update an existing IP binding.
+     *
+     * @param array{address: string, mac: string, type: string, comment: string, disabled: bool} $values
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
+     */
+    public function updateIpBinding(int $routerId, string $id, array $values): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->setHotspotIpBinding($id, $this->normalizeIpBindingFields($values))
+        );
+    }
+
+    /**
+     * Remove an IP binding.
+     *
+     * @throws RuntimeException When the router cannot be reached or rejects the command.
+     */
+    public function removeIpBinding(int $routerId, string $id): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->removeHotspotIpBinding($id)
+        );
+    }
+
+    /**
+     * Normalize IP binding fields for RouterOS API.
+     *
+     * @param array{address: string, mac: string, type: string, comment: string, disabled: bool} $values
+     * @return array<string, string>
+     */
+    private function normalizeIpBindingFields(array $values): array
+    {
+        $fields = [
+            'address' => $values['address'],
+            'mac-address' => $values['mac'],
+            'type' => $values['type'],
+            'comment' => $values['comment'] ?? '',
+            'disabled' => !empty($values['disabled']) ? 'yes' : 'no',
+        ];
+
+        return array_filter($fields, static fn($v) => $v !== '');
+    }
 }

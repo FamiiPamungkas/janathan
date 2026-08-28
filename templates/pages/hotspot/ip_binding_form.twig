@@ -1,0 +1,84 @@
+{% extends "layout.twig" %}
+
+{% block title %}{{ trans(isEdit ? 'hotspot.ip_binding_form.title_edit' : 'hotspot.ip_binding_form.title_add') }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-2xl">
+    <div>
+        <a href="{{ url_for('hotspot.ip_bindings') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
+            <i class="ph ph-arrow-left text-base" aria-hidden="true"></i>
+            {{ trans('hotspot.ip_binding_form.back') }}
+        </a>
+        <h1 class="mt-3 text-2xl font-bold tracking-tight">{{ trans(isEdit ? 'hotspot.ip_binding_form.edit_title' : 'hotspot.ip_binding_form.add_title') }}</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {{ trans(isEdit ? 'hotspot.ip_binding_form.edit_subtitle' : 'hotspot.ip_binding_form.add_subtitle') }}
+        </p>
+    </div>
+
+    <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        {% if errorBanner %}
+        <div class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+            <i class="ph ph-x-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
+            <span>{{ errorBanner }}</span>
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url_for(formAction, formParams) }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="address" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.ip_binding_form.address') }}</label>
+                    <input type="text" id="address" name="address" placeholder="{{ trans('hotspot.ip_binding_form.address_ph') }}"
+                        value="{{ values.address|default(binding.address|default('')) }}"
+                        class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.address %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    {% if errors.address %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.address }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label for="mac" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.ip_binding_form.mac') }}</label>
+                    <input type="text" id="mac" name="mac" placeholder="{{ trans('hotspot.ip_binding_form.mac_ph') }}"
+                        value="{{ values.mac|default(binding.mac|default('')) }}"
+                        class="block w-full rounded-lg border px-3 py-2 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.mac %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    {% if errors.mac %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.mac }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label for="type" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.ip_binding_form.type') }}</label>
+                <select id="type" name="type"
+                    class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.type %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    <option value="regular" {% if (values.type|default(binding.type|default('regular'))) == 'regular' %}selected{% endif %}>{{ trans('hotspot.ip_binding_form.type_regular') }}</option>
+                    <option value="bypassed" {% if (values.type|default(binding.type|default('regular'))) == 'bypassed' %}selected{% endif %}>{{ trans('hotspot.ip_binding_form.type_bypassed') }}</option>
+                    <option value="blocked" {% if (values.type|default(binding.type|default('regular'))) == 'blocked' %}selected{% endif %}>{{ trans('hotspot.ip_binding_form.type_blocked') }}</option>
+                </select>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.ip_binding_form.type_help') }}</p>
+                {% if errors.type %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.type }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label for="comment" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.ip_binding_form.comment') }}</label>
+                <textarea id="comment" name="comment" rows="3" placeholder="{{ trans('hotspot.ip_binding_form.comment_ph') }}"
+                    class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.comment %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">{{ values.comment|default(binding.comment|default('')) }}</textarea>
+                {% if errors.comment %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.comment }}</p>{% endif %}
+            </div>
+
+            <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" id="disabled" name="disabled" value="1"
+                    {% if values.disabled|default(binding.disabled|default(false)) %}checked{% endif %}
+                    class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-500 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900">
+                <span>
+                    <span class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.ip_binding_form.disabled') }}</span>
+                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.ip_binding_form.disabled_help') }}</span>
+                </span>
+            </label>
+
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <a href="{{ url_for('hotspot.ip_bindings') }}" class="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">{{ trans('hotspot.cancel') }}</a>
+                <button type="submit" class="rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
+                    {{ trans(isEdit ? 'hotspot.save_changes' : 'hotspot.ip_binding_form.add') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

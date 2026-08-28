@@ -229,6 +229,36 @@ class RouterosClient
         $this->assertNotTrap($result);
     }
 
+    public function getHotspotIpBindings(): array
+    {
+        return $this->hotspotQuery('/ip/hotspot/ip-binding/print');
+    }
+
+    public function getHotspotIpBinding(string $id): ?array
+    {
+        $result = $this->hotspotQuery('/ip/hotspot/ip-binding/print', ['.id' => $id]);
+
+        return $result[0] ?? null;
+    }
+
+    public function addHotspotIpBinding(array $fields): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/ip-binding/add', $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function setHotspotIpBinding(string $id, array $fields): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/ip-binding/set', ['.id' => $id] + $fields);
+        $this->assertNotTrap($result);
+    }
+
+    public function removeHotspotIpBinding(string $id): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/ip-binding/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     public function getHotspotProfiles(): array
     {
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');
