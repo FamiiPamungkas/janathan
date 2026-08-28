@@ -218,6 +218,17 @@ class RouterosClient
         $this->assertNotTrap($result);
     }
 
+    public function getHotspotCookies(): array
+    {
+        return $this->hotspotQuery('/ip/hotspot/cookie/print');
+    }
+
+    public function removeHotspotCookie(string $id): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/cookie/remove', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     public function getHotspotProfiles(): array
     {
         return $this->hotspotQuery('/ip/hotspot/user/profile/print');

@@ -844,4 +844,50 @@ readonly class HotspotService
             fn(RouterosClient $client) => $client->removeHotspotHost($id)
         );
     }
+
+    public function getCookies(int $routerId): array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotCookies();
+            $hotspotAvailable = $client->isHotspotAvailable();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $cookies = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if (($row['mac-address'] ?? '') === '' && ($row['.id'] ?? '') === '') {
+                continue;
+            }
+            $cookies[] = [
+                'id' => $row['.id'] ?? '',
+                'user' => $row['user'] ?? '',
+                'mac' => $row['mac-address'] ?? '',
+                'domain' => $row['domain'] ?? '',
+                'expires_in' => $this->formatUptime((string)($row['expires-in'] ?? '')),
+            ];
+        }
+
+        return [
+            'router' => $router,
+            'cookies' => $cookies,
+            'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    public function removeCookie(int $routerId, string $id): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->removeHotspotCookie($id)
+        );
+    }
 }
