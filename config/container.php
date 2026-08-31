@@ -18,6 +18,8 @@ use Slim\Factory\AppFactory;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
+$basePath = rtrim((string) ($_ENV['APP_BASE_PATH'] ?? ''), '/');
+
 return [
     'locales' => [
         'en' => 'English',
@@ -31,9 +33,10 @@ return [
         );
     },
 
-    App::class => function (ContainerInterface $container) {
+    App::class => function (ContainerInterface $container) use ($basePath) {
         AppFactory::setContainer($container);
         $app = AppFactory::create();
+        $app->setBasePath($basePath);
         $app->addErrorMiddleware(
             (bool) $_ENV['APP_DEBUG'],
             true,
@@ -128,7 +131,7 @@ return [
         $container->get(RouterRepository::class)
     ),
 
-    Environment::class => function (ContainerInterface $container) {
+    Environment::class => function (ContainerInterface $container) use ($basePath) {
         $loader = new FilesystemLoader(
             $_SERVER['TEMPLATE_DIR'] ?? $_ENV['TEMPLATE_DIR'] ?? __DIR__ . '/../templates'
         );
@@ -140,8 +143,8 @@ return [
         $app = $container->get(App::class);
 
         $twig->addGlobal('app_url', rtrim((string) ($_ENV['APP_URL'] ?? ''), '/'));
-        $twig->addFunction(new \Twig\TwigFunction('asset', function (string $path) {
-            return '/' . ltrim($path, '/');
+        $twig->addFunction(new \Twig\TwigFunction('asset', function (string $path) use ($basePath) {
+            return $basePath . '/' . ltrim($path, '/');
         }));
 
         $twig->addFunction(new \Twig\TwigFunction('base_path', function () use ($app) {

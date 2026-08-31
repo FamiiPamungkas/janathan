@@ -122,7 +122,7 @@ foreach ($profileMigrations as $column => $definition) {
 
 echo "Database ready at {$dbPath}\n";
 
-$username = $argv[1] ?? 'admin';
+$username = $argv[1] ?? 'janathan';
 
 $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
 $stmt->execute(['username' => $username]);

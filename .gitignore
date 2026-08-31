@@ -6,3 +6,5 @@
 /public/fonts/phosphor/
 /node_modules/
 /database/*.sqlite
+/dist/
+.apache-test

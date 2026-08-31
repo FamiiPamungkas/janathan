@@ -1,0 +1,15 @@
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route everything that is not a real file/directory through Slim.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Apache < 2.4 fallback when mod_rewrite is unavailable (e.g. some LiteSpeed setups).
+<IfModule !mod_rewrite.c>
+    FallbackResource index.php
+</IfModule>

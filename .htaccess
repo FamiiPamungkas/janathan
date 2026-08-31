@@ -1,0 +1,27 @@
+# Janathan sub-folder install
+#
+# This .htaccess lives at the project root and is active only when Apache
+# serves the folder directly (e.g. the app dropped into www/ or public_html/,
+# so it is reached at http://host/<app>/...). It maps every request through
+# the Slim front controller in public/ while still serving real files there.
+#
+# It is intentionally inert when the document root points straight at the
+# public/ folder (the recommended shared-hosting setup).
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Serve real files inside public/ as-is (e.g. /public/css/app.css).
+    RewriteRule ^public($|/) - [L]
+
+    # Map the top-level asset paths the app references back into public/.
+    RewriteRule ^css/(.*)$ public/css/$1 [L]
+    RewriteRule ^js/(.*)$ public/js/$1 [L]
+    RewriteRule ^fonts/(.*)$ public/fonts/$1 [L]
+    RewriteRule ^favicon\.svg$ public/favicon.svg [L]
+    RewriteRule ^apple-touch-icon\.png$ public/apple-touch-icon.png [L]
+
+    # Everything else goes through the Slim front controller.
+    RewriteRule ^ public/index.php [QSA,L]
+</IfModule>
