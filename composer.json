@@ -1,6 +1,7 @@
 {
     "name": "fame1302/janathan",
     "description": "Mikrotik Hotspot Management",
+    "license": "GPL-3.0-or-later",
     "autoload": {
         "psr-4": {
             "Fame1302\\Janathan\\": "src/"

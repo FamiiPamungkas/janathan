@@ -173,4 +173,9 @@ composer test   # if configured, otherwise: vendor/bin/phpunit
 
 ## License
 
-MIT (see author in `composer.json`).
+Licensed under the **GNU General Public License v3.0 (or later)** — see
+[LICENSE](LICENSE) for the full text. By contributing, you agree your
+contributions are licensed under the same terms.
+
+**Want to contribute?** See [CONTRIBUTING.md](CONTRIBUTING.md). Found a
+security issue? See [SECURITY.md](SECURITY.md).
