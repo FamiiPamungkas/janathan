@@ -155,10 +155,20 @@ return [
             return $app->getRouteCollector()->getRouteParser()->urlFor($name, $params);
         }));
 
-        $twig->addFunction(new \Twig\TwigFunction('path_info', function () {
+        $twig->addFunction(new \Twig\TwigFunction('path_info', function () use ($app) {
             $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+            $basePath = $app->getBasePath();
 
-            return $path;
+            if ($basePath !== '') {
+                if ($path === $basePath) {
+                    return '/';
+                }
+                if (str_starts_with($path, $basePath . '/')) {
+                    $path = substr($path, strlen($basePath));
+                }
+            }
+
+            return $path === '' ? '/' : $path;
         }));
 
         $twig->addFunction(new \Twig\TwigFunction('flash', function () use ($container) {
