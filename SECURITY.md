@@ -20,9 +20,11 @@ You can expect an acknowledgement within a few days and a timeline for the fix.
 
 ## Security notes for operators
 
-- **Router passwords** are AES-256-GCM encrypted at rest with `APP_KEY` and are
-  never rendered to templates or logged. **Never change `APP_KEY`** after routers
-  have been saved — stored passwords become undecryptable.
+- **Router passwords** are AES-256-GCM encrypted at rest and are
+  never rendered to templates or logged. The encryption key is auto-generated on
+  first run and stored in the `app_settings` table, so it travels with the
+  database and survives code re-deploys. **Do not delete the database** or
+  stored passwords become undecryptable.
 - **Never** expose folders containing `.env` or `database/` over HTTP. Point the
   document root at `public/`.
 - Keep PHP and Composer dependencies up to date (`composer update`, `npm audit`).

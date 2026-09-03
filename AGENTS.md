@@ -38,13 +38,12 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 /scripts           - copy-phosphor.mjs, generate-env.php, README-DEPLOY.md
 database/          - SQLite storage (gitignored)
 build-deploy.bat   - Windows production build script
-.env               - never commit (router IP, API port, credentials, APP_KEY)
+.env               - never commit (router IP, API port, credentials)
 ```
 
 ## Setup
 1. `composer install && npm install`
 2. Copy `.env.example` to `.env`. Set:
-   - `APP_KEY` — generate with `openssl rand -hex 32` (encrypts router passwords at rest; changing it later makes stored passwords undecryptable)
    - `APP_URL` — base URL of your dev server (e.g. `http://192.168.88.34:8080`)
 3. Create the SQLite database + first admin user: `php bin/init.php <username> [password]` (prompts for password if omitted). DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored).
 4. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
@@ -75,10 +74,10 @@ build-deploy.bat   - Windows production build script
 - **Custom exceptions:** `RouterosConnectionException` (timeout, refused, auth error) vs. `RouterosCommandException` (router rejected a command with `!trap`). Controllers catch `\Throwable` and route to `renderUnreachable()`.
 - **Flash messages:** `$this->flash->add('success'|'error', $message)` via `FlashService`, rendered in `layout.twig`.
 - All router credentials/config load from `.env` (use `vlucas/phpdotenv`) — never hardcode IP/user/pass.
-- **Security:** Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them. `APP_KEY` must never change after routers have been saved.
+- **Security:** Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them. The encryption key is auto-generated on first run and stored in the `app_settings` table — it travels with the database, so re-deploying the code bundle (even with a changed `.env`) does not break stored passwords. Do not delete the database or the key is lost.
 
 ## App Flow / Data Model
-- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY`), `hotspot_profiles`, `voucher_templates`.
+- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with an auto-generated key stored in `app_settings`), `hotspot_profiles`, `voucher_templates`, `app_settings` (key-value store holding the `encryption_key`).
 - Flow: log in (`/login`) → manage routers (`/routers`) → "Connect" validates the RouterOS connection and stores `router_id` in the session → dashboard (`/`) opens a fresh RouterOS connection per request using the selected router's decrypted credentials.
 - Session-based auth (`AuthMiddleware`) protects all routes except `/login`. Every POST carries a CSRF token (`CsrfMiddleware` + `csrf_token` Twig global).
 

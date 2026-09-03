@@ -73,6 +73,11 @@ $pdo->exec(
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
     SQL
 );
 
@@ -118,6 +123,30 @@ foreach ($profileMigrations as $column => $definition) {
     if (!in_array($column, $profileColumns, true)) {
         $pdo->exec("ALTER TABLE hotspot_profiles ADD COLUMN {$column} {$definition}");
     }
+}
+
+$settingsKey = $pdo->query("SELECT value FROM app_settings WHERE key = 'encryption_key'")->fetchColumn();
+
+if ($settingsKey === false) {
+    $envKey = $_ENV['APP_KEY'] ?? '';
+    $freshKey = bin2hex(random_bytes(32));
+
+    if ($envKey !== '') {
+        $reenc = new \Fame1302\Janathan\Services\CryptoService($freshKey);
+        $stmt = $pdo->prepare('SELECT id, password_enc FROM routers');
+        $stmt->execute();
+
+        while ($row = $stmt->fetch()) {
+            $old = new \Fame1302\Janathan\Services\CryptoService($envKey);
+            $decrypted = $old->decrypt($row['password_enc']);
+            $reencrypted = $reenc->encrypt($decrypted);
+            $upd = $pdo->prepare('UPDATE routers SET password_enc = :enc WHERE id = :id');
+            $upd->execute(['enc' => $reencrypted, 'id' => $row['id']]);
+        }
+    }
+
+    $ins = $pdo->prepare('INSERT OR IGNORE INTO app_settings (key, value) VALUES (:key, :value)');
+    $ins->execute(['key' => 'encryption_key', 'value' => $freshKey]);
 }
 
 echo "Database ready at {$dbPath}\n";

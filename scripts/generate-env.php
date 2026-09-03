@@ -59,9 +59,6 @@ foreach ($lines as $i => $line) {
         case 'APP_DEBUG':
             $lines[$i] = 'APP_DEBUG=false';
             break;
-        case 'APP_KEY':
-            $lines[$i] = 'APP_KEY=' . bin2hex(random_bytes(32));
-            break;
         case 'APP_BASE_PATH':
             $lines[$i] = 'APP_BASE_PATH=' . $basePath;
             break;
@@ -76,7 +73,7 @@ foreach ($lines as $i => $line) {
 file_put_contents($target, implode("\n", $lines) . "\n");
 
 printf(
-    "Wrote %s (APP_ENV=production, APP_DEBUG=false, APP_KEY set, APP_BASE_PATH=%s)\n",
+    "Wrote %s (APP_ENV=production, APP_DEBUG=false, APP_BASE_PATH=%s)\n",
     $target,
     $basePath === '' ? '(root)' : $basePath
 );

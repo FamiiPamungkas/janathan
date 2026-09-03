@@ -16,7 +16,7 @@ are not tolerated. This project aims to stay friendly and inclusive for everyone
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and configure `APP_KEY` (`openssl rand -hex 32`).
+2. Copy `.env.example` to `.env` and configure it.
 
 3. Create the SQLite DB and admin user:
 

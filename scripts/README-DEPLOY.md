@@ -1,6 +1,7 @@
 # Janathan » Deployment Guide (Shared Hosting)
 
-This package was produced by `build-deploy.bat` and is ready to upload.
+This package was produced by `build-deploy.bat` (Windows) or `build-deploy.sh`
+(Linux/macOS) and is ready to upload.
 Slim's front controller lives in `public/` and the Apache `.htaccess` there
 already routes all requests to it.
 
@@ -45,7 +46,6 @@ The same applies on Laragon: drop the package at `C:\laragon\www\janathan`
 The build script generates `.env` for you with:
 
 - `APP_ENV=production`, `APP_DEBUG=false`
-- a fresh random `APP_KEY` (used to encrypt stored router passwords)
 - `APP_BASE_PATH=/janathan` (empty if you built with `/base ""`)
 - `APP_URL` from the build's `/url` argument, or the default from the example
 
@@ -63,15 +63,20 @@ app reports a DB error, try `0755`/`0775` (or `0777` as a last resort).
 ## 5. Admin user — already created by the build
 
 The build initializes `database/janathan.sqlite` (all tables + the first admin)
-automatically. When you run `build-deploy.bat` it **prompts for the admin
-username and password** — pressing Enter accepts the defaults (`janathan` /
-`1234`) — so **log in and change the password immediately**.
+automatically. When you run the build script it **prompts for the admin username and
+password** — pressing Enter accepts the defaults (`janathan` / `1234`) — so
+**log in and change the password immediately**.
 
 To build without interactive prompts:
 
-```
-build-deploy.bat /init yourusername s3cret     rem explicit credentials
+```bat
+build-deploy.bat /init yourusername s3cret     rem explicit credentials (Windows)
 build-deploy.bat /no-prompt                    rem silent, uses janathan / 1234
+```
+
+```bash
+./build-deploy.sh --init yourusername s3cret   # explicit credentials (Linux/macOS)
+./build-deploy.sh --no-prompt                  # silent, uses janathan / 1234
 ```
 
 You can also add more admins later via cPanel **Terminal** / SSH:
@@ -82,11 +87,13 @@ php bin/init.php yourusername
 
 ## Re-deploying over an existing installation
 
-Every build mints a **fresh `APP_KEY` and a fresh empty database**. On a
-re-deploy that must keep existing data (saved routers, hotspot users), copy
-your current `.env` and the whole `database/` folder from the previous install
-over the new package instead of using the generated ones — changing `APP_KEY`
-would make all previously stored router passwords undecryptable.
+The encryption key is auto-generated on first run and stored in the
+`app_settings` table inside the SQLite database, so it travels with your data.
+
+On a re-deploy that must keep existing data (saved routers, hotspot users), copy
+your whole `database/` folder from the previous install over the new package —
+the database contains both the data and the key, so stored router passwords
+remain decrypted correctly across updates.
 
 ## Done
 

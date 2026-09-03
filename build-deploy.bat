@@ -7,7 +7,7 @@ rem ================================================================
 rem  Janathan - production build for shared hosting (Windows/Laragon)
 rem  Builds assets, installs production PHP deps, assembles a ready
 rem  deploy folder at dist\janathan\ including a generated .env
-rem  (fresh APP_KEY) and an initialized SQLite database with an admin.
+rem  and an initialized SQLite database with an admin.
 rem ================================================================
 rem  Options:
 rem    /base <path>       APP_BASE_PATH for the generated .env (default /janathan;
@@ -161,9 +161,9 @@ rem Writable dir where the SQLite DB will be created.
 md "%DIST%\database" 2>nul
 
 rem ----------------------------------------------------------------
-rem 4. Generate production .env (fresh APP_KEY, base path, URL)
+rem 4. Generate production .env (base path, URL)
 rem ----------------------------------------------------------------
-echo [4/5] Generating .env (APP_KEY minted, APP_BASE_PATH="%BASE_PATH%")...
+echo [4/5] Generating .env (APP_BASE_PATH="%BASE_PATH%")...
 call "%PHP_EXE%" "%ROOT%scripts\generate-env.php" "%DIST%\.env.example" "%DIST%\.env" "--base=%BASE_PATH%" "--url=%APP_URL%"
 if errorlevel 1 goto :fail
 
@@ -192,7 +192,7 @@ echo.
 echo Build finished successfully.
 echo.
 echo  Deploy package  : %DIST%
-echo  .env            : generated with a fresh APP_KEY (APP_BASE_PATH=%BASE_PATH%)
+echo  .env            : generated (APP_BASE_PATH=%BASE_PATH%)
 echo  Admin user      : %ADMIN_USER%  (password hidden; change it after first login)
 echo  Next steps      : upload it, make sure "database" stays writable, open the site.
 echo                    (full guide: README-DEPLOY.md in the package)

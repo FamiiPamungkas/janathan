@@ -123,7 +123,7 @@ return [
         'username_label' => 'Username',
         'ph_admin' => 'admin',
         'password_label' => 'Password',
-        'password_help' => 'Encrypted at rest with your APP_KEY.',
+        'password_help' => 'Encrypted at rest for security.',
         'ssl_label' => 'Use API-SSL',
         'ssl_help' => 'Encrypt the connection to the router (port 8729).',
         'check_connection' => 'Check connection',

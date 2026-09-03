@@ -123,7 +123,7 @@ return [
         'username_label' => 'Nama pengguna',
         'ph_admin' => 'admin',
         'password_label' => 'Kata sandi',
-        'password_help' => 'Dienkripsi saat disimpan menggunakan APP_KEY Anda.',
+        'password_help' => 'Dienkripsi saat disimpan untuk keamanan.',
         'ssl_label' => 'Gunakan API-SSL',
         'ssl_help' => 'Enkripsi koneksi ke router (port 8729).',
         'check_connection' => 'Periksa koneksi',

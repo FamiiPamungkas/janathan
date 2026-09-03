@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Services;
 
+use PDO;
+
 class CryptoService
 {
     private const CIPHER = 'aes-256-gcm';
@@ -13,10 +15,25 @@ class CryptoService
     public function __construct(string $appKey)
     {
         if ($appKey === '') {
-            throw new \RuntimeException('APP_KEY is not set. Generate one and add it to .env');
+            throw new \RuntimeException('Encryption key is not available.');
         }
 
         $this->key = hash('sha256', $appKey, true);
+    }
+
+    public static function fromPdo(PDO $pdo): self
+    {
+        $stmt = $pdo->prepare("SELECT value FROM app_settings WHERE key = 'encryption_key'");
+        $stmt->execute();
+        $key = $stmt->fetchColumn();
+
+        if ($key === false || $key === '') {
+            $key = bin2hex(random_bytes(32));
+            $pdo->prepare('INSERT OR IGNORE INTO app_settings (key, value) VALUES (\'encryption_key\', :value)')
+                ->execute(['value' => $key]);
+        }
+
+        return new self((string) $key);
     }
 
     public function encrypt(string $plaintext): string

@@ -10,7 +10,7 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
 - **Authentication** — single app-wide admin login (session-based), with CSRF
   protection on every POST request.
 - **Router management** — save multiple Mikrotik connections (credentials are
-  AES-256-GCM encrypted at rest with `APP_KEY`), connect/disconnect, and test
+  AES-256-GCM encrypted at rest), connect/disconnect, and test
   connectivity before use.
 - **Dashboard** — live router status, resource usage and system log, refreshed
   per request over a fresh RouterOS API connection.
@@ -65,8 +65,6 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
    cp .env.example .env
    ```
 
-   - `APP_KEY` — generate with `openssl rand -hex 32`. It encrypts router
-     passwords at rest — changing it later makes stored passwords undecryptable.
    - `APP_URL` — base URL of your dev server (e.g. `http://192.168.88.34:8080`).
    - `APP_BASE_PATH` — leave empty when the document root points straight at
      `public/`; set it (e.g. `/janathan`) for sub-folder installs.
@@ -106,8 +104,8 @@ build-deploy.bat /url https://example.com
 ```
 
 It assembles a production package at `dist\janathan/` (compiled assets,
-production-only Composer deps, a freshly minted `APP_KEY`, an initialized
-SQLite database with an admin user). Options: `/base <path>`, `/url <url>`,
+production-only Composer deps, an initialized SQLite database with an admin
+user). Options: `/base <path>`, `/url <url>`,
 `/init <user> <pw>`, `/no-prompt`, `/nopause`.
 
 Upload that folder, point your document root at its `public/` directory, and
@@ -115,9 +113,10 @@ ensure `database/` stays writable. The package also supports sub-folder
 installs via the included root `.htaccess`. See the full guide in
 `scripts/README-DEPLOY.md` (also shipped inside the package).
 
-> **Re-deploying:** every build mints a fresh `APP_KEY` and empty database. To
-> keep existing data, copy your previous `.env` and `database/` over the new
-> package — changing `APP_KEY` breaks all stored router passwords.
+> **Re-deploying:** keep your existing `database/` folder when updating. The
+> encryption key lives in the `app_settings` table alongside your data, so a
+> fresh code bundle works with existing router passwords as long as the
+> database is preserved.
 
 ## Configuration
 
@@ -128,7 +127,6 @@ All configuration comes from `.env`:
 | `APP_ENV` | `development` / `production` |
 | `APP_DEBUG` | Show/hide error details (`true` / `false`) |
 | `APP_NAME` | App display name |
-| `APP_KEY` | Hex key (32 bytes) for AES-GCM encryption of router passwords |
 | `DB_PATH` | SQLite file path, relative to project root |
 | `APP_URL` | Base URL of the dev server or production site |
 | `APP_BASE_PATH` | Sub-path the app is mounted under (empty for docroot-at-`public/`) |
@@ -163,12 +161,13 @@ composer test   # if configured, otherwise: vendor/bin/phpunit
 
 ## Security Notes
 
-- Router passwords are encrypted with AES-256-GCM using `APP_KEY` and are
+- Router passwords are encrypted with AES-256-GCM and are
   never rendered to templates or logged. Only `RouterRepository::getCredentials()`
   decrypts them. Treat any credential logging in the codebase as dev-only state.
 - Every POST requires a CSRF token (`CsrfMiddleware`).
-- `APP_KEY` must never change after routers have been saved — stored passwords
-  become undecryptable.
+- The encryption key is auto-generated on first run and stored in the
+  `app_settings` table, so it travels with the database. Do not delete the
+  database or stored passwords become undecryptable.
 - Never expose folders containing `.env` or `database/` over HTTP.
 
 ## License
