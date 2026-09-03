@@ -4,6 +4,8 @@ FROM php:8.2-fpm-bookworm
 # All other needed extensions (pdo_sqlite, exif, pcntl, bcmath) are built into PHP 8.2 core
 # RouterOS API uses PHP sockets (ext-sockets), not curl
 RUN apt-get update && apt-get install -y \
+    zip \
+    unzip \
     libonig-dev \
     libsqlite3-dev \
     && docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath sockets \
