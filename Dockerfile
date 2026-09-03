@@ -5,6 +5,7 @@ FROM php:8.2-fpm-bookworm
 # RouterOS API uses PHP sockets (ext-sockets), not curl
 RUN apt-get update && apt-get install -y \
     libonig-dev \
+    libsqlite3-dev \
     && docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath \
     && rm -rf /var/lib/apt/lists/*
 
