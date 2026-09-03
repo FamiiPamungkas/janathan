@@ -6,7 +6,7 @@ FROM php:8.2-fpm-bookworm
 RUN apt-get update && apt-get install -y \
     libonig-dev \
     libsqlite3-dev \
-    && docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath \
+    && docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath sockets \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
