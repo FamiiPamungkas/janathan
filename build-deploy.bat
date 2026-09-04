@@ -6,13 +6,11 @@ set "DIST=%ROOT%dist\janathan"
 rem ================================================================
 rem  Janathan - production build for shared hosting (Windows/Laragon)
 rem  Builds assets, installs production PHP deps, assembles a ready
-rem  deploy folder at dist\janathan\ including a generated .env
-rem  (fresh APP_KEY) and an initialized SQLite database with an admin.
+rem  deploy folder at dist\janathan\ including an initialized SQLite
+rem  database with an admin and APP_KEY. config/app.php ships as-is
+rem  (it is a committed source file - edit it directly if needed).
 rem ================================================================
 rem  Options:
-rem    /base <path>       APP_BASE_PATH for the generated .env (default /janathan;
-rem                       pass "" to deploy with docroot straight at public/)
-rem    /url  <url>        APP_URL, e.g. https://example.com (optional)
 rem    /init <user> <pw>  admin credentials, prompts skipped (default janathan / 1234)
 rem    /no-prompt         don't prompt for admin credentials, use defaults
 rem    /nopause           skip the final confirmation prompt
@@ -26,8 +24,6 @@ if defined LARAGON (set "LARAGON_ROOT=%LARAGON%") else (set "LARAGON_ROOT=C:\lar
 set "NOPAUSE="
 set "NOPROMPT="
 set "INIT_GIVEN="
-set "BASE_PATH=/janathan"
-set "APP_URL="
 set "ADMIN_USER=janathan"
 set "ADMIN_PASS=1234"
 
@@ -35,8 +31,6 @@ set "ADMIN_PASS=1234"
 if "%~1"=="" goto :args_done
 if /i "%~1"=="/nopause" ( set "NOPAUSE=1" & shift & goto :parse_args )
 if /i "%~1"=="/no-prompt" ( set "NOPROMPT=1" & shift & goto :parse_args )
-if /i "%~1"=="/base"    ( set "BASE_PATH=%~2" & shift & shift & goto :parse_args )
-if /i "%~1"=="/url"     ( set "APP_URL=%~2"   & shift & shift & goto :parse_args )
 if /i "%~1"=="/init"    (
     set "INIT_GIVEN=1"
     set "ADMIN_USER=%~2"
@@ -72,7 +66,7 @@ echo.
 rem ----------------------------------------------------------------
 rem 0. Locate the toolchain
 rem ----------------------------------------------------------------
-echo [0/5] Locating PHP, Node and Composer...
+echo [0/4] Locating PHP, Node and Composer...
 
 set "PHP_EXE="
 if exist "%LARAGON_ROOT%\bin\php" (
@@ -117,26 +111,26 @@ if not exist "%ROOT%node_modules\.bin\tailwindcss.cmd" goto :deps_missing
 goto :deps_ok
 
 :deps_missing
-echo [1/5] Frontend dependencies missing for Windows - running npm ci...
+echo [1/4] Frontend dependencies missing for Windows - running npm ci...
 call "%NPM_CMD%" ci
 if errorlevel 1 goto :fail
 
 :deps_ok
-echo [1/5] Building frontend assets...
+echo [1/4] Building frontend assets...
 call "%NPM_CMD%" run build
 if errorlevel 1 goto :fail
 
 rem ----------------------------------------------------------------
 rem 2. Backend dependencies (production only)
 rem ----------------------------------------------------------------
-echo [2/5] Installing production dependencies...
+echo [2/4] Installing production dependencies...
 call %COMPOSER_RUN% install --no-dev --no-interaction --prefer-dist --optimize-autoloader --classmap-authoritative
 if errorlevel 1 goto :fail
 
 rem ----------------------------------------------------------------
 rem 3. Assemble the deploy package at dist\janathan\
 rem ----------------------------------------------------------------
-echo [3/5] Assembling deploy package at %DIST%...
+echo [3/4] Assembling deploy package at %DIST%...
 if exist "%DIST%" rmdir /s /q "%DIST%"
 md "%DIST%" 2>nul
 
@@ -153,7 +147,6 @@ del /q "%DIST%\public\js\index.js" 2>nul
 
 copy /y "%ROOT%composer.json"      "%DIST%\composer.json"      >nul
 copy /y "%ROOT%composer.lock"      "%DIST%\composer.lock"      >nul
-copy /y "%ROOT%.env.example"       "%DIST%\.env.example"       >nul
 copy /y "%ROOT%.htaccess"          "%DIST%\.htaccess"          >nul
 copy /y "%ROOT%scripts\README-DEPLOY.md" "%DIST%\README-DEPLOY.md" >nul
 
@@ -161,16 +154,9 @@ rem Writable dir where the SQLite DB will be created.
 md "%DIST%\database" 2>nul
 
 rem ----------------------------------------------------------------
-rem 4. Generate production .env (fresh APP_KEY, base path, URL)
+rem 4. Initialize database + admin user
 rem ----------------------------------------------------------------
-echo [4/5] Generating .env (APP_KEY minted, APP_BASE_PATH="%BASE_PATH%")...
-call "%PHP_EXE%" "%ROOT%scripts\generate-env.php" "%DIST%\.env.example" "%DIST%\.env" "--base=%BASE_PATH%" "--url=%APP_URL%"
-if errorlevel 1 goto :fail
-
-rem ----------------------------------------------------------------
-rem 5. Initialize database + admin user
-rem ----------------------------------------------------------------
-echo [5/5] Initializing database and admin user '%ADMIN_USER%'...
+echo [4/4] Initializing database and admin user '%ADMIN_USER%'...
 call "%PHP_EXE%" "%DIST%\bin\init.php" "%ADMIN_USER%" "%ADMIN_PASS%"
 if errorlevel 1 goto :fail
 
@@ -184,7 +170,7 @@ call :check "%DIST%\public\js\app.js"
 call :check "%DIST%\public\fonts\phosphor\style.css"
 call :check "%DIST%\public\.htaccess"
 call :check "%DIST%\.htaccess"
-call :check "%DIST%\.env"
+call :check "%DIST%\config\app.php"
 call :check "%DIST%\database\janathan.sqlite"
 if "%MISSING%"=="1" goto :fail
 
@@ -192,7 +178,7 @@ echo.
 echo Build finished successfully.
 echo.
 echo  Deploy package  : %DIST%
-echo  .env            : generated with a fresh APP_KEY (APP_BASE_PATH=%BASE_PATH%)
+echo  config/app.php  : shipped as-is (edit directly if you need APP_BASE_PATH)
 echo  Admin user      : %ADMIN_USER%  (password hidden; change it after first login)
 echo  Next steps      : upload it, make sure "database" stays writable, open the site.
 echo                    (full guide: README-DEPLOY.md in the package)

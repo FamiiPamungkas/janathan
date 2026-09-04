@@ -59,19 +59,12 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and configure it:
+2. Review the committed `config/app.php` and adjust it:
 
-   ```bash
-   cp .env.example .env
-   ```
-
-   - `APP_KEY` — generate with `openssl rand -hex 32`. It encrypts router
-     passwords at rest — changing it later makes stored passwords undecryptable.
-   - `APP_URL` — base URL of your dev server (e.g. `http://192.168.88.34:8080`).
    - `APP_BASE_PATH` — leave empty when the document root points straight at
      `public/`; set it (e.g. `/janathan`) for sub-folder installs.
 
-3. Create the SQLite database and first admin user:
+3. Create the SQLite database and first admin user (or skip this step and use the web-based setup wizard):
 
    ```bash
    php bin/init.php <username> [password]
@@ -94,7 +87,7 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
    npm run dev        # watches CSS/JS and rebuilds on change
    ```
 
-6. Open `APP_URL` in a browser, log in, and add a router. Then press
+6. Open the app in a browser, log in, and add a router. Then press
    **Connect** on it to start managing its hotspot.
 
 ## Deployment (shared hosting)
@@ -102,37 +95,36 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
 A Windows batch build is provided:
 
 ```bat
-build-deploy.bat /url https://example.com
+build-deploy.bat
 ```
 
 It assembles a production package at `dist\janathan/` (compiled assets,
-production-only Composer deps, a freshly minted `APP_KEY`, an initialized
-SQLite database with an admin user). Options: `/base <path>`, `/url <url>`,
-`/init <user> <pw>`, `/no-prompt`, `/nopause`.
+production-only Composer deps, an initialized SQLite database with an admin
+user and `APP_KEY`). Options: `/init <user> <pw>`, `/no-prompt`, `/nopause`.
 
 Upload that folder, point your document root at its `public/` directory, and
 ensure `database/` stays writable. The package also supports sub-folder
 installs via the included root `.htaccess`. See the full guide in
 `scripts/README-DEPLOY.md` (also shipped inside the package).
 
-> **Re-deploying:** every build mints a fresh `APP_KEY` and empty database. To
-> keep existing data, copy your previous `.env` and `database/` over the new
-> package — changing `APP_KEY` breaks all stored router passwords.
+> **Re-deploying:** every build mints a fresh database. To keep existing data,
+> copy your previous `database/` over the new package — changing
+> `APP_KEY` breaks all stored router passwords. (`config/app.php` ships with
+> the package as a committed source file.)
 
 ## Configuration
 
-All configuration comes from `.env`:
+All configuration comes from `config/app.php` (a committed source file):
 
 | Variable | Description |
 | --- | --- |
-| `APP_ENV` | `development` / `production` |
 | `APP_DEBUG` | Show/hide error details (`true` / `false`) |
 | `APP_NAME` | App display name |
-| `APP_KEY` | Hex key (32 bytes) for AES-GCM encryption of router passwords |
 | `DB_PATH` | SQLite file path, relative to project root |
-| `APP_URL` | Base URL of the dev server or production site |
 | `APP_BASE_PATH` | Sub-path the app is mounted under (empty for docroot-at-`public/`) |
-| `MIKROTIK_*` | Only used by `bin/test-connection.php` (host, port, ssl, timeouts, attempts) |
+| `MIKROTIK_TIMEOUT` | TCP connect timeout in seconds for RouterOS |
+| `MIKROTIK_SOCKET_TIMEOUT` | Read timeout in seconds for a single API reply |
+| `MIKROTIK_ATTEMPTS` | Number of TCP connect attempts before giving up |
 
 ## App Flow
 
@@ -140,15 +132,12 @@ Log in to the app (`/login`) → manage routers (`/routers`) → press
 **Connect** on a router (validates the RouterOS connection and stores
 `router_id` in the session) → the dashboard and hotspot pages operate on that
 router, opening a fresh RouterOS connection per request using its decrypted
-credentials. `MIKROTIK_*` env vars are only used by the standalone connectivity
-tester.
+credentials.
 
 ## Scripts
 
 - `php bin/init.php` — create/recreate the SQLite schema and add an admin user
   (also usable to add more admins later).
-- `php bin/test-connection.php` — verify RouterOS API connectivity against the
-  `MIKROTIK_*` env vars.
 - `php bin/test-dashboard-queries.php` — exercise dashboard RouterOS queries.
 - `php bin/lint-templates.php` — syntax-check Twig templates.
 - `php bin/gen-apple-icon.php` — generate the apple-touch-icon.
@@ -163,13 +152,14 @@ composer test   # if configured, otherwise: vendor/bin/phpunit
 
 ## Security Notes
 
-- Router passwords are encrypted with AES-256-GCM using `APP_KEY` and are
-  never rendered to templates or logged. Only `RouterRepository::getCredentials()`
-  decrypts them. Treat any credential logging in the codebase as dev-only state.
+- Router passwords are encrypted with AES-256-GCM using `APP_KEY` (stored in
+  the `settings` database table) and are never rendered to templates or logged.
+  Only `RouterRepository::getCredentials()` decrypts them. Treat any credential
+  logging in the codebase as dev-only state.
 - Every POST requires a CSRF token (`CsrfMiddleware`).
 - `APP_KEY` must never change after routers have been saved — stored passwords
   become undecryptable.
-- Never expose folders containing `.env` or `database/` over HTTP.
+- Never expose folders containing `config/app.php` or `database/` over HTTP.
 
 ## License
 

@@ -17,7 +17,7 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 
 ## Directory Structure
 ```
-/config           - app config (bootstrap.php), container definitions (container.php), env loading
+/config           - app config (bootstrap.php, app.php, helpers.php) + container definitions (container.php, container-shared.php, container-setup.php)
 /public           - web root (index.php, compiled CSS/JS)
   /css/index.css     - Tailwind v4 source with @theme block (build input)
   /css/app.css       - compiled CSS (gitignored)
@@ -33,20 +33,18 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 /templates          - Twig templates (layout.twig base, partials/, pages/)
 /routes             - web.php (single file, grouped by feature)
 /resources          - lang/ (en.php, id.php), voucher_template.html (default)
-/bin               - init.php, test-connection.php, lint-templates.php, test-dashboard-queries.php, gen-apple-icon.php
+/bin               - init.php, lint-templates.php, test-dashboard-queries.php, gen-apple-icon.php
 /tests             - PHPUnit tests (phpunit.xml configured)
-/scripts           - copy-phosphor.mjs, generate-env.php, README-DEPLOY.md
+/scripts           - copy-phosphor.mjs, README-DEPLOY.md
 database/          - SQLite storage (gitignored)
 build-deploy.bat   - Windows production build script
-.env               - never commit (router IP, API port, credentials, APP_KEY)
+config/app.php     - committed app config (source file, no secrets)
 ```
 
 ## Setup
 1. `composer install && npm install`
-2. Copy `.env.example` to `.env`. Set:
-   - `APP_KEY` — generate with `openssl rand -hex 32` (encrypts router passwords at rest; changing it later makes stored passwords undecryptable)
-   - `APP_URL` — base URL of your dev server (e.g. `http://192.168.88.34:8080`)
-3. Create the SQLite database + first admin user: `php bin/init.php <username> [password]` (prompts for password if omitted). DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored).
+2. Review `config/app.php` (a committed source file). Set `APP_BASE_PATH` (e.g. `/janathan`) if installing in a sub-folder of the web root, or leave empty when the document root points at `public/`.
+3. Create the SQLite database + first admin user: `php bin/init.php <username> [password]` (prompts for password if omitted). DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored). Alternatively, access the app in a browser — the web-based setup wizard will guide you through creating the admin account and generating `APP_KEY`.
 4. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
 5. Build assets:
    ```bash
@@ -61,8 +59,7 @@ build-deploy.bat   - Windows production build script
 - `npm run build:icons` → `node scripts/copy-phosphor.mjs` (copies Phosphor fonts from node_modules to public/fonts/phosphor/)
 
 ## Dev Server
-- Dev URL comes from `APP_URL` in `.env` — read it from `.env`, never assume a hostname.
-- The dev server is run locally on **Windows** (Laragon) and is left running — **do not restart or re-run the project to verify changes**. Verify by reading `APP_URL` from `.env` and WebFetch-ing that URL.
+- The dev server is run locally on **Windows** (Laragon) and is left running — **do not restart or re-run the project to verify changes**. To verify a change, WebFetch the app's dev URL to confirm the page loads without errors; discover the host/port from your local environment (do not assume a hostname).
 - **PHP syntax checks run on Windows, not WSL:** PHP executes via Laragon on Windows — do NOT first check for or try to install a Linux/WSL PHP. To lint a file, invoke the Laragon PHP binary directly, e.g. `/mnt/c/laragon/bin/php/php-<version>-Win32-vs16-x64/php.exe -l path/to/file.php` (pick whichever version dir currently exists under `/mnt/c/laragon/bin/php/`).
 
 ## Coding Conventions
@@ -74,18 +71,18 @@ build-deploy.bat   - Windows production build script
 - **One RouterOS connection per request** — `RouterConnectionManager` caches a single `RouterosClient` per router ID and disconnects in `__destruct`. Avoid reconnecting per call.
 - **Custom exceptions:** `RouterosConnectionException` (timeout, refused, auth error) vs. `RouterosCommandException` (router rejected a command with `!trap`). Controllers catch `\Throwable` and route to `renderUnreachable()`.
 - **Flash messages:** `$this->flash->add('success'|'error', $message)` via `FlashService`, rendered in `layout.twig`.
-- All router credentials/config load from `.env` (use `vlucas/phpdotenv`) — never hardcode IP/user/pass.
-- **Security:** Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them. `APP_KEY` must never change after routers have been saved.
+- All router credentials/config load from `config/app.php` via the `config()` helper — never hardcode IP/user/pass.
+- **Security:** Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them. `APP_KEY` is stored in the `settings` table and must never change after routers have been saved.
 
 ## App Flow / Data Model
-- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY`), `hotspot_profiles`, `voucher_templates`.
+- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY`), `hotspot_profiles`, `voucher_templates`, `settings` (key-value store including `APP_KEY`).
 - Flow: log in (`/login`) → manage routers (`/routers`) → "Connect" validates the RouterOS connection and stores `router_id` in the session → dashboard (`/`) opens a fresh RouterOS connection per request using the selected router's decrypted credentials.
 - Session-based auth (`AuthMiddleware`) protects all routes except `/login`. Every POST carries a CSRF token (`CsrfMiddleware` + `csrf_token` Twig global).
 
 ## Twig Templates
 - Use `layout.twig` as base, with `content` and `scripts` blocks. Keep logic out of templates — pass pre-formatted data from controllers.
 - Registered Twig functions: `asset()`, `base_path()`, `url_for()`, `path_info()`, `flash()`, `trans()`.
-- Registered Twig globals: `app_url`, `locale`, `locales`, `current_user`, `routers`, `active_router`, `csrf_token`.
+- Registered Twig globals: `locale`, `locales`, `current_user`, `routers`, `active_router`, `csrf_token`.
 
 ## UI / Styling (Mobile-First + Pinemix)
 - **Mobile-first is mandatory for every UI change:** build the mobile layout first, then enhance with `sm:` / `md:` / `lg:` breakpoints. On mobile, tables become stacked cards (`md:hidden` card list + `hidden md:block` table), stat grids go `grid-cols-2` (or 1) before expanding, and tap targets stay touch-friendly.
@@ -105,7 +102,6 @@ build-deploy.bat   - Windows production build script
 | Script | Purpose |
 |--------|---------|
 | `php bin/init.php <user> [pw]` | Create/recreate SQLite schema + add admin user |
-| `php bin/test-connection.php` | Verify RouterOS API connectivity against `MIKROTIK_*` env vars |
 | `php bin/test-dashboard-queries.php` | Benchmark dashboard RouterOS queries |
 | `php bin/lint-templates.php` | Syntax-check Twig templates |
 | `php bin/gen-apple-icon.php` | Generate apple-touch-icon.png |
@@ -123,4 +119,4 @@ PHPUnit 10, configured in `phpunit.xml`. Tests live in `tests/`.
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.
 - RouterOS API calls are synchronous and can be slow on weak hardware — keep timeouts sane and surface connection errors clearly in the UI.
 - `symfony/process` is listed in `composer.json` but appears unused in `src/` — investigate before adding new process-related code.
-- **Verify every change:** After completing any task, read `APP_URL` from `.env` and WebFetch it to confirm the page loads without errors.
+- **Verify every change:** After completing any task, WebFetch the app's dev URL to confirm the page loads without errors (discover the host/port from your local environment, not an assumed hostname).

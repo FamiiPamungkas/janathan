@@ -13,7 +13,7 @@ class CryptoService
     public function __construct(string $appKey)
     {
         if ($appKey === '') {
-            throw new \RuntimeException('APP_KEY is not set. Generate one and add it to .env');
+            throw new \RuntimeException('APP_KEY is not set. It is generated during setup and stored in the settings table.');
         }
 
         $this->key = hash('sha256', $appKey, true);

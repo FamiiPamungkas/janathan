@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
-
-$configured = $_ENV['DB_PATH'] ?? 'database/janathan.sqlite';
+$configured = config('DB_PATH', 'database/janathan.sqlite');
 $dbPath = $configured;
 
 if ($configured !== '' && !preg_match('#^([a-zA-Z]:[\\\\/]|/)#', $configured)) {
@@ -73,6 +71,13 @@ $pdo->exec(
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+        key         TEXT PRIMARY KEY,
+        value       TEXT NOT NULL,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     SQL
 );
 
@@ -118,6 +123,15 @@ foreach ($profileMigrations as $column => $definition) {
     if (!in_array($column, $profileColumns, true)) {
         $pdo->exec("ALTER TABLE hotspot_profiles ADD COLUMN {$column} {$definition}");
     }
+}
+
+$stmt = $pdo->prepare('SELECT value FROM settings WHERE key = :key');
+$stmt->execute(['key' => 'APP_KEY']);
+if ($stmt->fetchColumn() === false) {
+    $appKey = bin2hex(random_bytes(32));
+    $insert = $pdo->prepare('INSERT INTO settings (key, value) VALUES (:key, :value)');
+    $insert->execute(['key' => 'APP_KEY', 'value' => $appKey]);
+    echo "Generated APP_KEY and stored in database.\n";
 }
 
 echo "Database ready at {$dbPath}\n";

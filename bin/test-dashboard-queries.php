@@ -13,7 +13,6 @@ declare(strict_types=1);
  */
 
 require __DIR__ . '/../vendor/autoload.php';
-Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
 
 use DI\ContainerBuilder;
 use Fame1302\Janathan\Services\RouterConnectionManager;

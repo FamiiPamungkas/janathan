@@ -2,8 +2,6 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
-
 $templatesDir = __DIR__ . '/../templates';
 
 $twig = new \Twig\Environment(new \Twig\Loader\FilesystemLoader($templatesDir), [

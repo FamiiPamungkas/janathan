@@ -40,7 +40,7 @@ return function (App $app): void {
             $app->get('/active', HotspotController::class . ':activeUsers')->setName('hotspot.active');
             $app->get('/active/data', HotspotController::class . ':activeData')->setName('hotspot.active.data');
             $app->post('/active/{id}/remove', HotspotController::class . ':removeActiveUser')->setName('hotspot.active.remove');
-$app->get('/hosts', HotspotController::class . ':hosts')->setName('hotspot.hosts');
+            $app->get('/hosts', HotspotController::class . ':hosts')->setName('hotspot.hosts');
             $app->get('/hosts/data', HotspotController::class . ':hostsData')->setName('hotspot.hosts.data');
             $app->post('/hosts/{id}/remove', HotspotController::class . ':removeHost')->setName('hotspot.hosts.remove');
 
@@ -95,9 +95,9 @@ $app->get('/hosts', HotspotController::class . ':hosts')->setName('hotspot.hosts
         $app->post('/routers/{id}/delete', RouterController::class . ':delete')->setName('routers.delete');
         $app->post('/routers/{id}/connect', RouterController::class . ':connect')->setName('routers.connect');
         $app->post('/routers/disconnect', RouterController::class . ':disconnect')->setName('routers.disconnect');
-            $app->post('/routers/test-connection', RouterController::class . ':testConnection')->setName('routers.testConnection');
+        $app->post('/routers/test-connection', RouterController::class . ':testConnection')->setName('routers.testConnection');
 
-            $app->get('/admin/edit', AuthController::class . ':showEdit')->setName('admin.edit');
-            $app->post('/admin/edit', AuthController::class . ':updateProfile')->setName('admin.update');
-        })->add(AuthMiddleware::class);
+        $app->get('/admin/edit', AuthController::class . ':showEdit')->setName('admin.edit');
+        $app->post('/admin/edit', AuthController::class . ':updateProfile')->setName('admin.update');
+    })->add(AuthMiddleware::class);
 };
