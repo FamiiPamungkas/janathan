@@ -72,7 +72,8 @@ config/app.php     - committed app config (source file, no secrets)
 - Docs for this path live in `README.md` → "Deploy with Docker"; it is separate from the Windows `build-deploy.bat` shared-hosting path.
 
 ## Dev Server
-- The dev server is run locally on **Windows** (Laragon) and is left running — **do not restart or re-run the project to verify changes**. To verify a change, WebFetch the app's dev URL to confirm the page loads without errors; discover the host/port from your local environment (do not assume a hostname).
+- The dev server is run locally on **Windows** (Laragon/Docker) and is left running — **do not restart or re-run the project to verify changes**. To verify a change, read `APP_URL` from the project-local `.env` and WebFetch it to confirm the page loads without errors. If WebFetch cannot reach the LAN host, fall back to `curl` from WSL against the Windows host IP.
+- **`.env` is for AI verification only.** The app never loads it: there is no dotenv loader (`composer.json` has none) and config loads from `config/app.php`; `config()` in `config/helpers.php` reads a fixed `getenv` whitelist (`APP_DEBUG`, `APP_NAME`, `APP_VERSION`, `APP_BASE_PATH`, `DB_PATH`, MIKROTIK_*`, `APP_KEY`) that does **not** include `APP_URL`. Never `source` `.env` into the environment (it would leak those keys into `getenv`), and never copy it into a deploy package (`build-deploy.bat` and the Docker build do not ship it).
 - **PHP syntax checks run on Windows, not WSL:** PHP executes via Laragon on Windows — do NOT first check for or try to install a Linux/WSL PHP. To lint a file, invoke the Laragon PHP binary directly, e.g. `/mnt/c/laragon/bin/php/php-<version>-Win32-vs16-x64/php.exe -l path/to/file.php` (pick whichever version dir currently exists under `/mnt/c/laragon/bin/php/`).
 
 ## Coding Conventions
