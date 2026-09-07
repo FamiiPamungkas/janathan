@@ -5,26 +5,39 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Fame1302\Janathan\Middleware\CsrfMiddleware;
 use Fame1302\Janathan\Middleware\LocaleMiddleware;
+use Psr\Container\ContainerInterface;
 use Slim\App;
 
 require __DIR__ . '/../vendor/autoload.php';
-
-Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$containerBuilder = new ContainerBuilder();
-$containerBuilder->addDefinitions(__DIR__ . '/container.php');
+return function (bool $needsSetup): App {
+    $containerBuilder = new ContainerBuilder();
 
-$container = $containerBuilder->build();
-$app = $container->get(App::class);
+    if ($needsSetup) {
+        // Setup mode: DB-free definitions only (Twig + Flash). No PDO/
+        // repositories, no CSRF/Locale middleware.
+        $containerBuilder->addDefinitions(__DIR__ . '/container-setup.php');
+    } else {
+        $containerBuilder->addDefinitions(__DIR__ . '/container.php');
+    }
 
-$routes = require __DIR__ . '/../routes/web.php';
-$routes($app);
+    /** @var ContainerInterface $container */
+    $container = $containerBuilder->build();
+    $app = $container->get(App::class);
 
-$app->add(CsrfMiddleware::class);
-$app->add(LocaleMiddleware::class);
+    $routes = $needsSetup
+        ? require __DIR__ . '/../routes/setup.php'
+        : require __DIR__ . '/../routes/web.php';
+    $routes($app);
 
-return $app;
+    if (!$needsSetup) {
+        $app->add(CsrfMiddleware::class);
+        $app->add(LocaleMiddleware::class);
+    }
+
+    return $app;
+};

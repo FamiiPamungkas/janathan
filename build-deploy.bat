@@ -6,16 +6,14 @@ set "DIST=%ROOT%dist\janathan"
 rem ================================================================
 rem  Janathan - production build for shared hosting (Windows/Laragon)
 rem  Builds assets, installs production PHP deps, assembles a ready
-rem  deploy folder at dist\janathan\ including a generated .env
-rem  (fresh APP_KEY) and an initialized SQLite database with an admin.
+rem  deploy folder at dist\janathan\. The package ships WITHOUT a
+rem  database - the web setup wizard creates it (schema, APP_KEY and
+rem  first admin) on the first browser visit. APP_BASE_PATH is applied
+rem  to the dist config/app.php during the build (source stays untouched).
 rem ================================================================
 rem  Options:
-rem    /base <path>       APP_BASE_PATH for the generated .env (default /janathan;
-rem                       pass "" to deploy with docroot straight at public/)
-rem    /url  <url>        APP_URL, e.g. https://example.com (optional)
-rem    /init <user> <pw>  admin credentials, prompts skipped (default janathan / 1234)
-rem    /no-prompt         don't prompt for admin credentials, use defaults
 rem    /nopause           skip the final confirmation prompt
+rem    /basepath <path>   set APP_BASE_PATH non-interactively (e.g. /basepath /janathan)
 rem    set LARAGON=<path> if Laragon is not at C:\laragon
 rem ================================================================
 
@@ -24,26 +22,17 @@ chcp 65001 >nul 2>&1
 if defined LARAGON (set "LARAGON_ROOT=%LARAGON%") else (set "LARAGON_ROOT=C:\laragon")
 
 set "NOPAUSE="
-set "NOPROMPT="
-set "INIT_GIVEN="
-set "BASE_PATH=/janathan"
-set "APP_URL="
-set "ADMIN_USER=janathan"
-set "ADMIN_PASS=1234"
 
 :parse_args
 if "%~1"=="" goto :args_done
 if /i "%~1"=="/nopause" ( set "NOPAUSE=1" & shift & goto :parse_args )
-if /i "%~1"=="/no-prompt" ( set "NOPROMPT=1" & shift & goto :parse_args )
-if /i "%~1"=="/base"    ( set "BASE_PATH=%~2" & shift & shift & goto :parse_args )
-if /i "%~1"=="/url"     ( set "APP_URL=%~2"   & shift & shift & goto :parse_args )
-if /i "%~1"=="/init"    (
-    set "INIT_GIVEN=1"
-    set "ADMIN_USER=%~2"
-    if not "%~3"=="" set "ADMIN_PASS=%~3"
-    shift & shift & shift
-    goto :parse_args
-)
+if /i "%~1"=="/basepath" goto :basepath_parse
+shift
+goto :parse_args
+:basepath_parse
+shift
+if "%~1"=="" goto :args_done
+set "APP_BASE_PATH_ARG=%~1"
 shift
 goto :parse_args
 :args_done
@@ -56,23 +45,9 @@ echo ================================================================
 echo.
 
 rem ----------------------------------------------------------------
-rem Admin credentials (unless forced via /init or /no-prompt)
-rem Empty input keeps the defaults.
-rem ----------------------------------------------------------------
-if not defined INIT_GIVEN if not defined NOPROMPT (
-    echo  Admin credentials for the new database - Enter accepts defaults:
-    set /p "ADMIN_USER=  Username [%ADMIN_USER%]: "
-    set /p "ADMIN_PASS=  Password [%ADMIN_PASS%]: "
-    if not defined ADMIN_USER set "ADMIN_USER=janathan"
-    if not defined ADMIN_PASS set "ADMIN_PASS=1234"
-)
-if not defined INIT_GIVEN if not defined NOPROMPT echo  Admin user     : %ADMIN_USER%  - prompted above or default; change password after first login
-echo.
-
-rem ----------------------------------------------------------------
 rem 0. Locate the toolchain
 rem ----------------------------------------------------------------
-echo [0/5] Locating PHP, Node and Composer...
+echo [0/3] Locating PHP, Node and Composer...
 
 set "PHP_EXE="
 if exist "%LARAGON_ROOT%\bin\php" (
@@ -110,6 +85,40 @@ echo  Composer : %COMPOSER_RUN%
 echo.
 
 rem ----------------------------------------------------------------
+rem  APP_BASE_PATH - URL prefix the app is mounted under
+rem ----------------------------------------------------------------
+set "APP_BASE_PATH="
+if defined APP_BASE_PATH_ARG (
+    set "APP_BASE_PATH=%APP_BASE_PATH_ARG%"
+) else if defined NOPAUSE (
+    set "APP_BASE_PATH="
+) else (
+    echo  APP_BASE_PATH is the URL prefix the app is mounted under.
+    echo  Leave empty when the document root points at public, or enter the
+    echo  sub-folder name ^(e.g. janathan or /janathan^). Press Enter for empty.
+    echo.
+    set /p "APP_BASE_PATH=APP_BASE_PATH (default: empty): "
+)
+
+rem Normalize: '' or a leading-slash path with no trailing slash.
+:bps_strip_tail
+if not "!APP_BASE_PATH!"=="" if "!APP_BASE_PATH:~-1!"=="/" (
+    set "APP_BASE_PATH=!APP_BASE_PATH:~0,-1!"
+    if not "!APP_BASE_PATH!"=="" goto :bps_strip_tail
+)
+if "!APP_BASE_PATH!"=="" goto :bps_done
+if "!APP_BASE_PATH:~0,1!"=="/" (
+    set "APP_BASE_PATH=!APP_BASE_PATH:~1!"
+    if not "!APP_BASE_PATH!"=="" if "!APP_BASE_PATH:~0,1!"=="/" goto :bps_strip_tail
+)
+if "!APP_BASE_PATH!"=="" goto :bps_done
+set "APP_BASE_PATH=/!APP_BASE_PATH!"
+:bps_done
+if defined APP_BASE_PATH_ARG set "APP_BASE_PATH_ARG="
+if defined APP_BASE_PATH (echo  APP_BASE_PATH  : !APP_BASE_PATH!) else (echo  APP_BASE_PATH  : ^(empty^))
+echo.
+
+rem ----------------------------------------------------------------
 rem 1. Frontend assets (icons, CSS, JS)
 rem ----------------------------------------------------------------
 if not exist "%ROOT%node_modules\.bin\esbuild.cmd" goto :deps_missing
@@ -117,30 +126,30 @@ if not exist "%ROOT%node_modules\.bin\tailwindcss.cmd" goto :deps_missing
 goto :deps_ok
 
 :deps_missing
-echo [1/5] Frontend dependencies missing for Windows - running npm ci...
+echo [1/3] Frontend dependencies missing for Windows - running npm ci...
 call "%NPM_CMD%" ci
 if errorlevel 1 goto :fail
 
 :deps_ok
-echo [1/5] Building frontend assets...
+echo [1/3] Building frontend assets...
 call "%NPM_CMD%" run build
 if errorlevel 1 goto :fail
 
 rem ----------------------------------------------------------------
 rem 2. Backend dependencies (production only)
 rem ----------------------------------------------------------------
-echo [2/5] Installing production dependencies...
+echo [2/3] Installing production dependencies...
 call %COMPOSER_RUN% install --no-dev --no-interaction --prefer-dist --optimize-autoloader --classmap-authoritative
 if errorlevel 1 goto :fail
 
 rem ----------------------------------------------------------------
 rem 3. Assemble the deploy package at dist\janathan\
 rem ----------------------------------------------------------------
-echo [3/5] Assembling deploy package at %DIST%...
+echo [3/3] Assembling deploy package at %DIST%...
 if exist "%DIST%" rmdir /s /q "%DIST%"
 md "%DIST%" 2>nul
 
-for %%S in (vendor config routes src templates resources bin) do (
+for %%S in (vendor config routes src templates resources) do (
     robocopy "%ROOT%%%S" "%DIST%\%%S" /E /NFL /NDL /NJH /NJS /NC /NS /NP
     if errorlevel 8 goto :fail
 )
@@ -151,28 +160,29 @@ rem Ship only the compiled CSS/JS, not the Tailwind/esbuild sources.
 del /q "%DIST%\public\css\index.css" 2>nul
 del /q "%DIST%\public\js\index.js" 2>nul
 
-copy /y "%ROOT%composer.json"      "%DIST%\composer.json"      >nul
-copy /y "%ROOT%composer.lock"      "%DIST%\composer.lock"      >nul
-copy /y "%ROOT%.env.example"       "%DIST%\.env.example"       >nul
-copy /y "%ROOT%.htaccess"          "%DIST%\.htaccess"          >nul
+copy /y "%ROOT%composer.json"        "%DIST%\composer.json"        >nul
+copy /y "%ROOT%composer.lock"        "%DIST%\composer.lock"        >nul
+copy /y "%ROOT%.htaccess"            "%DIST%\.htaccess"            >nul
+copy /y "%ROOT%Dockerfile"           "%DIST%\Dockerfile"           >nul
+copy /y "%ROOT%docker-compose.yml"   "%DIST%\docker-compose.yml"   >nul
+copy /y "%ROOT%docker-entrypoint.sh" "%DIST%\docker-entrypoint.sh" >nul
+copy /y "%ROOT%.dockerignore"        "%DIST%\.dockerignore"        >nul
 copy /y "%ROOT%scripts\README-DEPLOY.md" "%DIST%\README-DEPLOY.md" >nul
 
-rem Writable dir where the SQLite DB will be created.
+rem Writable dir where the web setup wizard will create the SQLite DB
+rem on the first browser visit.
 md "%DIST%\database" 2>nul
 
 rem ----------------------------------------------------------------
-rem 4. Generate production .env (fresh APP_KEY, base path, URL)
+rem Apply APP_BASE_PATH to the dist config/app.php (source stays untouched).
 rem ----------------------------------------------------------------
-echo [4/5] Generating .env (APP_KEY minted, APP_BASE_PATH="%BASE_PATH%")...
-call "%PHP_EXE%" "%ROOT%scripts\generate-env.php" "%DIST%\.env.example" "%DIST%\.env" "--base=%BASE_PATH%" "--url=%APP_URL%"
-if errorlevel 1 goto :fail
-
-rem ----------------------------------------------------------------
-rem 5. Initialize database + admin user
-rem ----------------------------------------------------------------
-echo [5/5] Initializing database and admin user '%ADMIN_USER%'...
-call "%PHP_EXE%" "%DIST%\bin\init.php" "%ADMIN_USER%" "%ADMIN_PASS%"
-if errorlevel 1 goto :fail
+if not "!APP_BASE_PATH!"=="" (
+    set "ABS=!APP_BASE_PATH!"
+    "%PHP_EXE%" -r "$q=chr(39); $f='%DIST%\config\app.php'; $c=file_get_contents($f); if ($c===false) exit(1); $c=str_replace($q.'APP_BASE_PATH'.$q.'           => '.$q.$q, $q.'APP_BASE_PATH'.$q.'           => '.$q.getenv('ABS').$q, $c); if (strpos($c,$q.'APP_BASE_PATH'.$q.'           => '.$q.getenv('ABS').$q)===false) exit(2); file_put_contents($f,$c) or exit(3); echo 'APP_BASE_PATH set to '.getenv('ABS').chr(10);"
+    if errorlevel 1 goto :fail
+    set "ABS="
+)
+echo.
 
 rem ----------------------------------------------------------------
 rem Sanity check the assembled package
@@ -184,18 +194,24 @@ call :check "%DIST%\public\js\app.js"
 call :check "%DIST%\public\fonts\phosphor\style.css"
 call :check "%DIST%\public\.htaccess"
 call :check "%DIST%\.htaccess"
-call :check "%DIST%\.env"
-call :check "%DIST%\database\janathan.sqlite"
+call :check "%DIST%\config\app.php"
+call :check "%DIST%\Dockerfile"
+call :check "%DIST%\docker-compose.yml"
+call :check "%DIST%\docker-entrypoint.sh"
 if "%MISSING%"=="1" goto :fail
 
 echo.
 echo Build finished successfully.
 echo.
 echo  Deploy package  : %DIST%
-echo  .env            : generated with a fresh APP_KEY (APP_BASE_PATH=%BASE_PATH%)
-echo  Admin user      : %ADMIN_USER%  (password hidden; change it after first login)
+if defined APP_BASE_PATH (echo  APP_BASE_PATH   : !APP_BASE_PATH!) else (echo  APP_BASE_PATH   : ^(empty^))
+echo  Database        : created on first visit by the web setup wizard
+echo                    (admin account + APP_KEY are set up there)
 echo  Next steps      : upload it, make sure "database" stays writable, open the site.
 echo                    (full guide: README-DEPLOY.md in the package)
+echo  Docker          : cd %DIST% ^&^& docker compose up -d --build
+echo                    (binds the package as a volume; edit docker-compose.yml
+echo                     for APP_BASE_PATH, DB_PATH, Mikrotik timeouts, port)
 echo.
 if not defined NOPAUSE pause
 exit /b 0

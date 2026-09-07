@@ -16,13 +16,13 @@ are not tolerated. This project aims to stay friendly and inclusive for everyone
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and configure `APP_KEY` (`openssl rand -hex 32`).
+2. Review the committed `config/app.php` and set `APP_BASE_PATH` if you install
+   the app in a sub-folder of the web root.
 
-3. Create the SQLite DB and admin user:
-
-   ```bash
-   php bin/init.php <username> [password]
-   ```
+3. Serve the app (point your web server at `public/` or use
+   `php -S localhost:8000 -t public`) — the first browser visit takes you
+   through the **web setup wizard**, which creates the SQLite database,
+   `APP_KEY`, and the first admin account.
 
 4. Build assets and serve:
 
@@ -39,7 +39,7 @@ See the [README](README.md#installation-local-development) for the full setup.
   with `sm:` / `md:` / `lg:` breakpoints. Read the AGENTS.md UI section before
   touching markup.
 - **Follow the conventions in `AGENTS.md`** — PSR-12, thin controllers,
-  shared logic via traits/DI over copy-paste, credentials only from `.env`.
+   shared logic via traits/DI over copy-paste, credentials only from `config/app.php`.
 - Rebuild assets (`npm run build`) after changing markup, and verify in both
   light and dark mode.
 

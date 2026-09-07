@@ -8,9 +8,9 @@ class RouterosClientFactory
 {
     public function create(array $credentials, array $options = []): RouterosClient
     {
-        $timeout = (int) ($_ENV['MIKROTIK_TIMEOUT'] ?? 5);
-        $socketTimeout = (int) ($_ENV['MIKROTIK_SOCKET_TIMEOUT'] ?? 30);
-        $attempts = (int) ($_ENV['MIKROTIK_ATTEMPTS'] ?? 5);
+        $timeout = (int) config('MIKROTIK_TIMEOUT', 5);
+        $socketTimeout = (int) config('MIKROTIK_SOCKET_TIMEOUT', 30);
+        $attempts = (int) config('MIKROTIK_ATTEMPTS', 5);
 
         return new RouterosClient(
             host: $credentials['host'],

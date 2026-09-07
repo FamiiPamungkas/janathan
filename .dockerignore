@@ -1,0 +1,28 @@
+# VCS / IDE
+.git
+.gitignore
+.idea/
+.vscode/
+
+# Dependencies (built inside Docker)
+vendor/
+node_modules/
+
+# Compiled / generated assets (built inside Docker)
+public/css/app.css
+public/js/app.js
+public/fonts/phosphor/
+
+# Local database files (kept in a persistent volume)
+database/
+
+# Build / deploy artifacts
+dist/
+build-deploy.bat
+*.bat
+
+# Tests, docs, misc
+tests/
+phpunit.xml
+*.log
+verify_container*

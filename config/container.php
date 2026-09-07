@@ -3,50 +3,21 @@
 declare(strict_types=1);
 
 use Fame1302\Janathan\Services\CryptoService;
-use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\HotspotProfileRepository;
 use Fame1302\Janathan\Services\RouterConnectionManager;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
-use Fame1302\Janathan\Services\TranslationService;
+use Fame1302\Janathan\Services\SettingsRepository;
 use Fame1302\Janathan\Services\UserRepository;
 use Fame1302\Janathan\Services\VoucherTemplateRepository;
 use Fame1302\Janathan\Services\VoucherTemplateRenderer;
 use Psr\Container\ContainerInterface;
-use Slim\App;
-use Slim\Factory\AppFactory;
-use Twig\Environment;
-use Twig\Loader\FilesystemLoader;
 
-$basePath = rtrim((string) ($_ENV['APP_BASE_PATH'] ?? ''), '/');
+$shared = require __DIR__ . '/container-shared.php';
 
-return [
-    'locales' => [
-        'en' => 'English',
-        'id' => 'Bahasa Indonesia',
-    ],
-
-    TranslationService::class => function (ContainerInterface $container) {
-        return new TranslationService(
-            (string) ($_SESSION['locale'] ?? 'en'),
-            $container->get('locales')
-        );
-    },
-
-    App::class => function (ContainerInterface $container) use ($basePath) {
-        AppFactory::setContainer($container);
-        $app = AppFactory::create();
-        $app->setBasePath($basePath);
-        $app->addErrorMiddleware(
-            (bool) $_ENV['APP_DEBUG'],
-            true,
-            true
-        );
-        return $app;
-    },
-
+return array_merge($shared, [
     PDO::class => function (ContainerInterface $container) {
-        $configured = (string) ($_ENV['DB_PATH'] ?? 'database/janathan.sqlite');
+        $configured = (string) config('DB_PATH', 'database/janathan.sqlite');
         $path = $configured;
 
         if ($configured !== '' && !preg_match('#^([a-zA-Z]:[\\\\/]|/)#', $configured)) {
@@ -99,12 +70,45 @@ return [
             $pdo->exec("ALTER TABLE users ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'");
         }
 
+        $pdo->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS settings (
+                key         TEXT PRIMARY KEY,
+                value       TEXT NOT NULL,
+                created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            SQL
+        );
+
         return $pdo;
     },
 
-    CryptoService::class => fn (ContainerInterface $container) => new CryptoService((string) ($_ENV['APP_KEY'] ?? '')),
+    SettingsRepository::class => function (ContainerInterface $container) {
+        return new SettingsRepository($container->get(PDO::class));
+    },
 
-    FlashService::class => fn (ContainerInterface $container) => new FlashService(),
+    CryptoService::class => function (ContainerInterface $container) {
+        $appKey = '';
+
+        try {
+            $pdo = $container->get(PDO::class);
+            $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'");
+            if ($stmt->fetch()) {
+                $stmt = $pdo->prepare('SELECT value FROM settings WHERE key = :key');
+                $stmt->execute(['key' => 'APP_KEY']);
+                $appKey = $stmt->fetchColumn() ?: '';
+            }
+        } catch (\Throwable) {
+            // settings table may not exist during early boot
+        }
+
+        if ($appKey === '') {
+            $appKey = (string) config('APP_KEY', '');
+        }
+
+        return new CryptoService($appKey);
+    },
 
     UserRepository::class => function (ContainerInterface $container) {
         return new UserRepository($container->get(PDO::class));
@@ -130,58 +134,4 @@ return [
         $container->get(RouterosClientFactory::class),
         $container->get(RouterRepository::class)
     ),
-
-    Environment::class => function (ContainerInterface $container) use ($basePath) {
-        $loader = new FilesystemLoader(
-            $_SERVER['TEMPLATE_DIR'] ?? $_ENV['TEMPLATE_DIR'] ?? __DIR__ . '/../templates'
-        );
-        $twig = new Environment($loader, [
-            'cache' => false,
-            'auto_reload' => true,
-        ]);
-
-        $app = $container->get(App::class);
-
-        $twig->addGlobal('app_url', rtrim((string) ($_ENV['APP_URL'] ?? ''), '/'));
-        $twig->addFunction(new \Twig\TwigFunction('asset', function (string $path) use ($basePath) {
-            return $basePath . '/' . ltrim($path, '/');
-        }));
-
-        $twig->addFunction(new \Twig\TwigFunction('base_path', function () use ($app) {
-            return $app->getBasePath();
-        }));
-
-        $twig->addFunction(new \Twig\TwigFunction('url_for', function (string $name, array $params = []) use ($app) {
-            return $app->getRouteCollector()->getRouteParser()->urlFor($name, $params);
-        }));
-
-        $twig->addFunction(new \Twig\TwigFunction('path_info', function () use ($app) {
-            $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-            $basePath = $app->getBasePath();
-
-            if ($basePath !== '') {
-                if ($path === $basePath) {
-                    return '/';
-                }
-                if (str_starts_with($path, $basePath . '/')) {
-                    $path = substr($path, strlen($basePath));
-                }
-            }
-
-            return $path === '' ? '/' : $path;
-        }));
-
-        $twig->addFunction(new \Twig\TwigFunction('flash', function () use ($container) {
-            return $container->get(FlashService::class)->all();
-        }));
-
-        $translator = $container->get(TranslationService::class);
-        $twig->addFunction(new \Twig\TwigFunction('trans', function (string $key, array $replace = []) use ($translator) {
-            return $translator->trans($key, $replace);
-        }));
-        $twig->addGlobal('locale', $translator->getLocale());
-        $twig->addGlobal('locales', $translator->getAvailable());
-
-        return $twig;
-    },
-];
+]);
