@@ -112,7 +112,7 @@ readonly class HotspotService
                     return false;
                 }
 
-                if ($comment !== '' && (string)($u['comment'] ?? '') !== $comment) {
+                if ($comment !== '' && !str_starts_with((string)($u['comment'] ?? ''), $comment)) {
                     return false;
                 }
 
@@ -151,7 +151,7 @@ readonly class HotspotService
                 continue;
             }
 
-            $c = trim((string)($u['comment'] ?? ''));
+            $c = $this->stripExpiry((string)($u['comment'] ?? ''));
             if ($c !== '') {
                 $counts[$c] = ($counts[$c] ?? 0) + 1;
             }
@@ -576,6 +576,17 @@ readonly class HotspotService
             'comment' => $u['comment'] ?? '',
             'disabled' => $this->isYes($u['disabled'] ?? null),
         ];
+    }
+
+    /**
+     * Return a comment with any `exp=YYYY-MM-DD HH:mm:ss` token removed, so
+     * comments differ only by their stamped expiry collapse to the base text.
+     */
+    private function stripExpiry(string $comment): string
+    {
+        $clean = preg_replace('/ ?exp=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', '', $comment);
+
+        return trim((string)$clean);
     }
 
     /**
