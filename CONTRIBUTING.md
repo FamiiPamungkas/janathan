@@ -19,11 +19,10 @@ are not tolerated. This project aims to stay friendly and inclusive for everyone
 2. Review the committed `config/app.php` and set `APP_BASE_PATH` if you install
    the app in a sub-folder of the web root.
 
-3. Create the SQLite DB and admin user (or access the app in a browser to use the web-based setup wizard):
-
-   ```bash
-   php bin/init.php <username> [password]
-   ```
+3. Serve the app (point your web server at `public/` or use
+   `php -S localhost:8000 -t public`) — the first browser visit takes you
+   through the **web setup wizard**, which creates the SQLite database,
+   `APP_KEY`, and the first admin account.
 
 4. Build assets and serve:
 

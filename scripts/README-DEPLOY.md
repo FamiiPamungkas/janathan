@@ -58,34 +58,24 @@ Nothing is auto-generated — edit the file before going live.
 
 ## 4. Make `database/` writable
 
-The web server must be able to write the SQLite file in `database/`.
+The web server must be able to create and write the SQLite file in `database/`.
 On cPanel, a folder owned by your account is usually writable as-is; if the
 app reports a DB error, try `0755`/`0775` (or `0777` as a last resort).
 
-## 5. Admin user — already created by the build
+## 5. Admin user — created by the web setup wizard
 
-The build initializes `database/janathan.sqlite` (all tables + the first admin)
-automatically. When you run `build-deploy.bat` it **prompts for the admin
-username and password** — pressing Enter accepts the defaults (`janathan` /
-`1234`) — so **log in and change the password immediately**.
+The package ships **without** a database. On the first browser visit the app
+detects this and takes you through the **web setup wizard** (`/setup`), which
+creates `database/janathan.sqlite` (all tables), generates and stores `APP_KEY`,
+and creates the first admin account from the form you fill in.
 
-To build without interactive prompts:
-
-```
-build-deploy.bat /init yourusername s3cret     rem explicit credentials
-build-deploy.bat /no-prompt                    rem silent, uses janathan / 1234
-```
-
-You can also add more admins later via cPanel **Terminal** / SSH:
-
-```
-php bin/init.php yourusername
-```
+The wizard enforces a username matching `[a-zA-Z0-9._-]+` and a password of
+4+ characters.
 
 ## Re-deploying over an existing installation
 
-Every build mints a **fresh empty database**. On a re-deploy that must keep
-existing data (saved routers, hotspot users), copy your current `database/`
+Every build assembles a package **without** a database. On a re-deploy that must
+keep existing data (saved routers, hotspot users), copy your current `database/`
 folder from the previous install over the new package — changing `APP_KEY`
 would make all previously stored router passwords undecryptable. (`config/app.php`
 ships with the package; edit it directly if you need different settings.)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Fame1302\Janathan\Services\FlashService;
 use Fame1302\Janathan\Services\TranslationService;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 use Slim\Factory\AppFactory;
 use Twig\Environment;
@@ -29,10 +30,20 @@ return [
         AppFactory::setContainer($container);
         $app = AppFactory::create();
         $app->setBasePath($basePath);
-        $app->addErrorMiddleware(
+        $errorMiddleware = $app->addErrorMiddleware(
             (bool) config('APP_DEBUG', false),
             true,
             true
+        );
+        $errorMiddleware->setDefaultErrorHandler(
+            function (Request $request, \Throwable $exception, bool $displayErrorDetails, bool $logErrors, bool $logErrorDetails) use ($app) {
+                if ($exception instanceof \Slim\Exception\HttpNotFoundException) {
+                    $url = $app->getRouteCollector()->getRouteParser()->urlFor('home');
+                    return (new \Slim\Psr7\Response())->withHeader('Location', $url)->withStatus(302);
+                }
+                $defaultHandler = new \Slim\Handlers\ErrorHandler($app);
+                return $defaultHandler($request, $exception, $displayErrorDetails, $logErrors, $logErrorDetails);
+            }
         );
         return $app;
     },

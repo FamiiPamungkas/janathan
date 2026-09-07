@@ -33,18 +33,21 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 /templates          - Twig templates (layout.twig base, partials/, pages/)
 /routes             - web.php (single file, grouped by feature)
 /resources          - lang/ (en.php, id.php), voucher_template.html (default)
-/bin               - init.php, lint-templates.php, test-dashboard-queries.php, gen-apple-icon.php
+/bin               - lint-templates.php, test-dashboard-queries.php, gen-apple-icon.php
 /tests             - PHPUnit tests (phpunit.xml configured)
 /scripts           - copy-phosphor.mjs, README-DEPLOY.md
 database/          - SQLite storage (gitignored)
 build-deploy.bat   - Windows production build script
+Dockerfile         - multi-stage Docker image (php:8.3-apache)
+docker-compose.yml - single-container compose (DB volume + session tmpfs)
+.dockerignore      - excludes vendored/build artifacts from the image
 config/app.php     - committed app config (source file, no secrets)
 ```
 
 ## Setup
 1. `composer install && npm install`
 2. Review `config/app.php` (a committed source file). Set `APP_BASE_PATH` (e.g. `/janathan`) if installing in a sub-folder of the web root, or leave empty when the document root points at `public/`.
-3. Create the SQLite database + first admin user: `php bin/init.php <username> [password]` (prompts for password if omitted). DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored). Alternatively, access the app in a browser — the web-based setup wizard will guide you through creating the admin account and generating `APP_KEY`.
+3. Create the SQLite database + first admin user: access the app in a browser — the web-based setup wizard will guide you through creating the admin account and generating `APP_KEY`. DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored).
 4. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
 5. Build assets:
    ```bash
@@ -57,6 +60,16 @@ config/app.php     - committed app config (source file, no secrets)
 - `npm run build:css` → `npx @tailwindcss/cli -i ./public/css/index.css -o ./public/css/app.css --minify`
 - `npm run build:js` → `npx esbuild public/js/index.js --bundle --minify --outfile=public/js/app.js`
 - `npm run build:icons` → `node scripts/copy-phosphor.mjs` (copies Phosphor fonts from node_modules to public/fonts/phosphor/)
+
+## Docker
+- Single `php:8.3-apache` container; web root `/app/public` (so `APP_BASE_PATH` stays empty in the baked `config/app.php`).
+- Multi-stage build: **node:20** compiles Tailwind/esbuild/Phosphor into `public/`, **composer:2** installs prod deps, **php:8.3-apache** assembles the image.
+- `APP_DEBUG` is baked via build ARG (default `false`): `docker-compose build --build-arg APP_DEBUG=true`. The committed `config/app.php` is untouched — the value is swapped with `sed` inside the image.
+- **Persistent volumes:** DB file → named volume at `/app/database`; PHP sessions → `tmpfs` at `/app/session` (session save path set via `/usr/local/etc/php/conf.d/zz-janathan.ini`).
+- **First boot:** no DB is shipped. Browsing to the app runs the web setup wizard (/ → /setup) which creates `database/janathan.sqlite`, generates/appends `APP_KEY`, and creates the admin. This uses the same DB-free PHP-DI bootstrap path as the host app.
+- Extensions ensured by the image: `pdo_sqlite` (via `docker-php-ext-install`); `openssl`, `mbstring`, `curl`, `sockets`, `json` come with the base image. Apache `mod_rewrite` is enabled for `public/.htaccess`.
+- Build/run: `docker-compose up -d --build`; host port via `JANATHAN_PORT` (default `8080`). Only the v1 `docker-compose` binary is available in this environment (no `docker compose` v2 plugin).
+- Docs for this path live in `README.md` → "Deploy with Docker"; it is separate from the Windows `build-deploy.bat` shared-hosting path.
 
 ## Dev Server
 - The dev server is run locally on **Windows** (Laragon) and is left running — **do not restart or re-run the project to verify changes**. To verify a change, WebFetch the app's dev URL to confirm the page loads without errors; discover the host/port from your local environment (do not assume a hostname).
@@ -101,7 +114,6 @@ config/app.php     - committed app config (source file, no secrets)
 ## Scripts
 | Script | Purpose |
 |--------|---------|
-| `php bin/init.php <user> [pw]` | Create/recreate SQLite schema + add admin user |
 | `php bin/test-dashboard-queries.php` | Benchmark dashboard RouterOS queries |
 | `php bin/lint-templates.php` | Syntax-check Twig templates |
 | `php bin/gen-apple-icon.php` | Generate apple-touch-icon.png |

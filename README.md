@@ -49,6 +49,7 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
 - Node/npm (only needed for building assets / local dev).
 - For shared hosting: Apache with mod_rewrite (or LiteSpeed); the optional
   root `.htaccess` enables sub-folder installs.
+- **For Docker:** Docker Engine + Docker Compose (see [Deploy with Docker](#deployment-docker)).
 
 ## Installation (local development)
 
@@ -64,30 +65,26 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
    - `APP_BASE_PATH` — leave empty when the document root points straight at
      `public/`; set it (e.g. `/janathan`) for sub-folder installs.
 
-3. Create the SQLite database and first admin user (or skip this step and use the web-based setup wizard):
-
-   ```bash
-   php bin/init.php <username> [password]
-   ```
-
-   (Prompts for a password when omitted. The DB file lives at `DB_PATH`,
-   default `database/janathan.sqlite`.)
-
-4. Serve the app. Point your web server's document root at `public/` (e.g. a
+3. Serve the app. Point your web server's document root at `public/` (e.g. a
    Laragon vhost), or for a quick test:
 
    ```bash
    php -S localhost:8000 -t public
    ```
 
-5. Build frontend assets (or use watch mode during development):
+   The first browser visit runs the web setup wizard (`/` → `/setup`), which
+   creates the SQLite database (at `DB_PATH`, default
+   `database/janathan.sqlite`), generates and stores `APP_KEY`, and creates the
+   first admin account.
+
+4. Build frontend assets (or use watch mode during development):
 
    ```bash
    npm run build      # one-off: icons + CSS + JS
    npm run dev        # watches CSS/JS and rebuilds on change
    ```
 
-6. Open the app in a browser, log in, and add a router. Then press
+5. Open the app in a browser, log in, and add a router. Then press
    **Connect** on it to start managing its hotspot.
 
 ## Deployment (shared hosting)
@@ -99,18 +96,63 @@ build-deploy.bat
 ```
 
 It assembles a production package at `dist\janathan/` (compiled assets,
-production-only Composer deps, an initialized SQLite database with an admin
-user and `APP_KEY`). Options: `/init <user> <pw>`, `/no-prompt`, `/nopause`.
+production-only Composer deps, no database — the web setup wizard creates it
+on the first browser visit).
 
 Upload that folder, point your document root at its `public/` directory, and
 ensure `database/` stays writable. The package also supports sub-folder
 installs via the included root `.htaccess`. See the full guide in
 `scripts/README-DEPLOY.md` (also shipped inside the package).
 
-> **Re-deploying:** every build mints a fresh database. To keep existing data,
+> **Re-deploying:** the build ships no database. To keep existing data,
 > copy your previous `database/` over the new package — changing
 > `APP_KEY` breaks all stored router passwords. (`config/app.php` ships with
 > the package as a committed source file.)
+
+## Deployment (Docker)
+
+A multi-stage `Dockerfile` builds a single `php:8.3-apache` container with the
+compiled frontend assets and production-only Composer dependencies. The web
+root is `/app/public` (so `APP_BASE_PATH` stays empty).
+
+Run it with Docker Compose:
+
+```bash
+docker-compose up -d --build
+```
+
+Then open `http://localhost:8080/`. On the first boot the app has no database,
+so browsing to the site takes you through the **web setup wizard** — it creates
+`database/janathan.sqlite`, generates and stores `APP_KEY`, and creates the
+first admin account.
+
+### Persistence & upgrades
+
+- The SQLite database (including `APP_KEY` and all saved routers) lives in a
+  named volume `database` mounted at `/app/database`. It survives container
+  rebuilds and `docker-compose down`, so upgrades don't lose data or corrupt
+  stored router passwords.
+- PHP sessions are held on an ephemeral `tmpfs` at `/app/session` and are
+  cleared on restart — as expected for sessions, nothing persisted there.
+- To back up, copy `database/janathan.sqlite` out of the volume; to restore,
+  place it back. Keep `APP_KEY` intact — changing it breaks stored passwords.
+
+### Useful options
+
+- **Change the host port:** `JANATHAN_PORT=9090 docker-compose up -d --build`
+  (default `8080`).
+- **Enable debug for local dev:**
+  ```bash
+  docker-compose build --build-arg APP_DEBUG=true
+  docker-compose up -d
+  ```
+  `APP_DEBUG` defaults to `false`.
+- **Rebuild assets/deps** after source changes: `docker-compose up -d --build`.
+- The container health-check hits `/` over HTTP; logs are visible with
+  `docker-compose logs -f janathan`.
+
+The Windows shared-hosting build (`build-deploy.bat`) is a separate path and is
+unaffected by the Docker setup.
 
 ## Configuration
 
@@ -136,8 +178,6 @@ credentials.
 
 ## Scripts
 
-- `php bin/init.php` — create/recreate the SQLite schema and add an admin user
-  (also usable to add more admins later).
 - `php bin/test-dashboard-queries.php` — exercise dashboard RouterOS queries.
 - `php bin/lint-templates.php` — syntax-check Twig templates.
 - `php bin/gen-apple-icon.php` — generate the apple-touch-icon.
