@@ -160,9 +160,13 @@ rem Ship only the compiled CSS/JS, not the Tailwind/esbuild sources.
 del /q "%DIST%\public\css\index.css" 2>nul
 del /q "%DIST%\public\js\index.js" 2>nul
 
-copy /y "%ROOT%composer.json"      "%DIST%\composer.json"      >nul
-copy /y "%ROOT%composer.lock"      "%DIST%\composer.lock"      >nul
-copy /y "%ROOT%.htaccess"          "%DIST%\.htaccess"          >nul
+copy /y "%ROOT%composer.json"        "%DIST%\composer.json"        >nul
+copy /y "%ROOT%composer.lock"        "%DIST%\composer.lock"        >nul
+copy /y "%ROOT%.htaccess"            "%DIST%\.htaccess"            >nul
+copy /y "%ROOT%Dockerfile"           "%DIST%\Dockerfile"           >nul
+copy /y "%ROOT%docker-compose.yml"   "%DIST%\docker-compose.yml"   >nul
+copy /y "%ROOT%docker-entrypoint.sh" "%DIST%\docker-entrypoint.sh" >nul
+copy /y "%ROOT%.dockerignore"        "%DIST%\.dockerignore"        >nul
 copy /y "%ROOT%scripts\README-DEPLOY.md" "%DIST%\README-DEPLOY.md" >nul
 
 rem Writable dir where the web setup wizard will create the SQLite DB
@@ -191,6 +195,9 @@ call :check "%DIST%\public\fonts\phosphor\style.css"
 call :check "%DIST%\public\.htaccess"
 call :check "%DIST%\.htaccess"
 call :check "%DIST%\config\app.php"
+call :check "%DIST%\Dockerfile"
+call :check "%DIST%\docker-compose.yml"
+call :check "%DIST%\docker-entrypoint.sh"
 if "%MISSING%"=="1" goto :fail
 
 echo.
@@ -202,6 +209,9 @@ echo  Database        : created on first visit by the web setup wizard
 echo                    (admin account + APP_KEY are set up there)
 echo  Next steps      : upload it, make sure "database" stays writable, open the site.
 echo                    (full guide: README-DEPLOY.md in the package)
+echo  Docker          : cd %DIST% ^&^& docker compose up -d --build
+echo                    (binds the package as a volume; edit docker-compose.yml
+echo                     for APP_BASE_PATH, DB_PATH, Mikrotik timeouts, port)
 echo.
 if not defined NOPAUSE pause
 exit /b 0

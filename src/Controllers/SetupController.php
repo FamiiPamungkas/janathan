@@ -7,16 +7,16 @@ namespace Fame1302\Janathan\Controllers;
 use Fame1302\Janathan\Services\FlashService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Slim\Psr7\Response as SlimResponse;
 use Slim\Routing\RouteContext;
 use Twig\Environment;
 
 class SetupController
 {
     public function __construct(
-        private Environment $twig,
+        private Environment  $twig,
         private FlashService $flash
-    ) {
+    )
+    {
     }
 
     public function show(Request $request, Response $response): Response
@@ -29,11 +29,11 @@ class SetupController
 
     public function install(Request $request, Response $response): Response
     {
-        $body = (array) $request->getParsedBody();
+        $body = (array)$request->getParsedBody();
 
-        $username = trim((string) ($body['username'] ?? ''));
-        $password = (string) ($body['password'] ?? '');
-        $passwordConfirm = (string) ($body['password_confirm'] ?? '');
+        $username = trim((string)($body['username'] ?? ''));
+        $password = (string)($body['password'] ?? '');
+        $passwordConfirm = (string)($body['password_confirm'] ?? '');
 
         $errors = [];
 
@@ -63,7 +63,10 @@ class SetupController
             return $response;
         }
 
-        $dbPath = dirname(__DIR__, 2) . '/database/janathan.sqlite';
+        $dbPath = (string)config('DB_PATH', 'database/janathan.sqlite');
+        if ($dbPath !== '' && !preg_match('#^([a-zA-Z]:[\\\\/]|/)#', $dbPath)) {
+            $dbPath = dirname(__DIR__, 2) . '/' . ltrim($dbPath, '/');
+        }
         $dbDir = dirname($dbPath);
 
         if (!is_dir($dbDir)) {
