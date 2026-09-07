@@ -29,3 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Twig templating with PSR-7 middleware pipeline (Slim 4 + PHP-DI).
 - SQLite storage (no MySQL/ORM required).
 - PHPUnit test suite.
+
+## [0.2.0] - 2026-09-07
+
+### Added
+- Display app version (`APP_VERSION`) in the footer.
