@@ -140,7 +140,7 @@ SemVer tags (`vX.Y.Z`), with the version mirrored in `config/app.php` (`APP_VERS
    git tag -a vX.Y.Z -m "vX.Y.Z"
    git push origin main && git push origin vX.Y.Z
    ```
-5. Bump `APP_VERSION` to the next dev value (e.g. `0.2.0`) in a follow-up commit and add a fresh `## [Unreleased]` section.
+5. Deployments come from `main`, so `APP_VERSION` on `main` must always reflect the version that will ship from a `main` deploy. Leave it at the just-released value after tagging; when the next dev cycle actually begins, bump it to the planned next version in the commit that starts the work and add a fresh `## [Unreleased]` section. Do **not** bump immediately after the tag — it would make `main` report an unreleased version to deployers.
 
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.
