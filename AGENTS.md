@@ -46,7 +46,7 @@ config/app.php     - committed app config (source file, no secrets)
 
 ## Setup
 1. `composer install && npm install`
-2. Review `config/app.php` (a committed source file). Set `APP_BASE_PATH` (e.g. `/janathan`) if installing in a sub-folder of the web root, or leave empty when the document root points at `public/`.
+2. Review `config/app.php` (a committed source file). Set `APP_BASE_PATH` (e.g. `/janathan`) if installing in a sub-folder of the web root, or leave empty when the document root points at `public/`. `APP_VERSION` (SemVer, no `v` prefix) is displayed in the footer; bump it on every release.
 3. Create the SQLite database + first admin user: access the app in a browser — the web-based setup wizard will guide you through creating the admin account and generating `APP_KEY`. DB lives at `DB_PATH` (default `database/janathan.sqlite`, gitignored).
 4. Point Laragon vhost (or `php -S localhost:8000 -t public`) to `/public`
 5. Build assets:
@@ -95,7 +95,7 @@ config/app.php     - committed app config (source file, no secrets)
 ## Twig Templates
 - Use `layout.twig` as base, with `content` and `scripts` blocks. Keep logic out of templates — pass pre-formatted data from controllers.
 - Registered Twig functions: `asset()`, `base_path()`, `url_for()`, `path_info()`, `flash()`, `trans()`.
-- Registered Twig globals: `locale`, `locales`, `current_user`, `routers`, `active_router`, `csrf_token`.
+- Registered Twig globals: `locale`, `locales`, `current_user`, `routers`, `active_router`, `csrf_token`, `app_version`.
 
 ## UI / Styling (Mobile-First + Pinemix)
 - **Mobile-first is mandatory for every UI change:** build the mobile layout first, then enhance with `sm:` / `md:` / `lg:` breakpoints. On mobile, tables become stacked cards (`md:hidden` card list + `hidden md:block` table), stat grids go `grid-cols-2` (or 1) before expanding, and tap targets stay touch-friendly.
@@ -126,6 +126,20 @@ config/app.php     - committed app config (source file, no secrets)
 composer test   # or: vendor/bin/phpunit
 ```
 PHPUnit 10, configured in `phpunit.xml`. Tests live in `tests/`.
+
+## Releasing
+
+SemVer tags (`vX.Y.Z`), with the version mirrored in `config/app.php` (`APP_VERSION`, no `v` prefix, displayed in the footer via the `app_version` Twig global).
+
+1. Update `CHANGELOG.md` under `## [Unreleased]` → `## [x.y.z] - <date>`.
+2. Bump `APP_VERSION` in `config/app.php` to match the tag (minus the `v`).
+3. Commit (`chore: release vX.Y.Z` style) and push `main`.
+4. Tag the release commit (annotated) and push the tag:
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin main && git push origin vX.Y.Z
+   ```
+5. Bump `APP_VERSION` to the next dev value (e.g. `0.2.0`) in a follow-up commit and add a fresh `## [Unreleased]` section.
 
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.

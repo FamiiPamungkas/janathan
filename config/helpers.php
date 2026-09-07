@@ -12,6 +12,7 @@ function config(string $key, mixed $default = null): mixed
         $envKeys = [
             'APP_DEBUG',
             'APP_NAME',
+            'APP_VERSION',
             'APP_BASE_PATH',
             'DB_PATH',
             'MIKROTIK_TIMEOUT',

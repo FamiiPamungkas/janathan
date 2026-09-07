@@ -99,6 +99,7 @@ return [
         }));
         $twig->addGlobal('locale', $translator->getLocale());
         $twig->addGlobal('locales', $translator->getAvailable());
+        $twig->addGlobal('app_version', (string) config('APP_VERSION', 'dev'));
 
         return $twig;
     },
