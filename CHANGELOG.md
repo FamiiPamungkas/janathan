@@ -1,0 +1,31 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2026-09-07
+
+### Added
+
+- Authentication with session-based login and CSRF protection.
+- Router management — save, edit, delete, and test Mikrotik connections with AES-256-GCM encrypted credentials.
+- Dashboard with live router status, resource usage, and system log.
+- Hotspot user management — list, create, edit, enable/disable, delete users.
+- Voucher generation, printing, and export (single and batch).
+- Bulk user generation from price/validity input.
+- Active session monitoring with per-session removal.
+- Hotspot IP bindings (by-mac/by-ip), hosts, and cookies management.
+- Hotspot profile import and management (price, color, IDR currency).
+- Voucher template editor with print preview.
+- Localization — English and Indonesian with in-app language switcher.
+- Web-based setup wizard for first boot (auto-creates database, APP_KEY, and admin).
+- Docker deployment with multi-stage build and persistent volumes.
+- Shared hosting deployment via `build-deploy.bat`.
+- Phosphor Icons webfont.
+- Pinemix UI components.
+- Mobile-first responsive layout with dark mode support.
+- Twig templating with PSR-7 middleware pipeline (Slim 4 + PHP-DI).
+- SQLite storage (no MySQL/ORM required).
+- PHPUnit test suite.
