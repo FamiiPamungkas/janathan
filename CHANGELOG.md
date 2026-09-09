@@ -41,4 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-list comment filter groups by the base comment (auto-stamped `exp=` token stripped) and matches with a prefix query.
 - Long hotspot user comments wrap onto multiple lines instead of being truncated.
-## [Unreleased]
+## [0.4.0] - 2026-09-09
+
+### Added
+
+- User list checkbox selection — replaces comment-based batch operations; supports select-all, individual toggle, and count display.
+- Batch delete selected users — delete multiple users at once with an option to include connected users (uptime > 0).
+- Batch reset traffic counters — reset bytes in/out for multiple selected users at once.
+- User detail modal — eye icon opens a modal showing full user info: account (name, profile, status), password (with show/hide toggle), server, MAC address, traffic limits, uptime, and bytes transferred. Mobile uses a bottom-sheet layout; desktop uses a centered dialog.
+- Single-user confirmation modals — reset counter and delete (single) now use in-page modals instead of browser `window.confirm()`.
+
+### Changed
+
+- Comment-based batch operations (delete by comment, print by comment) removed in favor of checkbox-based selection.
