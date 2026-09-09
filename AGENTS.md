@@ -38,6 +38,7 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 /scripts           - copy-phosphor.mjs, README-DEPLOY.md
 database/          - SQLite storage (gitignored)
 build-deploy.bat   - Windows production build script
+build-deploy.sh    - Linux production build script (outputs dist/janathan.zip)
 Dockerfile         - multi-stage Docker image (php:8.3-apache)
 docker-compose.yml - single-container compose (DB volume + session tmpfs)
 .dockerignore      - excludes vendored/build artifacts from the image
@@ -69,11 +70,11 @@ config/app.php     - committed app config (source file, no secrets)
 - **First boot:** no DB is shipped. Browsing to the app runs the web setup wizard (/ → /setup) which creates `database/janathan.sqlite`, generates/appends `APP_KEY`, and creates the admin. This uses the same DB-free PHP-DI bootstrap path as the host app.
 - Extensions ensured by the image: `pdo_sqlite` (via `docker-php-ext-install`); `openssl`, `mbstring`, `curl`, `sockets`, `json` come with the base image. Apache `mod_rewrite` is enabled for `public/.htaccess`.
 - Build/run: `docker-compose up -d --build`; host port via `JANATHAN_PORT` (default `8080`). Only the v1 `docker-compose` binary is available in this environment (no `docker compose` v2 plugin).
-- Docs for this path live in `README.md` → "Deploy with Docker"; it is separate from the Windows `build-deploy.bat` shared-hosting path.
+- Docs for this path live in `README.md` → "Deploy with Docker"; it is separate from the `build-deploy.bat` (Windows) / `build-deploy.sh` (Linux) shared-hosting paths.
 
 ## Dev Server
 - The dev server is run locally on **Windows** (Laragon/Docker) and is left running — **do not restart or re-run the project to verify changes**. To verify a change, read `APP_URL` from the project-local `.env` and WebFetch it to confirm the page loads without errors. If WebFetch cannot reach the LAN host, fall back to `curl` from WSL against the Windows host IP.
-- **`.env` is for AI verification only.** The app never loads it: there is no dotenv loader (`composer.json` has none) and config loads from `config/app.php`; `config()` in `config/helpers.php` reads a fixed `getenv` whitelist (`APP_DEBUG`, `APP_NAME`, `APP_VERSION`, `APP_BASE_PATH`, `DB_PATH`, MIKROTIK_*`, `APP_KEY`) that does **not** include `APP_URL`. Never `source` `.env` into the environment (it would leak those keys into `getenv`), and never copy it into a deploy package (`build-deploy.bat` and the Docker build do not ship it).
+- **`.env` is for AI verification only.** The app never loads it: there is no dotenv loader (`composer.json` has none) and config loads from `config/app.php`; `config()` in `config/helpers.php` reads a fixed `getenv` whitelist (`APP_DEBUG`, `APP_NAME`, `APP_VERSION`, `APP_BASE_PATH`, `DB_PATH`, MIKROTIK_*`, `APP_KEY`) that does **not** include `APP_URL`. Never `source` `.env` into the environment (it would leak those keys into `getenv`), and never copy it into a deploy package (`build-deploy.bat`/`build-deploy.sh` and the Docker build do not ship it).
 - **PHP syntax checks run on Windows, not WSL:** PHP executes via Laragon on Windows — do NOT first check for or try to install a Linux/WSL PHP. To lint a file, invoke the Laragon PHP binary directly, e.g. `/mnt/c/laragon/bin/php/php-<version>-Win32-vs16-x64/php.exe -l path/to/file.php` (pick whichever version dir currently exists under `/mnt/c/laragon/bin/php/`).
 
 ## Coding Conventions
@@ -121,6 +122,7 @@ config/app.php     - committed app config (source file, no secrets)
 | `npm run build` | Compile icons + CSS + JS |
 | `npm run dev` | Watch mode for CSS/JS |
 | `build-deploy.bat` | Windows production build (see `scripts/README-DEPLOY.md`) |
+| `build-deploy.sh`  | Linux production build + zip output (see `scripts/README-DEPLOY.md`) |
 
 ## Testing
 ```bash

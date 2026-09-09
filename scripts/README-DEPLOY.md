@@ -1,6 +1,6 @@
 # Janathan » Deployment Guide (Shared Hosting)
 
-This package was produced by `build-deploy.bat` and is ready to upload.
+This package was produced by `build-deploy.bat` (Windows) or `build-deploy.sh` (Linux) and is ready to upload.
 Slim's front controller lives in `public/` and the Apache `.htaccess` there
 already routes all requests to it.
 

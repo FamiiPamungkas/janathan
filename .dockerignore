@@ -19,6 +19,7 @@ database/
 # Build / deploy artifacts
 dist/
 build-deploy.bat
+build-deploy.sh
 *.bat
 
 # Tests, docs, misc

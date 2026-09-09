@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-list comment filter groups by the base comment (auto-stamped `exp=` token stripped) and matches with a prefix query.
 - Long hotspot user comments wrap onto multiple lines instead of being truncated.
+## [0.5.0] - 2026-09-09
+
+### Added
+- Linux build & deploy script (`build-deploy.sh`) with zip output, `--basepath`, and `--nopause` options.
+
 ## [0.4.0] - 2026-09-09
 
 ### Added
