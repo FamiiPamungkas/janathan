@@ -160,6 +160,7 @@ return [
         'save_changes' => 'Save changes',
         'cancel' => 'Cancel',
         'close' => 'Close',
+        'detail' => 'Detail',
         'users' => [
             'title' => 'User List - Hotspot - Janathan',
             'heading' => 'User List',
@@ -219,6 +220,13 @@ return [
             'print_title' => 'Print user voucher',
             'print_help' => 'Choose a voucher template for {name}',
             'remove_confirm' => 'Remove user "{name}"?',
+            'detail_title' => 'User Detail',
+            'server' => 'Server',
+            'mac_address' => 'MAC Address',
+            'limit_in' => 'Limit In',
+            'limit_out' => 'Limit Out',
+            'no_limit' => 'No limit',
+            'password' => 'Password',
             'flash' => [
                 'print_reach_error' => 'Cannot reach the router to print this user.',
                 'not_found' => 'User not found.',

@@ -219,6 +219,49 @@ readonly class HotspotService
     }
 
     /**
+     * Fetch full user details including password for the detail modal.
+     *
+     * @return array|null Full user data or null if not found
+     */
+    public function getUserDetail(int $routerId, string $id): ?array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $user = $client->getHotspotUser($id);
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        if ($user === null) {
+            return null;
+        }
+
+        $expiry = $this->parseExpiry((string)($user['comment'] ?? ''));
+        $now = date('Y-m-d H:i:s');
+
+        return [
+            'id' => $user['.id'] ?? '',
+            'name' => $user['name'] ?? '',
+            'profile' => $user['profile'] ?? '',
+            'comment' => $user['comment'] ?? '',
+            'disabled' => $this->isYes($user['disabled'] ?? null),
+            'password' => $user['password'] ?? '',
+            'server' => $user['server'] ?? '',
+            'mac_address' => $user['mac-address'] ?? '',
+            'limit_bytes_in' => $user['limit-bytes-in'] ?? '',
+            'limit_bytes_out' => $user['limit-bytes-out'] ?? '',
+            'uptime' => $this->formatUptime((string)($user['uptime'] ?? '')),
+            'bytes_in' => $this->formatBytes((int)($user['bytes-in'] ?? 0)),
+            'bytes_out' => $this->formatBytes((int)($user['bytes-out'] ?? 0)),
+            'neverConnected' => $this->isUptimeZero((string)($user['uptime'] ?? '')),
+            'expires_at' => $expiry,
+            'expired' => $expiry !== null && $expiry <= $now,
+        ];
+    }
+
+    /**
      * @throws RuntimeException When the router cannot be reached or rejects the command.
      */
     public function createUser(int $routerId, array $values): void

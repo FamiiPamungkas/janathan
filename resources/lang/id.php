@@ -160,6 +160,7 @@ return [
         'save_changes' => 'Simpan perubahan',
         'cancel' => 'Batal',
         'close' => 'Tutup',
+        'detail' => 'Detail',
         'users' => [
             'title' => 'Daftar Pengguna - Hotspot - Janathan',
             'heading' => 'Daftar Pengguna',
@@ -219,6 +220,13 @@ return [
             'print_title' => 'Cetak voucher pengguna',
             'print_help' => 'Pilih templat voucher untuk {name}',
             'remove_confirm' => 'Hapus pengguna "{name}"?',
+            'detail_title' => 'Detail Pengguna',
+            'server' => 'Server',
+            'mac_address' => 'Alamat MAC',
+            'limit_in' => 'Batas Masuk',
+            'limit_out' => 'Batas Keluar',
+            'no_limit' => 'Tanpa batas',
+            'password' => 'Kata Sandi',
             'flash' => [
                 'print_reach_error' => 'Tidak dapat menjangkau router untuk mencetak pengguna ini.',
                 'not_found' => 'Pengguna tidak ditemukan.',

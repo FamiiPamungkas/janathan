@@ -58,6 +58,7 @@ return function (App $app): void {
 
             $app->get('/users/create', HotspotController::class . ':showCreateUser')->setName('hotspot.users.create');
             $app->post('/users', HotspotController::class . ':createUser')->setName('hotspot.users.store');
+            $app->get('/users/{id}/data', HotspotController::class . ':userData')->setName('hotspot.users.data');
             $app->get('/users/{id}/edit', HotspotController::class . ':showEditUser')->setName('hotspot.users.edit');
             $app->post('/users/{id}/edit', HotspotController::class . ':updateUser')->setName('hotspot.users.update');
             $app->post('/users/{id}/delete', HotspotController::class . ':deleteUser')->setName('hotspot.users.delete');

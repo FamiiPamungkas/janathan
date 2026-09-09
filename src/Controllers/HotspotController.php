@@ -61,6 +61,28 @@ class HotspotController
         return $response;
     }
 
+    public function userData(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        try {
+            $user = $this->hotspot->getUserDetail((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+
+        if ($user === null) {
+            $response->getBody()->write(json_encode(['error' => 'User not found.']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        }
+
+        $response->getBody()->write(json_encode($user, JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
     public function activeUsers(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

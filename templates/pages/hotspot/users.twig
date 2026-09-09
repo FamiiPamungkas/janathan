@@ -164,6 +164,7 @@
     printManyModal: false, deleteManyModal: false, resetManyModal: false,
     deleteUserId: null, deleteUserName: '', deleteUserModal: false,
     resetUserId: null, resetUserName: '', resetUserModal: false,
+    detailModal: false, detailUser: null, detailLoading: false, showPassword: false,
     selected: [],
     allIds: {{ allIds|default('[]') }},
     neverIds: {{ neverIds|default('[]') }},
@@ -173,7 +174,17 @@
     get connectedSelected() { return this.selected.filter(id => !this.neverIds.includes(id)).length },
     toggleAll() { this.selected = this.allSelected ? [] : [...this.allIds] },
     toggle(id) { this.selected = this.selected.includes(id) ? this.selected.filter(i => i !== id) : [...this.selected, id] },
-    isSelected(id) { return this.selected.includes(id) }
+    isSelected(id) { return this.selected.includes(id) },
+    openDetail(id) {
+        this.detailUser = null;
+        this.detailLoading = true;
+        this.detailModal = true;
+        this.showPassword = false;
+        fetch('{{ url_for("hotspot.users.data", {id: "__ID__"}) }}'.replace('__ID__', id))
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(data => { this.detailUser = data; this.detailLoading = false; })
+            .catch(() => { this.detailLoading = false; this.detailModal = false; });
+    }
 }">
 <!-- Hidden batch forms -->
 <form x-ref="deleteManyForm" method="post" action="{{ url_for('hotspot.users.deleteSelected') }}" class="hidden">
@@ -247,6 +258,10 @@
             </div>
         </dl>
         <div class="mt-4 flex items-center gap-2">
+            <button type="button" title="{{ trans('hotspot.detail') }}" @click="openDetail('{{ user.id|e('js') }}')"
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <i class="ph ph-eye text-xl" aria-hidden="true"></i>
+            </button>
             <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
             </a>
@@ -318,6 +333,10 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
+                            <button type="button" title="{{ trans('hotspot.detail') }}" @click="openDetail('{{ user.id|e('js') }}')"
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <i class="ph ph-eye text-xl" aria-hidden="true"></i>
+                            </button>
                             <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                             </a>
@@ -543,6 +562,148 @@
                 <i class="ph ph-trash text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.delete_users_btn') }}
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- User detail modal -->
+<div
+    x-cloak
+    x-show="detailModal"
+    x-trap.inert.noscroll="detailModal"
+    @keydown.escape.window="detailModal = false"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    :aria-hidden="!detailModal"
+    tabindex="-1"
+    role="dialog"
+    class="fixed inset-0 z-50 overflow-x-hidden overflow-y-auto bg-zinc-900/75 p-4 backdrop-blur-xs will-change-auto lg:p-8"
+>
+    <div
+        x-show="detailModal"
+        x-on:click.away="detailModal = false"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 scale-90 -translate-y-full"
+        x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+        x-transition:leave-end="opacity-0 scale-125 translate-y-full"
+        role="document"
+        class="mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl will-change-auto dark:bg-zinc-800 dark:text-zinc-100"
+    >
+        <div class="flex items-center justify-between bg-zinc-50 px-5 py-4 dark:bg-zinc-700/20">
+            <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.detail_title') }}</h2>
+            <button type="button" @click="detailModal = false"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-transparent dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/50 dark:active:border-zinc-700"
+                title="{{ trans('hotspot.close') }}">
+                <i class="ph ph-x text-base" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="max-h-[70vh] overflow-y-auto p-5">
+            <div x-show="detailLoading" class="flex items-center justify-center gap-2 py-12 text-sm text-zinc-500 dark:text-zinc-400">
+                <i class="ph ph-spinner animate-spin text-xl" aria-hidden="true"></i>
+            </div>
+            <template x-if="detailUser">
+                <div>
+                    <!-- Account section -->
+                    <div class="flex items-center gap-4">
+                        <div class="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-teal-50 text-xl font-bold text-teal-600 dark:bg-teal-500/10 dark:text-teal-300" x-text="(detailUser.name || '?')[0].toUpperCase()"></div>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-lg font-bold text-zinc-900 dark:text-zinc-100" x-text="detailUser.name"></p>
+                            <p class="truncate text-sm text-zinc-500 dark:text-zinc-400" x-text="detailUser.profile || '—'"></p>
+                        </div>
+                        <div>
+                            <template x-if="detailUser.expired && !detailUser.disabled">
+                                <span class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-500/15 dark:text-red-300">{{ trans('hotspot.users.expired') }}</span>
+                            </template>
+                            <template x-if="detailUser.disabled">
+                                <span class="inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">{{ trans('hotspot.status_disabled') }}</span>
+                            </template>
+                            <template x-if="!detailUser.expired && !detailUser.disabled">
+                                <span class="inline-flex items-center rounded-md bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">{{ trans('hotspot.status_enabled') }}</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-700/20">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.password') }}</span>
+                            <button type="button" @click="showPassword = !showPassword"
+                                class="inline-flex items-center justify-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-800 dark:border-zinc-600 dark:bg-transparent dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
+                                :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                                <i class="ph text-sm" :class="showPassword ? 'ph-eye-slash' : 'ph-eye'" aria-hidden="true"></i>
+                                <span x-text="showPassword ? 'Hide' : 'Show'"></span>
+                            </button>
+                        </div>
+                        <p class="mt-1.5 font-mono text-sm text-zinc-900 dark:text-zinc-100">
+                            <span x-show="!showPassword">••••••••</span>
+                            <span x-show="showPassword" x-text="detailUser.password" class="break-all"></span>
+                        </p>
+                    </div>
+
+                    <!-- Details section -->
+                    <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.detail_title') }}</p>
+                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_comment') }}</dt>
+                                <dd class="mt-0.5 text-sm text-zinc-900 break-words dark:text-zinc-100" x-text="detailUser.comment || '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_expires') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.expires_at || '—'"></dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.server') }}</dt>
+                                <dd class="mt-0.5 text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.server || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <!-- Connection section -->
+                    <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.mac_address') }}</p>
+                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.mac_address') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.mac_address || '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_in') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_bytes_in || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_out') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_bytes_out || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <!-- Traffic section -->
+                    <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_uptime') }}</p>
+                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_uptime') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.uptime || '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_bytes_in') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.bytes_in"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_bytes_out') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.bytes_out"></dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </div>
