@@ -350,74 +350,26 @@ readonly class HotspotService
     }
 
     /**
-     * Bulk-remove hotspot users matching the given list filters (comment + the
-     * other active filters). When `$includeActive` is false, only users that
-     * have never connected (uptime still zero) are removed; when true, every
-     * matched user is removed regardless of uptime.
+     * Fetch specific hotspot users (by their RouterOS record ids), each with
+     * its plaintext password, plus a map of profile metadata keyed by profile
+     * name. Used to render a combined voucher sheet for the checkbox-selected
+     * users on the user list page.
      *
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
-     * @return array{deleted: int, skipped: int}
-     * @throws RuntimeException When the router cannot be reached.
-     */
-    public function deleteUsersByComment(int $routerId, array $filters, bool $includeActive): array
-    {
-        /** @var $client RouterosClient */
-        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
-
-        try {
-            $rows = $client->getHotspotUsers();
-            $hotspotAvailable = $client->isHotspotAvailable();
-        } catch (Throwable $e) {
-            throw $this->unreachable($router, $e);
-        }
-
-        if (!$hotspotAvailable) {
-            return ['deleted' => 0, 'skipped' => 0];
-        }
-
-        $normalized = $this->normalizeUserListFilters($filters);
-        $built = $this->applyUserListFilters($this->buildUsers($rows), $normalized);
-
-        $deleted = 0;
-        $skipped = 0;
-
-        try {
-            foreach ($built as $user) {
-                if (($user['name'] ?? '') === 'default-trial') {
-                    continue;
-                }
-
-                if (!$includeActive && empty($user['neverConnected'])) {
-                    $skipped++;
-
-                    continue;
-                }
-
-                $client->removeHotspotUser((string)($user['id'] ?? ''));
-                $deleted++;
-            }
-        } catch (RouterosCommandException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            throw $this->unreachable($router, $e);
-        }
-
-        return ['deleted' => $deleted, 'skipped' => $skipped];
-    }
-
-    /**
-     * Fetch every user matching the given list filters (comment + others),
-     * each with its plaintext password, plus a map of profile metadata keyed
-     * by profile name. Used to render a combined voucher sheet for printing.
-     *
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @param list<string> $userIds
      * @return array{
      *     users: list<array{id: string, name: string, profile: string, comment: string, disabled: bool, password: string}>,
      *     profiles: array<string, array{name: string, color: string, price: string}>
      * }
+     * @throws RuntimeException When the router cannot be reached.
      */
-    public function getUsersForPrint(int $routerId, array $filters = []): array
+    public function getUsersForPrintByIds(int $routerId, array $userIds): array
     {
+        $userIds = array_values(array_filter(array_map('strval', $userIds)));
+
+        if ($userIds === []) {
+            return ['users' => [], 'profiles' => []];
+        }
+
         /** @var $client RouterosClient */
         [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
 
@@ -429,9 +381,6 @@ readonly class HotspotService
             throw $this->unreachable($router, $e);
         }
 
-        $normalized = $this->normalizeUserListFilters($filters);
-        $built = $this->buildUsers($rows);
-
         $profileMap = [];
         foreach ($this->profiles->mergeMeta($routerId, $profileRows, $hotspotAvailable) as $p) {
             $profileMap[(string)$p['name']] = [
@@ -441,30 +390,27 @@ readonly class HotspotService
             ];
         }
 
-        $filtered = $this->applyUserListFilters($built, $normalized);
+        $wanted = array_flip($userIds);
 
         $users = [];
-        foreach ($filtered as $u) {
-            if (($u['name'] ?? '') === 'default-trial') {
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
                 continue;
             }
 
-            $userId = $u['id'] ?? '';
-            $password = '';
-            foreach ($rows as $row) {
-                if (($row['.id'] ?? '') === $userId) {
-                    $password = (string)($row['password'] ?? '');
-                    break;
-                }
+            $userId = (string)($row['.id'] ?? '');
+
+            if (($row['name'] ?? '') === 'default-trial' || !isset($wanted[$userId])) {
+                continue;
             }
 
             $users[] = [
                 'id' => $userId,
-                'name' => $u['name'] ?? '',
-                'profile' => $u['profile'] ?? '',
-                'comment' => $u['comment'] ?? '',
-                'disabled' => (bool)($u['disabled'] ?? false),
-                'password' => $password,
+                'name' => (string)($row['name'] ?? ''),
+                'profile' => (string)($row['profile'] ?? ''),
+                'comment' => (string)($row['comment'] ?? ''),
+                'disabled' => $this->isYes($row['disabled'] ?? null),
+                'password' => (string)($row['password'] ?? ''),
             ];
         }
 
@@ -472,6 +418,139 @@ readonly class HotspotService
             'users' => $users,
             'profiles' => $profileMap,
         ];
+    }
+
+    /**
+     * Remove a list of hotspot users by their RouterOS record ids.
+     *
+     * @param list<string> $userIds
+     * @return int Number of users actually removed.
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function deleteUsersByIds(int $routerId, array $userIds): int
+    {
+        $userIds = array_values(array_filter(array_map('strval', $userIds)));
+
+        if ($userIds === []) {
+            return 0;
+        }
+
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $ids = $this->idsExcludingDefaultTrial($userIds, $rows);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        $deleted = 0;
+
+        try {
+            foreach ($ids as $id) {
+                $client->removeHotspotUser($id);
+                $deleted++;
+            }
+        } catch (RouterosCommandException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Reset the traffic counters (bytes in/out) for a list of hotspot users.
+     *
+     * @param list<string> $userIds
+     * @return int Number of users whose counters were reset.
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function resetCounters(int $routerId, array $userIds): int
+    {
+        $userIds = array_values(array_filter(array_map('strval', $userIds)));
+
+        if ($userIds === []) {
+            return 0;
+        }
+
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $ids = $this->idsExcludingDefaultTrial($userIds, $rows);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        $reset = 0;
+
+        try {
+            foreach ($ids as $id) {
+                $client->resetHotspotUserCounters($id);
+                $reset++;
+            }
+        } catch (RouterosCommandException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        return $reset;
+    }
+
+    /**
+     * Reset the traffic counters for a single hotspot user.
+     *
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function resetUserCounter(int $routerId, string $id): void
+    {
+        $this->write(
+            $this->routers,
+            $this->connections,
+            $routerId,
+            fn(RouterosClient $client) => $client->resetHotspotUserCounters($id)
+        );
+    }
+
+    /**
+     * Drop the `default-trial` record id from a user-id selection.
+     *
+     * @param list<string> $userIds
+     * @return list<string>
+     */
+    private function idsExcludingDefaultTrial(array $userIds, array $rows): array
+    {
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if (($row['name'] ?? '') === 'default-trial') {
+                $trialId = (string)($row['.id'] ?? '');
+
+                return array_values(array_filter(
+                    $userIds,
+                    static fn(string $id): bool => $id !== $trialId
+                ));
+            }
+        }
+
+        return $userIds;
     }
 
     /**

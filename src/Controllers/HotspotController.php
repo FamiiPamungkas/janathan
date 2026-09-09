@@ -55,14 +55,6 @@ class HotspotController
 
         $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
 
-        $deleteStats = ['total' => count($data['users']), 'neverConnected' => 0];
-        foreach ($data['users'] as $u) {
-            if (!empty($u['neverConnected'])) {
-                $deleteStats['neverConnected']++;
-            }
-        }
-        $data['deleteStats'] = $deleteStats;
-
         $html = $this->twig->render('pages/hotspot/users.twig', $data);
         $response->getBody()->write($html);
 
@@ -573,22 +565,19 @@ class HotspotController
 
         $routerId = (int)$_SESSION['router_id'];
         $params = $request->getQueryParams();
-        $filters = [
-            'q' => isset($params['q']) ? trim((string)$params['q']) : '',
-            'profile' => isset($params['profile']) ? trim((string)$params['profile']) : '',
-            'comment' => isset($params['comment']) ? trim((string)$params['comment']) : '',
-            'status' => isset($params['status']) ? trim((string)$params['status']) : 'all',
-        ];
+        $ids = isset($params['ids']) && is_array($params['ids'])
+            ? array_values(array_filter(array_map('strval', $params['ids'])))
+            : [];
         $templateId = (string)($params['template'] ?? '0');
 
-        if ($filters['comment'] === '') {
-            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_comment_required'));
+        if ($ids === []) {
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_no_users_selected'));
 
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
         try {
-            $result = $this->hotspot->getUsersForPrint($routerId, $filters);
+            $result = $this->hotspot->getUsersForPrintByIds($routerId, $ids);
         } catch (\Throwable $e) {
             $this->flash->add('error', $this->translator->trans('hotspot.users.flash.print_reach_error_many'));
 
@@ -605,9 +594,9 @@ class HotspotController
         $template = $useDefault ? null : $this->templates->find((int)$templateId);
 
         if ($template === null) {
-            $html = $this->voucherRenderer->renderUsersDefault($result['users'], $result['profiles'], $filters['comment']);
+            $html = $this->voucherRenderer->renderUsersDefault($result['users'], $result['profiles']);
         } else {
-            $html = $this->voucherRenderer->renderUsersCustom($template, $result['users'], $result['profiles'], $filters['comment']);
+            $html = $this->voucherRenderer->renderUsersCustom($template, $result['users'], $result['profiles']);
         }
 
         $html = preg_replace('#</body>#i', '<script>window.print();</script></body>', $html, 1) ?? $html;
@@ -955,51 +944,94 @@ class HotspotController
         return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
     }
 
-    public function deleteUsersByComment(Request $request, Response $response): Response
+    public function deleteUsers(Request $request, Response $response): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {
             return $redirect;
         }
 
         $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
-        $filters = [
-            'q' => isset($body['q']) ? trim((string)$body['q']) : '',
-            'profile' => isset($body['profile']) ? trim((string)$body['profile']) : '',
-            'comment' => isset($body['comment']) ? trim((string)$body['comment']) : '',
-            'status' => isset($body['status']) ? trim((string)$body['status']) : 'all',
-        ];
-        $includeActive = !empty($body['include_active']);
+        $ids = isset($body['user_ids']) && is_array($body['user_ids'])
+            ? array_values(array_filter(array_map('strval', $body['user_ids'])))
+            : [];
 
-        if ($filters['comment'] === '') {
-            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.delete_comment_required'));
+        if ($ids === []) {
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.delete_users_required'));
 
-            return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, $filters['comment'] !== '' ? $filters['comment'] : null);
+            return $this->redirectUsers($response, $request, null);
         }
 
         try {
-            $result = $this->hotspot->deleteUsersByComment((int)$_SESSION['router_id'], $filters, $includeActive);
+            $deleted = $this->hotspot->deleteUsersByIds((int)$_SESSION['router_id'], $ids);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, $filters['comment']);
+            return $this->redirectUsers($response, $request, null);
         }
 
-        if ($result['deleted'] > 0) {
-            $message = $this->translator->trans('hotspot.users.flash.deleted_by_comment', [
-                'count' => $result['deleted'],
-                'comment' => $filters['comment'],
-            ]);
-            if (!$includeActive && $result['skipped'] > 0) {
-                $message .= ' ' . $this->translator->trans('hotspot.users.flash.deleted_skipped', [
-                        'count' => $result['skipped'],
-                    ]);
-            }
-            $this->flash->add('success', $message);
+        if ($deleted > 0) {
+            $this->flash->add('success', $this->translator->trans('hotspot.users.flash.deleted_selected', ['count' => $deleted]));
         } else {
-            $this->flash->add('info', $this->translator->trans('hotspot.users.flash.deleted_none'));
+            $this->flash->add('info', $this->translator->trans('hotspot.users.flash.deleted_none_selected'));
         }
 
-        return $this->redirectUsers($response, $request, $filters['profile'] !== '' ? $filters['profile'] : null, null);
+        return $this->redirectUsers($response, $request, null);
+    }
+
+    public function resetCounters(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+        $ids = isset($body['user_ids']) && is_array($body['user_ids'])
+            ? array_values(array_filter(array_map('strval', $body['user_ids'])))
+            : [];
+
+        if ($ids === []) {
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.reset_users_required'));
+
+            return $this->redirectUsers($response, $request, null);
+        }
+
+        try {
+            $reset = $this->hotspot->resetCounters((int)$_SESSION['router_id'], $ids);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, null);
+        }
+
+        if ($reset > 0) {
+            $this->flash->add('success', $this->translator->trans('hotspot.users.flash.counters_reset', ['count' => $reset]));
+        } else {
+            $this->flash->add('info', $this->translator->trans('hotspot.users.flash.reset_none'));
+        }
+
+        return $this->redirectUsers($response, $request, null);
+    }
+
+    public function resetUserCounters(Request $request, Response $response, array $args): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = $request->getParsedBody();
+        $profile = is_array($body) ? trim((string)($body['profile'] ?? '')) : '';
+
+        try {
+            $this->hotspot->resetUserCounter((int)$_SESSION['router_id'], $args['id']);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+        }
+
+        $this->flash->add('success', $this->translator->trans('hotspot.users.flash.counter_reset'));
+
+        return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
     }
 
     private function renderUserForm(

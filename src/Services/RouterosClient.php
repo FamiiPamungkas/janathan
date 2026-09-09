@@ -206,6 +206,12 @@ class RouterosClient
         $this->assertNotTrap($result);
     }
 
+    public function resetHotspotUserCounters(string $id): void
+    {
+        $result = $this->writeQuery('/ip/hotspot/user/reset-counters', ['.id' => $id]);
+        $this->assertNotTrap($result);
+    }
+
     public function removeActiveUser(string $id): void
     {
         $result = $this->writeQuery('/ip/hotspot/active/remove', ['.id' => $id]);
