@@ -226,6 +226,7 @@ return [
             'limit_in' => 'Limit In',
             'limit_out' => 'Limit Out',
             'no_limit' => 'No limit',
+            'any_server' => 'Any',
             'password' => 'Password',
             'flash' => [
                 'print_reach_error' => 'Cannot reach the router to print this user.',

@@ -226,6 +226,7 @@ return [
             'limit_in' => 'Batas Masuk',
             'limit_out' => 'Batas Keluar',
             'no_limit' => 'Tanpa batas',
+            'any_server' => 'Semua',
             'password' => 'Kata Sandi',
             'flash' => [
                 'print_reach_error' => 'Tidak dapat menjangkau router untuk mencetak pengguna ini.',
