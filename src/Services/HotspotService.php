@@ -423,16 +423,20 @@ readonly class HotspotService
     /**
      * Remove a list of hotspot users by their RouterOS record ids.
      *
+     * When `$includeActive` is false, users that have connected at least once
+     * (uptime > 0) are kept and counted into `skipped`; only accounts that
+     * never connected (uptime 0) are removed.
+     *
      * @param list<string> $userIds
-     * @return int Number of users actually removed.
+     * @return array{deleted: int, skipped: int} Number of users removed / kept.
      * @throws RuntimeException When the router cannot be reached.
      */
-    public function deleteUsersByIds(int $routerId, array $userIds): int
+    public function deleteUsersByIds(int $routerId, array $userIds, bool $includeActive = false): array
     {
         $userIds = array_values(array_filter(array_map('strval', $userIds)));
 
         if ($userIds === []) {
-            return 0;
+            return ['deleted' => 0, 'skipped' => 0];
         }
 
         /** @var $client RouterosClient */
@@ -447,13 +451,29 @@ readonly class HotspotService
         $ids = $this->idsExcludingDefaultTrial($userIds, $rows);
 
         if ($ids === []) {
-            return 0;
+            return ['deleted' => 0, 'skipped' => 0];
+        }
+
+        $neverConnectedById = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $neverConnectedById[(string)($row['.id'] ?? '')] =
+                $this->isUptimeZero((string)($row['uptime'] ?? ''));
         }
 
         $deleted = 0;
+        $skipped = 0;
 
         try {
             foreach ($ids as $id) {
+                if (!$includeActive && empty($neverConnectedById[$id])) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 $client->removeHotspotUser($id);
                 $deleted++;
             }
@@ -463,7 +483,7 @@ readonly class HotspotService
             throw $this->unreachable($router, $e);
         }
 
-        return $deleted;
+        return ['deleted' => $deleted, 'skipped' => $skipped];
     }
 
     /**

@@ -954,6 +954,7 @@ class HotspotController
         $ids = isset($body['user_ids']) && is_array($body['user_ids'])
             ? array_values(array_filter(array_map('strval', $body['user_ids'])))
             : [];
+        $includeActive = !empty($body['include_active']);
 
         if ($ids === []) {
             $this->flash->add('error', $this->translator->trans('hotspot.users.flash.delete_users_required'));
@@ -962,15 +963,19 @@ class HotspotController
         }
 
         try {
-            $deleted = $this->hotspot->deleteUsersByIds((int)$_SESSION['router_id'], $ids);
+            $result = $this->hotspot->deleteUsersByIds((int)$_SESSION['router_id'], $ids, $includeActive);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
             return $this->redirectUsers($response, $request, null);
         }
 
-        if ($deleted > 0) {
-            $this->flash->add('success', $this->translator->trans('hotspot.users.flash.deleted_selected', ['count' => $deleted]));
+        if ($result['deleted'] > 0) {
+            $message = $this->translator->trans('hotspot.users.flash.deleted_selected', ['count' => $result['deleted']]);
+            if (!$includeActive && $result['skipped'] > 0) {
+                $message .= ' ' . $this->translator->trans('hotspot.users.flash.deleted_skipped', ['count' => $result['skipped']]);
+            }
+            $this->flash->add('success', $message);
         } else {
             $this->flash->add('info', $this->translator->trans('hotspot.users.flash.deleted_none_selected'));
         }
