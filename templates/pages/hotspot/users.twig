@@ -28,7 +28,7 @@
             {{ trans('hotspot.users.export') }}
         </button>
         {% endif %}
-        <a href="{{ url_for('hotspot.users.create') }}{% if profileFilter %}?profile={{ profileFilter|url_encode }}{% endif %}"
+        <a href="{{ url_for('hotspot.users.create') }}{{ filterQuery ? '?' ~ filterQuery : '' }}"
             class="inline-flex w-fit items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700">
             <i class="ph ph-plus text-base" aria-hidden="true"></i>
             {{ trans('hotspot.users.add') }}
@@ -201,8 +201,16 @@
     }
 }">
 <!-- Hidden batch forms -->
+{% set listQ = filters.q|default('') %}
+{% set listProfile = filters.profile|default('') %}
+{% set listComment = filters.comment|default('') %}
+{% set listStatus = filters.status|default('all') %}
 <form x-ref="deleteManyForm" method="post" action="{{ url_for('hotspot.users.deleteSelected') }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
     <input type="hidden" name="include_active" :value="includeActive ? '1' : ''">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
@@ -210,6 +218,10 @@
 </form>
 <form x-ref="resetManyForm" method="post" action="{{ url_for('hotspot.users.resetCounters') }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
     </template>
@@ -217,12 +229,18 @@
 <form x-ref="deleteUserForm" method="post" class="hidden"
     :action="`{{ url_for('hotspot.users.delete', {id: '__ID__'}) }}`.replace('__ID__', deleteUserId)">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
 </form>
 <form x-ref="resetUserForm" method="post" class="hidden"
     :action="`{{ url_for('hotspot.users.resetCounter', {id: '__ID__'}) }}`.replace('__ID__', resetUserId)">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    {% if profileFilter %}<input type="hidden" name="profile" value="{{ profileFilter }}">{% endif %}
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
 </form>
 
 <!-- Mobile: stacked cards -->
@@ -276,7 +294,7 @@
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <i class="ph ph-eye text-xl" aria-hidden="true"></i>
             </button>
-            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
             </a>
             <button type="button" title="{{ trans('hotspot.print') }}" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"
@@ -351,7 +369,7 @@
                                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                             </button>
-                            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
                                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                             </a>
                             <button type="button" title="{{ trans('hotspot.print') }}" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"

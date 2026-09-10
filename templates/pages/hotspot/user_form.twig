@@ -3,7 +3,7 @@
 {% block title %}{{ trans(isEdit ? 'hotspot.user_form.title_edit' : 'hotspot.user_form.title_add') }}{% endblock %}
 
 {% block content %}
-{% set backUrl = url_for('hotspot.users') ~ (listProfile ? '?profile=' ~ listProfile|url_encode : '') %}
+{% set backUrl = listBackUrl|default(url_for('hotspot.users')) %}
 <div class="mx-auto w-full max-w-2xl">
     <div>
         <a href="{{ backUrl }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
@@ -25,6 +25,10 @@
         {% endif %}
         <form method="post" action="{{ url_for(formAction, formParams) }}" class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="list_filter_q" value="{{ listFilters.q|default('') }}">
+            <input type="hidden" name="list_filter_profile" value="{{ listFilters.profile|default('') }}">
+            <input type="hidden" name="list_filter_comment" value="{{ listFilters.comment|default('') }}">
+            <input type="hidden" name="list_filter_status" value="{{ listFilters.status|default('all') }}">
 
             <div>
                 <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.name') }}</label>

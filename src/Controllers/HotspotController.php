@@ -55,6 +55,8 @@ class HotspotController
 
         $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
 
+        $data['filterQuery'] = $this->buildFilterQuery($data['filters']);
+
         $html = $this->twig->render('pages/hotspot/users.twig', $data);
         $response->getBody()->write($html);
 
@@ -842,7 +844,10 @@ class HotspotController
             ]));
         }
 
-        return $this->redirectUsers($response, $request, $values['profile'], $result['comment'] ?? null);
+        return $this->redirectUsers($response, $request, [
+            'profile' => $values['profile'],
+            'comment' => $result['comment'] ?? null,
+        ]);
     }
 
     public function showCreateUser(Request $request, Response $response): Response
@@ -857,7 +862,7 @@ class HotspotController
             $defaults['profile'] = trim((string)$params['profile']);
         }
 
-        return $this->renderUserForm($request, $response, null, [], $defaults);
+        return $this->renderUserForm($request, $response, null, [], $defaults, null, $this->listFiltersFromQuery($request));
     }
 
     public function createUser(Request $request, Response $response): Response
@@ -870,7 +875,7 @@ class HotspotController
         $errors = $this->validateUser($values, false);
 
         if ($errors !== []) {
-            return $this->renderUserForm($request, $response, null, $errors, $values);
+            return $this->renderUserForm($request, $response, null, $errors, $values, null, $this->listFiltersFromRequest($request));
         }
 
         try {
@@ -878,16 +883,16 @@ class HotspotController
         } catch (RouterosCommandException $e) {
             [$banner, $fieldErrors] = $this->mapUserRouterError($e->getMessage());
 
-            return $this->renderUserForm($request, $response, null, $fieldErrors + $errors, $values, $banner);
+            return $this->renderUserForm($request, $response, null, $fieldErrors + $errors, $values, $banner, $this->listFiltersFromRequest($request));
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
         }
 
         $this->flash->add('success', $this->translator->trans('hotspot.users.flash.created', ['name' => $values['name']]));
 
-        return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
     public function showEditUser(Request $request, Response $response, array $args): Response
@@ -908,7 +913,7 @@ class HotspotController
             return $this->redirect($response, $request, 'hotspot.users');
         }
 
-        return $this->renderUserForm($request, $response, $user, []);
+        return $this->renderUserForm($request, $response, $user, [], [], null, $this->listFiltersFromQuery($request));
     }
 
     public function updateUser(Request $request, Response $response, array $args): Response
@@ -923,7 +928,7 @@ class HotspotController
         if ($errors !== []) {
             $values['id'] = $args['id'];
 
-            return $this->renderUserForm($request, $response, $values, $errors, $values);
+            return $this->renderUserForm($request, $response, $values, $errors, $values, null, $this->listFiltersFromRequest($request));
         }
 
         try {
@@ -932,7 +937,7 @@ class HotspotController
             [$banner, $fieldErrors] = $this->mapUserRouterError($e->getMessage());
             $values['id'] = $args['id'];
 
-            return $this->renderUserForm($request, $response, $values, $fieldErrors + $errors, $values, $banner);
+            return $this->renderUserForm($request, $response, $values, $fieldErrors + $errors, $values, $banner, $this->listFiltersFromRequest($request));
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
@@ -941,7 +946,7 @@ class HotspotController
 
         $this->flash->add('success', $this->translator->trans('hotspot.users.flash.updated', ['name' => $values['name']]));
 
-        return $this->redirectUsers($response, $request, $values['profile'] ?? null);
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
     public function deleteUser(Request $request, Response $response, array $args): Response
@@ -950,20 +955,19 @@ class HotspotController
             return $redirect;
         }
 
-        $body = $request->getParsedBody();
-        $profile = is_array($body) ? trim((string)($body['profile'] ?? '')) : '';
+        $filters = $this->listFiltersFromRequest($request);
 
         try {
             $this->hotspot->removeUser((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+            return $this->redirectUsers($response, $request, $filters);
         }
 
         $this->flash->add('success', $this->translator->trans('hotspot.users.flash.removed'));
 
-        return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+        return $this->redirectUsers($response, $request, $filters);
     }
 
     public function deleteUsers(Request $request, Response $response): Response
@@ -981,7 +985,7 @@ class HotspotController
         if ($ids === []) {
             $this->flash->add('error', $this->translator->trans('hotspot.users.flash.delete_users_required'));
 
-            return $this->redirectUsers($response, $request, null);
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
         }
 
         try {
@@ -989,7 +993,7 @@ class HotspotController
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, null);
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
         }
 
         if ($result['deleted'] > 0) {
@@ -1002,7 +1006,7 @@ class HotspotController
             $this->flash->add('info', $this->translator->trans('hotspot.users.flash.deleted_none_selected'));
         }
 
-        return $this->redirectUsers($response, $request, null);
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
     public function resetCounters(Request $request, Response $response): Response
@@ -1019,7 +1023,7 @@ class HotspotController
         if ($ids === []) {
             $this->flash->add('error', $this->translator->trans('hotspot.users.flash.reset_users_required'));
 
-            return $this->redirectUsers($response, $request, null);
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
         }
 
         try {
@@ -1027,7 +1031,7 @@ class HotspotController
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, null);
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
         }
 
         if ($reset > 0) {
@@ -1036,7 +1040,7 @@ class HotspotController
             $this->flash->add('info', $this->translator->trans('hotspot.users.flash.reset_none'));
         }
 
-        return $this->redirectUsers($response, $request, null);
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
     public function resetUserCounters(Request $request, Response $response, array $args): Response
@@ -1045,20 +1049,19 @@ class HotspotController
             return $redirect;
         }
 
-        $body = $request->getParsedBody();
-        $profile = is_array($body) ? trim((string)($body['profile'] ?? '')) : '';
+        $filters = $this->listFiltersFromRequest($request);
 
         try {
             $this->hotspot->resetUserCounter((int)$_SESSION['router_id'], $args['id']);
         } catch (\Throwable $e) {
             $this->flash->add('error', $e->getMessage());
 
-            return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+            return $this->redirectUsers($response, $request, $filters);
         }
 
         $this->flash->add('success', $this->translator->trans('hotspot.users.flash.counter_reset'));
 
-        return $this->redirectUsers($response, $request, $profile !== '' ? $profile : null);
+        return $this->redirectUsers($response, $request, $filters);
     }
 
     private function renderUserForm(
@@ -1067,7 +1070,8 @@ class HotspotController
         ?array   $user,
         array    $errors,
         array    $values = [],
-        ?string  $errorBanner = null
+        ?string  $errorBanner = null,
+        array    $listFilters = []
     ): Response
     {
         $profiles = [];
@@ -1080,7 +1084,12 @@ class HotspotController
             }
         }
 
-        $listProfile = $values['profile'] ?? ($user['profile'] ?? null);
+        $listBackUrl = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser()->urlFor('hotspot.users');
+        $listQuery = $this->buildFilterQuery($listFilters);
+        if ($listQuery !== '') {
+            $listBackUrl .= '?' . $listQuery;
+        }
+
         $html = $this->twig->render('pages/hotspot/user_form.twig', [
             'user' => $user,
             'errors' => $errors,
@@ -1090,7 +1099,8 @@ class HotspotController
             'formAction' => $user === null ? 'hotspot.users.store' : 'hotspot.users.update',
             'formParams' => $user === null ? [] : ['id' => $user['id']],
             'isEdit' => $user !== null,
-            'listProfile' => is_string($listProfile) && $listProfile !== '' ? $listProfile : null,
+            'listBackUrl' => $listBackUrl,
+            'listFilters' => $listFilters,
         ]);
         $response->getBody()->write($html);
 
@@ -1130,23 +1140,86 @@ class HotspotController
         return $response->withStatus($errors !== [] ? 422 : 200);
     }
 
-    private function redirectUsers(Response $response, Request $request, ?string $profile, ?string $comment = null): Response
+    /**
+     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     */
+    private function redirectUsers(Response $response, Request $request, array $filters = []): Response
     {
         $url = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser()->urlFor('hotspot.users');
-        $query = [];
+        $query = $this->buildFilterQuery($filters);
 
-        if ($profile !== null && $profile !== '') {
-            $query['profile'] = $profile;
-        }
-        if ($comment !== null && $comment !== '') {
-            $query['comment'] = $comment;
-        }
-
-        if ($query !== []) {
-            $url .= '?' . http_build_query($query);
+        if ($query !== '') {
+            $url .= '?' . $query;
         }
 
         return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
+    /**
+     * Build the user-list filter query string (without the leading "?") from a filter array.
+     *
+     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     */
+    private function buildFilterQuery(array $filters): string
+    {
+        $query = [];
+
+        $q = trim((string)($filters['q'] ?? ''));
+        $profile = trim((string)($filters['profile'] ?? ''));
+        $comment = trim((string)($filters['comment'] ?? ''));
+        $status = trim((string)($filters['status'] ?? ''));
+
+        if ($q !== '') {
+            $query['q'] = $q;
+        }
+        if ($profile !== '') {
+            $query['profile'] = $profile;
+        }
+        if ($comment !== '') {
+            $query['comment'] = $comment;
+        }
+        if ($status !== '' && $status !== 'all') {
+            $query['status'] = $status;
+        }
+
+        return $query !== [] ? http_build_query($query) : '';
+    }
+
+    /**
+     * Read user-list filter values from a POST request body (transported via
+     * hidden "list_filter_*" fields so they cannot collide with form controls).
+     *
+     * @return array{q: string, profile: string, comment: string, status: string}
+     */
+    private function listFiltersFromRequest(Request $request): array
+    {
+        $body = $request->getParsedBody();
+
+        return $this->normalizeListFilters(is_array($body) ? $body : [], 'list_filter_');
+    }
+
+    /**
+     * Read user-list filter values from GET query parameters.
+     *
+     * @return array{q: string, profile: string, comment: string, status: string}
+     */
+    private function listFiltersFromQuery(Request $request): array
+    {
+        return $this->normalizeListFilters($request->getQueryParams());
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{q: string, profile: string, comment: string, status: string}
+     */
+    private function normalizeListFilters(array $filters, string $prefix = ''): array
+    {
+        return [
+            'q' => trim((string)($filters[$prefix . 'q'] ?? '')),
+            'profile' => trim((string)($filters[$prefix . 'profile'] ?? '')),
+            'comment' => trim((string)($filters[$prefix . 'comment'] ?? '')),
+            'status' => trim((string)($filters[$prefix . 'status'] ?? 'all')),
+        ];
     }
 
     /**
