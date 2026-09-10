@@ -144,6 +144,24 @@ SemVer tags (`vX.Y.Z`), with the version mirrored in `config/app.php` (`APP_VERS
    ```
 5. Deployments come from `main`, so `APP_VERSION` on `main` must always reflect the version that will ship from a `main` deploy. Leave it at the just-released value after tagging; when the next dev cycle actually begins, bump it to the planned next version in the commit that starts the work and add a fresh `## [Unreleased]` section. Do **not** bump immediately after the tag — it would make `main` report an unreleased version to deployers.
 
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+- **Major** (`X.0.0`) — breaking changes.
+- **Minor** (`0.X.0`) — new features, backward-compatible.
+- **Patch** (`0.0.X`) — bug fixes only; no new functionality.
+
+When starting a new release cycle:
+1. Add an `## [Unreleased]` section at the top of `CHANGELOG.md`.
+2. Populate it with categorized entries (`### Added`, `### Changed`, `### Fixed`).
+3. When ready to release, promote `## [Unreleased]` → `## [x.y.z] - <date>` (per the Releasing checklist).
+4. Bump `APP_VERSION` in `config/app.php` to match the tag (no `v` prefix).
+
+To bump to the next version mid-development (without releasing):
+1. Choose the next version number following SemVer based on what changed.
+2. Add a new `## [x.y.z] - <date>` section at the top of `CHANGELOG.md` with a `### Fixed`/`### Added`/etc. entry describing the change.
+3. Bump `APP_VERSION` in `config/app.php` to the new version.
+
 ## Notes for AI Agents
 - This is a lightweight tool by design — resist pulling in Laravel-style abstractions (ORM, queues, service containers beyond basic DI) unless explicitly asked.
 - RouterOS API calls are synchronous and can be slow on weak hardware — keep timeouts sane and surface connection errors clearly in the UI.
