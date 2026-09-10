@@ -159,15 +159,23 @@
 {% else %}
 {% set allIds = users|map(u => u.id)|json_encode %}
 {% set neverIds = users|filter(u => u.neverConnected)|map(u => u.id)|json_encode %}
+{% set expiryMap = {} %}
+{% for user in users %}
+  {% if user.expires_at %}
+    {% set expiryMap = expiryMap|merge({(user.id): user.expires_at}) %}
+  {% endif %}
+{% endfor %}
 <div x-data="{
     printModal: false, printUserId: null, printUserName: '',
-    printManyModal: false, deleteManyModal: false, resetManyModal: false,
+    printManyModal: false, deleteManyModal: false, resetManyModal: false, changeExpiryModal: false,
+    newExpiry: '',
     deleteUserId: null, deleteUserName: '', deleteUserModal: false,
     resetUserId: null, resetUserName: '', resetUserModal: false,
     detailModal: false, detailUser: null, detailLoading: false, showPassword: false, detailDialogAnimated: false,
     selected: [],
     allIds: {{ allIds|default('[]') }},
     neverIds: {{ neverIds|default('[]') }},
+    expiryMap: {{ expiryMap|default('{}')|json_encode }},
     includeActive: false,
     get allSelected() { return this.allIds.length > 0 && this.selected.length === this.allIds.length },
     get someSelected() { return this.selected.length > 0 && !this.allSelected },
@@ -175,6 +183,17 @@
     toggleAll() { this.selected = this.allSelected ? [] : [...this.allIds] },
     toggle(id) { this.selected = this.selected.includes(id) ? this.selected.filter(i => i !== id) : [...this.selected, id] },
     isSelected(id) { return this.selected.includes(id) },
+    openExpiryModal() {
+        this.newExpiry = '';
+        for (const id of this.selected) {
+            const exp = this.expiryMap[id];
+            if (exp) {
+                this.newExpiry = exp.substring(0, 16).replace(' ', 'T');
+                break;
+            }
+        }
+        this.changeExpiryModal = true;
+    },
     openDetail(id) {
         this.detailUser = null;
         this.detailLoading = true;
@@ -222,6 +241,17 @@
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <template x-for="id in selected" :key="id">
+        <input type="hidden" name="user_ids[]" :value="id">
+    </template>
+</form>
+<form x-ref="changeExpiryManyForm" method="post" action="{{ url_for('hotspot.users.changeExpiry') }}" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="new_expiry" :value="newExpiry">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
     </template>
@@ -412,6 +442,11 @@
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
             </button>
+            <button type="button" @click="openExpiryModal()"
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3.5 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-50 dark:border-blue-500/40 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-500/10">
+                <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
+                {{ trans('hotspot.users.change_expiry') }}
+            </button>
             <button type="button" @click="deleteManyModal = true"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
                 <i class="ph ph-trash text-base" aria-hidden="true"></i>
@@ -470,6 +505,39 @@
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 text-sm font-semibold text-white transition hover:bg-amber-700 focus:ring-3 focus:ring-amber-500/30 active:bg-amber-800">
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Change expiry many modal -->
+<div x-show="changeExpiryModal" x-cloak class="fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-4 sm:items-center" x-transition.opacity>
+    <div class="w-full max-w-sm rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+         @click.outside="changeExpiryModal = false" x-transition>
+        <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.change_expiry_title') }}</h2>
+            <button type="button" @click="changeExpiryModal = false"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                <i class="ph ph-x text-xl" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="px-4 pt-3 pb-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {{ trans('hotspot.users.change_expiry_help', {count: '<span class="font-medium text-zinc-800 dark:text-zinc-200" x-text="selected.length"></span>'})|raw }}
+        </p>
+        <div class="p-3 pt-2">
+            <label for="newExpiry" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.change_expiry_label') }}</label>
+            <input type="datetime-local" id="newExpiry" x-model="newExpiry"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400">
+        </div>
+        <div class="flex items-center justify-end gap-2 p-3 pt-0">
+            <button type="button" @click="changeExpiryModal = false"
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                {{ trans('hotspot.cancel') }}
+            </button>
+            <button type="button" @click="if (newExpiry) $refs.changeExpiryManyForm.submit()"
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:ring-3 focus:ring-blue-500/30 active:bg-blue-800">
+                <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
+                {{ trans('hotspot.users.change_expiry') }}
             </button>
         </div>
     </div>

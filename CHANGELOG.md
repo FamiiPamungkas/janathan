@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-09-10
+
+### Added
+
+- Batch change expire date — select users via checkboxes and set a new expiry date and time for all selected users at once with a date/time picker modal. The picker pre-fills with the first selected user's existing expiry, if any.
+
 ## [0.5.1] - 2026-09-10
 
 ### Fixed

@@ -1043,6 +1043,53 @@ class HotspotController
         return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
+    public function changeExpiry(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+        $ids = isset($body['user_ids']) && is_array($body['user_ids'])
+            ? array_values(array_filter(array_map('strval', $body['user_ids'])))
+            : [];
+        $newExpiry = isset($body['new_expiry']) ? trim((string) $body['new_expiry']) : '';
+
+        if ($ids === []) {
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.change_expiry_required'));
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        if ($newExpiry === '' || preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $newExpiry) !== 1) {
+            $this->flash->add('error', $this->translator->trans('hotspot.users.flash.change_expiry_invalid'));
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        $formatted = str_replace('T', ' ', $newExpiry) . ':00';
+
+        try {
+            $result = $this->hotspot->changeExpiryByIds((int) $_SESSION['router_id'], $ids, $formatted);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        if ($result['updated'] > 0) {
+            $message = $this->translator->trans('hotspot.users.flash.expiry_changed', ['count' => $result['updated']]);
+            if ($result['failed'] > 0) {
+                $message .= ' ' . $this->translator->trans('hotspot.users.flash.expiry_failed', ['count' => $result['failed']]);
+            }
+            $this->flash->add('success', $message);
+        } else {
+            $this->flash->add('info', $this->translator->trans('hotspot.users.flash.expiry_none'));
+        }
+
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+    }
+
     public function resetUserCounters(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

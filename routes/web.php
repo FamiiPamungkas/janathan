@@ -67,6 +67,7 @@ return function (App $app): void {
             $app->get('/users/export', HotspotController::class . ':exportUsers')->setName('hotspot.users.export');
             $app->post('/users/delete-selected', HotspotController::class . ':deleteUsers')->setName('hotspot.users.deleteSelected');
             $app->post('/users/reset-counters', HotspotController::class . ':resetCounters')->setName('hotspot.users.resetCounters');
+            $app->post('/users/change-expiry', HotspotController::class . ':changeExpiry')->setName('hotspot.users.changeExpiry');
             $app->post('/users/{id}/reset-counters', HotspotController::class . ':resetUserCounters')->setName('hotspot.users.resetCounter');
             $app->get('/users/generate', HotspotController::class . ':showGenerate')->setName('hotspot.users.generate');
             $app->post('/users/generate', HotspotController::class . ':generateUsers')->setName('hotspot.users.generate.store');

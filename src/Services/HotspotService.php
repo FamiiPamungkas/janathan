@@ -591,6 +591,69 @@ readonly class HotspotService
     }
 
     /**
+     * Change the expiry date for multiple hotspot users. The expiry is
+     * stored as an `exp=` token inside the user's comment.
+     *
+     * @param list<string> $userIds
+     * @return array{updated: int, failed: int}
+     * @throws RuntimeException When the router cannot be reached.
+     */
+    public function changeExpiryByIds(int $routerId, array $userIds, string $newExpiry): array
+    {
+        $userIds = array_values(array_filter(array_map('strval', $userIds)));
+
+        if ($userIds === []) {
+            return ['updated' => 0, 'failed' => 0];
+        }
+
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotUsers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $ids = $this->idsExcludingDefaultTrial($userIds, $rows);
+
+        if ($ids === []) {
+            return ['updated' => 0, 'failed' => 0];
+        }
+
+        $commentById = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $rid = (string)($row['.id'] ?? '');
+            if (in_array($rid, $ids, true)) {
+                $commentById[$rid] = (string)($row['comment'] ?? '');
+            }
+        }
+
+        $updated = 0;
+        $failed = 0;
+
+        foreach ($ids as $id) {
+            $comment = $commentById[$id] ?? '';
+            $clean = $this->stripExpiry($comment);
+            $newComment = $clean === '' ? ('exp=' . $newExpiry) : ($clean . ' exp=' . $newExpiry);
+
+            try {
+                $client->setHotspotUser($id, ['comment' => $newComment]);
+                $updated++;
+            } catch (RouterosCommandException $e) {
+                $failed++;
+            } catch (Throwable $e) {
+                throw $this->unreachable($router, $e);
+            }
+        }
+
+        return ['updated' => $updated, 'failed' => $failed];
+    }
+
+    /**
      * Drop the `default-trial` record id from a user-id selection.
      *
      * @param list<string> $userIds
