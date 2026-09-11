@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-09-11
+
+### Fixed
+
+- Profile expiry monitor scheduler now only scans enabled users of the profile, skipping already-disabled rows (`disabled=no` filter) for a faster trip on each run.
+
 ## [0.6.0] - 2026-09-10
 
 ### Added
