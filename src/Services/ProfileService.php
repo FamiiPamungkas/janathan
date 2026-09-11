@@ -389,7 +389,7 @@ ROS;
 {$routine}
 :local nowDateNum ((\$year * 10000) + (\$month * 100) + \$day);
 :local nowTimeNum ((\$hour * 10000) + (\$minute * 100) + \$second);
-:foreach uid in=[/ip hotspot user find where profile="{$profileName}"] do={
+:foreach uid in=[/ip hotspot user find where profile="{$profileName}" and disabled=no] do={
   :local commentText [/ip hotspot user get \$uid comment];
   :local expPos [:find \$commentText "exp="];
   :if ([:typeof \$expPos] = "num") do={
