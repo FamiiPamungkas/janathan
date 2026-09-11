@@ -130,6 +130,12 @@ composer test   # or: vendor/bin/phpunit
 ```
 PHPUnit 10, configured in `phpunit.xml`. Tests live in `tests/`.
 
+## Committing
+
+When committing changes, separate commits by concern:
+- Put source code changes (features/patches) in their own conventional commit: `feat:` for features, `fix:` for bug fixes.
+- Put everything else — docs, build config, release bookkeeping — in a separate commit (`chore:`/`docs:` style), never mixed into the source-code commit.
+
 ## Releasing
 
 SemVer tags (`vX.Y.Z`), with the version mirrored in `config/app.php` (`APP_VERSION`, no `v` prefix, displayed in the footer via the `app_version` Twig global).
