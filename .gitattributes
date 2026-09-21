@@ -1,0 +1,5 @@
+# Enforce LF for shell scripts so the #!/usr/bin/env bash shebang
+# never gains a CR on Windows checkouts (which breaks execution
+# with "/usr/bin/env: 'bash\r': No such file or directory").
+*.sh text eol=lf
+*.bat text eol=crlf
