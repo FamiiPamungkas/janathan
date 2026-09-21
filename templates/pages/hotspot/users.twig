@@ -112,6 +112,28 @@
                 <option value="disabled" {% if filters.status|default('all') == 'disabled' %}selected{% endif %}>{{ trans('hotspot.status_disabled') }}</option>
             </select>
         </div>
+        <div class="lg:col-span-2">
+            <label for="filter-sort" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.sort_label') }}</label>
+            <select id="filter-sort" name="sort"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="name" {% if filters.sort|default('name') == 'name' %}selected{% endif %}>{{ trans('hotspot.users.th_name') }}</option>
+                <option value="profile" {% if filters.sort|default('name') == 'profile' %}selected{% endif %}>{{ trans('hotspot.users.th_profile') }}</option>
+                <option value="comment" {% if filters.sort|default('name') == 'comment' %}selected{% endif %}>{{ trans('hotspot.users.th_comment') }}</option>
+                <option value="uptime" {% if filters.sort|default('name') == 'uptime' %}selected{% endif %}>{{ trans('hotspot.users.th_uptime') }}</option>
+                <option value="bytes_in" {% if filters.sort|default('name') == 'bytes_in' %}selected{% endif %}>{{ trans('hotspot.users.th_bytes_in') }}</option>
+                <option value="bytes_out" {% if filters.sort|default('name') == 'bytes_out' %}selected{% endif %}>{{ trans('hotspot.users.th_bytes_out') }}</option>
+                <option value="expires" {% if filters.sort|default('name') == 'expires' %}selected{% endif %}>{{ trans('hotspot.users.th_expires') }}</option>
+                <option value="status" {% if filters.sort|default('name') == 'status' %}selected{% endif %}>{{ trans('hotspot.users.th_status') }}</option>
+            </select>
+        </div>
+        <div class="lg:col-span-2">
+            <label for="filter-direction" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.sort_direction') }}</label>
+            <select id="filter-direction" name="direction"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="asc" {% if filters.direction|default('asc') == 'asc' %}selected{% endif %}>{{ trans('hotspot.users.sort_ascending') }}</option>
+                <option value="desc" {% if filters.direction|default('asc') == 'desc' %}selected{% endif %}>{{ trans('hotspot.users.sort_descending') }}</option>
+            </select>
+        </div>
         <div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
             <button type="submit"
                 class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700 sm:flex-none">
@@ -224,12 +246,16 @@
 {% set listProfile = filters.profile|default('') %}
 {% set listComment = filters.comment|default('') %}
 {% set listStatus = filters.status|default('all') %}
+{% set listSort = filters.sort|default('name') %}
+{% set listDirection = filters.direction|default('asc') %}
 <form x-ref="deleteManyForm" method="post" action="{{ url_for('hotspot.users.deleteSelected') }}" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="list_filter_q" value="{{ listQ }}">
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
     <input type="hidden" name="include_active" :value="includeActive ? '1' : ''">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
@@ -241,6 +267,8 @@
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
     </template>
@@ -251,6 +279,8 @@
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
     <input type="hidden" name="new_expiry" :value="newExpiry">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
@@ -263,6 +293,8 @@
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
 </form>
 <form x-ref="resetUserForm" method="post" class="hidden"
     :action="`{{ url_for('hotspot.users.resetCounter', {id: '__ID__'}) }}`.replace('__ID__', resetUserId)">
@@ -271,6 +303,8 @@
     <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
     <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
 </form>
 
 <!-- Mobile: stacked cards -->
@@ -354,14 +388,14 @@
                         <input type="checkbox" :checked="allSelected" :indeterminate.prop="someSelected" @change="toggleAll()"
                             class="h-4 w-4 rounded border-zinc-300 text-teal-600 focus:ring-teal-500 dark:border-zinc-600 dark:bg-zinc-800" title="{{ trans('hotspot.users.select_all') }}">
                     </th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_name') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_profile') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_comment') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_uptime') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_bytes_in') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_bytes_out') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_expires') }}</th>
-                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_status') }}</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'name' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.name ? '?' ~ sortLinks.name : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_name') }}<i class="ph {{ filters.sort == 'name' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'profile' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.profile ? '?' ~ sortLinks.profile : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_profile') }}<i class="ph {{ filters.sort == 'profile' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'comment' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.comment ? '?' ~ sortLinks.comment : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_comment') }}<i class="ph {{ filters.sort == 'comment' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'uptime' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.uptime ? '?' ~ sortLinks.uptime : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_uptime') }}<i class="ph {{ filters.sort == 'uptime' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'bytes_in' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.bytes_in ? '?' ~ sortLinks.bytes_in : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_bytes_in') }}<i class="ph {{ filters.sort == 'bytes_in' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'bytes_out' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.bytes_out ? '?' ~ sortLinks.bytes_out : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_bytes_out') }}<i class="ph {{ filters.sort == 'bytes_out' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'expires' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.expires ? '?' ~ sortLinks.expires : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_expires') }}<i class="ph {{ filters.sort == 'expires' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50" aria-sort="{{ filters.sort == 'status' ? (filters.direction == 'asc' ? 'ascending' : 'descending') : 'none' }}"><a href="{{ url_for('hotspot.users') }}{{ sortLinks.status ? '?' ~ sortLinks.status : '' }}" class="inline-flex items-center gap-1 hover:text-teal-600 dark:hover:text-teal-400">{{ trans('hotspot.users.th_status') }}<i class="ph {{ filters.sort == 'status' ? (filters.direction == 'asc' ? 'ph-caret-up' : 'ph-caret-down') : 'ph-arrows-down-up' }} text-xs text-zinc-400" aria-hidden="true"></i></a></th>
                     <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.th_actions') }}</th>
                 </tr>
             </thead>

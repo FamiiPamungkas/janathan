@@ -45,6 +45,8 @@ class HotspotController
             'profile' => isset($params['profile']) ? trim((string)$params['profile']) : '',
             'comment' => isset($params['comment']) ? trim((string)$params['comment']) : '',
             'status' => isset($params['status']) ? trim((string)$params['status']) : 'all',
+            'sort' => isset($params['sort']) ? trim((string)$params['sort']) : 'name',
+            'direction' => isset($params['direction']) ? trim((string)$params['direction']) : 'asc',
         ];
 
         try {
@@ -56,6 +58,14 @@ class HotspotController
         $data['voucherTemplates'] = array_merge([$this->templates->default()], $this->templates->all());
 
         $data['filterQuery'] = $this->buildFilterQuery($data['filters']);
+        $data['sortLinks'] = [];
+        foreach (['name', 'profile', 'comment', 'uptime', 'bytes_in', 'bytes_out', 'expires', 'status'] as $sort) {
+            $sortFilters = $data['filters'];
+            $sortFilters['sort'] = $sort;
+            $sortFilters['direction'] = $data['filters']['sort'] === $sort
+                && $data['filters']['direction'] === 'asc' ? 'desc' : 'asc';
+            $data['sortLinks'][$sort] = $this->buildFilterQuery($sortFilters);
+        }
 
         $html = $this->twig->render('pages/hotspot/users.twig', $data);
         $response->getBody()->write($html);
@@ -1188,7 +1198,7 @@ class HotspotController
     }
 
     /**
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @param array{q?: string, profile?: string, comment?: string, status?: string, sort?: string, direction?: string} $filters
      */
     private function redirectUsers(Response $response, Request $request, array $filters = []): Response
     {
@@ -1205,7 +1215,7 @@ class HotspotController
     /**
      * Build the user-list filter query string (without the leading "?") from a filter array.
      *
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @param array{q?: string, profile?: string, comment?: string, status?: string, sort?: string, direction?: string} $filters
      */
     private function buildFilterQuery(array $filters): string
     {
@@ -1215,6 +1225,8 @@ class HotspotController
         $profile = trim((string)($filters['profile'] ?? ''));
         $comment = trim((string)($filters['comment'] ?? ''));
         $status = trim((string)($filters['status'] ?? ''));
+        $sort = strtolower(trim((string)($filters['sort'] ?? 'name')));
+        $direction = strtolower(trim((string)($filters['direction'] ?? 'asc')));
 
         if ($q !== '') {
             $query['q'] = $q;
@@ -1228,6 +1240,12 @@ class HotspotController
         if ($status !== '' && $status !== 'all') {
             $query['status'] = $status;
         }
+        if ($sort !== '' && $sort !== 'name') {
+            $query['sort'] = $sort;
+        }
+        if ($direction !== '' && $direction !== 'asc') {
+            $query['direction'] = $direction;
+        }
 
         return $query !== [] ? http_build_query($query) : '';
     }
@@ -1236,7 +1254,7 @@ class HotspotController
      * Read user-list filter values from a POST request body (transported via
      * hidden "list_filter_*" fields so they cannot collide with form controls).
      *
-     * @return array{q: string, profile: string, comment: string, status: string}
+     * @return array{q: string, profile: string, comment: string, status: string, sort: string, direction: string}
      */
     private function listFiltersFromRequest(Request $request): array
     {
@@ -1248,7 +1266,7 @@ class HotspotController
     /**
      * Read user-list filter values from GET query parameters.
      *
-     * @return array{q: string, profile: string, comment: string, status: string}
+     * @return array{q: string, profile: string, comment: string, status: string, sort: string, direction: string}
      */
     private function listFiltersFromQuery(Request $request): array
     {
@@ -1257,15 +1275,27 @@ class HotspotController
 
     /**
      * @param array<string, mixed> $filters
-     * @return array{q: string, profile: string, comment: string, status: string}
+     * @return array{q: string, profile: string, comment: string, status: string, sort: string, direction: string}
      */
     private function normalizeListFilters(array $filters, string $prefix = ''): array
     {
+        $sort = strtolower(trim((string)($filters[$prefix . 'sort'] ?? 'name')));
+        $direction = strtolower(trim((string)($filters[$prefix . 'direction'] ?? 'asc')));
+
+        if (!in_array($sort, ['name', 'profile', 'comment', 'uptime', 'bytes_in', 'bytes_out', 'expires', 'status'], true)) {
+            $sort = 'name';
+        }
+        if (!in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'asc';
+        }
+
         return [
             'q' => trim((string)($filters[$prefix . 'q'] ?? '')),
             'profile' => trim((string)($filters[$prefix . 'profile'] ?? '')),
             'comment' => trim((string)($filters[$prefix . 'comment'] ?? '')),
             'status' => trim((string)($filters[$prefix . 'status'] ?? 'all')),
+            'sort' => $sort,
+            'direction' => $direction,
         ];
     }
 

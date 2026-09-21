@@ -22,7 +22,7 @@ readonly class HotspotService
     }
 
     /**
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
+     * @param array{q?: string, profile?: string, comment?: string, status?: string, sort?: string, direction?: string} $filters
      * @return array{
      *     router: array,
      *     users: array,
@@ -50,6 +50,7 @@ readonly class HotspotService
         $built = $this->buildUsers($users);
         $comments = $this->extractCommentOptions($built);
         $built = $this->applyUserListFilters($built, $normalized);
+        $built = $this->sortUserList($built, $normalized);
 
         return [
             'router' => $router,
@@ -66,8 +67,8 @@ readonly class HotspotService
     }
 
     /**
-     * @param array{q?: string, profile?: string, comment?: string, status?: string} $filters
-     * @return array{q: string, profile: string, comment: string, status: string}
+     * @param array{q?: string, profile?: string, comment?: string, status?: string, sort?: string, direction?: string} $filters
+     * @return array{q: string, profile: string, comment: string, status: string, sort: string, direction: string}
      */
     private function normalizeUserListFilters(array $filters): array
     {
@@ -75,9 +76,17 @@ readonly class HotspotService
         $profile = trim((string)($filters['profile'] ?? ''));
         $comment = trim((string)($filters['comment'] ?? ''));
         $status = strtolower(trim((string)($filters['status'] ?? 'all')));
+        $sort = strtolower(trim((string)($filters['sort'] ?? 'name')));
+        $direction = strtolower(trim((string)($filters['direction'] ?? 'asc')));
 
         if (!in_array($status, ['all', 'enabled', 'disabled'], true)) {
             $status = 'all';
+        }
+        if (!in_array($sort, ['name', 'profile', 'comment', 'uptime', 'bytes_in', 'bytes_out', 'expires', 'status'], true)) {
+            $sort = 'name';
+        }
+        if (!in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'asc';
         }
 
         return [
@@ -85,7 +94,55 @@ readonly class HotspotService
             'profile' => $profile,
             'comment' => $comment,
             'status' => $status,
+            'sort' => $sort,
+            'direction' => $direction,
         ];
+    }
+
+    /**
+     * Sort already-filtered user rows while keeping empty values at the end.
+     * Numeric fields use their raw RouterOS values rather than formatted labels.
+     *
+     * @param list<array<string, mixed>> $users
+     * @param array{sort: string, direction: string} $filters
+     * @return list<array<string, mixed>>
+     */
+    private function sortUserList(array $users, array $filters): array
+    {
+        $sort = $filters['sort'];
+        $direction = $filters['direction'] === 'desc' ? -1 : 1;
+
+        usort($users, static function (array $a, array $b) use ($sort, $direction): int {
+            $aSort = is_array($a['_sort'] ?? null) ? $a['_sort'] : [];
+            $bSort = is_array($b['_sort'] ?? null) ? $b['_sort'] : [];
+            $aValue = $aSort[$sort] ?? null;
+            $bValue = $bSort[$sort] ?? null;
+
+            $aEmpty = $aValue === null || $aValue === '';
+            $bEmpty = $bValue === null || $bValue === '';
+            if ($aEmpty !== $bEmpty) {
+                return $aEmpty ? 1 : -1;
+            }
+
+            if (is_string($aValue) && is_string($bValue)) {
+                $comparison = strnatcasecmp($aValue, $bValue);
+            } else {
+                $comparison = $aValue <=> $bValue;
+            }
+
+            if ($comparison !== 0) {
+                return $comparison * $direction;
+            }
+
+            $nameComparison = strnatcasecmp((string)($aSort['name'] ?? ''), (string)($bSort['name'] ?? ''));
+            if ($nameComparison !== 0) {
+                return $nameComparison;
+            }
+
+            return strnatcasecmp((string)($a['id'] ?? ''), (string)($b['id'] ?? ''));
+        });
+
+        return $users;
     }
 
     /**
@@ -756,19 +813,37 @@ readonly class HotspotService
     {
         $expiry = $this->parseExpiry((string)($u['comment'] ?? ''));
         $now = date('Y-m-d H:i:s');
+        $disabled = $this->isYes($u['disabled'] ?? null);
+        $expired = $expiry !== null && $expiry <= $now;
+        $rawUptime = (string)($u['uptime'] ?? '');
+        $rawBytesIn = (int)($u['bytes-in'] ?? 0);
+        $rawBytesOut = (int)($u['bytes-out'] ?? 0);
+        $name = (string)($u['name'] ?? '');
+        $profile = (string)($u['profile'] ?? '');
+        $comment = (string)($u['comment'] ?? '');
 
         return [
             'id' => $u['.id'] ?? '',
-            'name' => $u['name'] ?? '',
-            'profile' => $u['profile'] ?? '',
-            'comment' => $u['comment'] ?? '',
-            'disabled' => $this->isYes($u['disabled'] ?? null),
-            'uptime' => $this->formatUptime((string)($u['uptime'] ?? '')),
-            'bytes_in' => $this->formatBytes((int)($u['bytes-in'] ?? 0)),
-            'bytes_out' => $this->formatBytes((int)($u['bytes-out'] ?? 0)),
-            'neverConnected' => $this->isUptimeZero((string)($u['uptime'] ?? '')),
+            'name' => $name,
+            'profile' => $profile,
+            'comment' => $comment,
+            'disabled' => $disabled,
+            'uptime' => $this->formatUptime($rawUptime),
+            'bytes_in' => $this->formatBytes($rawBytesIn),
+            'bytes_out' => $this->formatBytes($rawBytesOut),
+            'neverConnected' => $this->isUptimeZero($rawUptime),
             'expires_at' => $expiry,
-            'expired' => $expiry !== null && $expiry <= $now,
+            'expired' => $expired,
+            '_sort' => [
+                'name' => mb_strtolower($name),
+                'profile' => mb_strtolower($profile),
+                'comment' => mb_strtolower($comment),
+                'uptime' => $this->parseDurationSeconds($rawUptime),
+                'bytes_in' => $rawBytesIn,
+                'bytes_out' => $rawBytesOut,
+                'expires' => $expiry,
+                'status' => $disabled ? 2 : ($expired ? 1 : 0),
+            ],
         ];
     }
 
@@ -887,6 +962,30 @@ readonly class HotspotService
         $clock = sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
 
         return $days >= 1 ? $days . 'd ' . $clock : $clock;
+    }
+
+    private function parseDurationSeconds(string $raw): ?int
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/i', $raw, $m) !== 1) {
+            return null;
+        }
+
+        $hasUnit = ($m[1] ?? '') !== '' || ($m[2] ?? '') !== '' || ($m[3] ?? '') !== ''
+            || ($m[4] ?? '') !== '' || ($m[5] ?? '') !== '';
+        if (!$hasUnit && $raw !== '0s' && $raw !== '0') {
+            return null;
+        }
+
+        return (int)($m[1] ?? 0) * 604800
+            + (int)($m[2] ?? 0) * 86400
+            + (int)($m[3] ?? 0) * 3600
+            + (int)($m[4] ?? 0) * 60
+            + (int)($m[5] ?? 0);
     }
 
     private function formatBytes(int|float $bytes): string
