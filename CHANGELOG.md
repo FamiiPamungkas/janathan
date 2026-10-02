@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Choose a hotspot server and set uptime and total data limits when creating or editing users and generating vouchers.
+- Show each user's total data limit in the detail modal.
+
+### Changed
+
+- Group the data limit amount and MB/GB unit into one control and place the limits above Comment.
+- Add a transparent footer to the user detail modal so its scrollbar clears the rounded edge.
+
 ## [0.8.0] - 2026-10-02
 
 ### Added
