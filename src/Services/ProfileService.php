@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Fame1302\Janathan\Services;
 
+use Fame1302\Janathan\Support\Logger;
 use RuntimeException;
 use Throwable;
 
@@ -14,13 +15,14 @@ readonly class ProfileService
     public function __construct(
         private RouterRepository         $routers,
         private RouterConnectionManager  $connections,
-        private HotspotProfileRepository $profileMeta
+        private HotspotProfileRepository $profileMeta,
+        private ProfileMetadataCodec     $metadata
     )
     {
     }
 
     /**
-     * @return array|null {id, name, rate_limit, shared_users, color, price}
+     * @return array|null {id, name, rate_limit, shared_users, color, price, prefix, validity_days, start_on}
      */
     public function getProfileByName(int $routerId, string $name): ?array
     {
@@ -87,6 +89,8 @@ readonly class ProfileService
             throw $this->unreachable($router, $e);
         }
 
+        $profiles = $this->migrateLegacyMetadata($routerId, $profiles, $hotspotAvailable, $client);
+
         return [
             'router' => $router,
             'profiles' => $this->mergeMeta($routerId, $profiles, $hotspotAvailable),
@@ -112,21 +116,16 @@ readonly class ProfileService
             return null;
         }
 
-        $built = $this->buildProfile($profile);
-
-        $meta = $this->profileMeta->findByProfileId($routerId, $id);
+        $meta = $this->metadata->decode((string)($profile['on-login'] ?? ''));
         if ($meta === null) {
-            $meta = $this->profileMeta->findByName($routerId, $built['name']);
-            if ($meta !== null) {
-                $this->profileMeta->heal((int)$meta['id'], $routerId, $id, $built['name']);
+            $legacy = $this->findLegacyMetadata($routerId, $id, (string)($profile['name'] ?? ''));
+            if ($legacy !== null) {
+                $meta = $this->migrateLegacyProfile($profile, $legacy, $client);
             }
         }
 
-        $built['color'] = (string)($meta['color'] ?? '');
-        $built['price'] = $meta !== null ? (string)(float)$meta['price'] : '';
-        $built['prefix'] = (string)($meta['prefix'] ?? '');
-        $built['validity_days'] = $meta !== null ? (string)($meta['validity_days'] ?? '') : '';
-        $built['start_on'] = $meta !== null ? (string)($meta['start_on'] ?? 'first_login') : 'first_login';
+        $built = $this->buildProfile($profile);
+        $this->applyMetadata($built, $meta);
 
         return $built;
     }
@@ -165,7 +164,6 @@ readonly class ProfileService
         );
 
         if (is_string($newId) && $newId !== '') {
-            $this->saveProfileMeta($routerId, $newId, $values);
             if ($this->normalizeValidityDays($values['validity_days'] ?? null) !== null) {
                 try {
                     $this->installProfileExpiryScheduler($routerId, $newId, (string)$values['name']);
@@ -190,8 +188,6 @@ readonly class ProfileService
             $routerId,
             fn(RouterosClient $client) => $client->setHotspotProfile($id, $this->normalizeFields($values))
         );
-
-        $this->saveProfileMeta($routerId, $id, $values);
 
         $days = $this->normalizeValidityDays($values['validity_days'] ?? null);
         try {
@@ -227,14 +223,10 @@ readonly class ProfileService
     }
 
     /**
-     * Merge RouterOS profiles with their local metadata. Meta rows are matched
-     * by profile_id first and by name second; mismatches are healed so rows
-     * survive both renames and `.id` changes (backup restore / netinstall).
-     * Rows that match nothing are cleaned up, but only when the hotspot menu
-     * is genuinely readable — an empty list from an unavailable router must
-     * never wipe stored metadata.
+     * Merge RouterOS profiles with embedded metadata, falling back to legacy
+     * SQLite rows while an older installation is being migrated.
      *
-     * @return array<int, array{id: string, name: string, rate_limit: string, shared_users: string, color: string, price: float|null, prefix: string}>
+     * @return array<int, array{id: string, name: string, rate_limit: string, shared_users: string, color: string, price: float|null, prefix: string, validity_days: int|null, start_on: string}>
      */
     public function mergeMeta(int $routerId, array $profiles, bool $hotspotAvailable): array
     {
@@ -252,16 +244,22 @@ readonly class ProfileService
             $profileId = (string)($p['.id'] ?? '');
             $name = (string)($p['name'] ?? '');
 
-            $meta = $byId[$profileId] ?? null;
-            if ($meta === null && $name !== '') {
-                $meta = $byName[$name] ?? null;
+            $embedded = $this->metadata->decode((string)($p['on-login'] ?? ''));
+            $legacy = null;
+            if ($embedded === null) {
+                $legacy = $byId[$profileId] ?? null;
+                if ($legacy === null && $name !== '') {
+                    $legacy = $byName[$name] ?? null;
+                }
             }
 
-            if ($meta !== null) {
-                if ((string)$meta['profile_id'] !== $profileId || (string)$meta['name'] !== $name) {
-                    $this->profileMeta->heal((int)$meta['id'], $routerId, $profileId, $name);
+            $meta = $embedded ?? ($legacy !== null ? $this->legacyMetadata($legacy) : null);
+
+            if ($legacy !== null) {
+                if ((string)$legacy['profile_id'] !== $profileId || (string)$legacy['name'] !== $name) {
+                    $this->profileMeta->heal((int)$legacy['id'], $routerId, $profileId, $name);
                 }
-                $matchedIds[] = (int)$meta['id'];
+                $matchedIds[] = (int)$legacy['id'];
             }
 
             $rows[] = [
@@ -272,6 +270,8 @@ readonly class ProfileService
                 'color' => (string)($meta['color'] ?? ''),
                 'price' => $meta !== null ? (float)$meta['price'] : null,
                 'prefix' => (string)($meta['prefix'] ?? ''),
+                'validity_days' => $meta['validity_days'] ?? null,
+                'start_on' => (string)($meta['start_on'] ?? 'first_login'),
             ];
         }
 
@@ -283,20 +283,118 @@ readonly class ProfileService
     }
 
     /**
-     * Persist the local (SQLite) half of a profile: voucher color and price.
+     * Backfill metadata from the old SQLite store into RouterOS. Failed writes
+     * deliberately leave the row in SQLite so the current installation keeps
+     * working until the router accepts the migration.
      */
-    private function saveProfileMeta(int $routerId, string $profileId, array $values): void
+    private function migrateLegacyMetadata(
+        int $routerId,
+        array $profiles,
+        bool $hotspotAvailable,
+        RouterosClient $client
+    ): array {
+        if (!$hotspotAvailable) {
+            return $profiles;
+        }
+
+        $byId = [];
+        $byName = [];
+        foreach ($this->profileMeta->allForRouter($routerId) as $legacy) {
+            $byId[(string)$legacy['profile_id']] = $legacy;
+            $byName[(string)$legacy['name']] = $legacy;
+        }
+
+        if ($byId === [] && $byName === []) {
+            return $profiles;
+        }
+
+        foreach ($profiles as $index => $profile) {
+            $profileId = (string)($profile['.id'] ?? '');
+            $name = (string)($profile['name'] ?? '');
+            $legacy = $byId[$profileId] ?? ($name !== '' ? ($byName[$name] ?? null) : null);
+
+            if ($legacy === null) {
+                continue;
+            }
+
+            if ($this->metadata->decode((string)($profile['on-login'] ?? '')) !== null) {
+                $this->profileMeta->deleteById((int)$legacy['id']);
+                continue;
+            }
+
+            $this->migrateLegacyProfile($profile, $legacy, $client);
+            $profiles[$index] = $profile;
+        }
+
+        return $profiles;
+    }
+
+    private function findLegacyMetadata(int $routerId, string $profileId, string $name): ?array
     {
-        $this->profileMeta->upsert(
-            $routerId,
-            $profileId,
-            (string)$values['name'],
-            (string)($values['color'] ?? ''),
-            $this->normalizePrice($values['price'] ?? ''),
-            (string)($values['prefix'] ?? ''),
-            $this->normalizeValidityDays($values['validity_days'] ?? null),
-            $this->normalizeStartOn($values['start_on'] ?? 'first_login')
-        );
+        $legacy = $this->profileMeta->findByProfileId($routerId, $profileId);
+
+        return $legacy ?? ($name !== '' ? $this->profileMeta->findByName($routerId, $name) : null);
+    }
+
+    /**
+     * @return array{color: string, price: float, prefix: string, validity_days: int|null, start_on: string}
+     */
+    private function migrateLegacyProfile(
+        array &$profile,
+        array $legacy,
+        RouterosClient $client
+    ): array {
+        $meta = $this->legacyMetadata($legacy);
+        $source = $this->metadata->append((string)($profile['on-login'] ?? ''), $meta);
+        $profileId = (string)($profile['.id'] ?? '');
+
+        if ($profileId === '') {
+            return $meta;
+        }
+
+        try {
+            $client->setHotspotProfile($profileId, ['on-login' => $source]);
+            $profile['on-login'] = $source;
+            if ($this->metadata->decode($source) !== null) {
+                $this->profileMeta->deleteById((int)$legacy['id']);
+            }
+        } catch (Throwable $e) {
+            Logger::log('PROFILE METADATA MIGRATION', [
+                'profile' => (string)($profile['name'] ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $meta;
+    }
+
+    /**
+     * @return array{color: string, price: float, prefix: string, validity_days: int|null, start_on: string}
+     */
+    private function legacyMetadata(array $legacy): array
+    {
+        return [
+            'color' => (string)($legacy['color'] ?? ''),
+            'price' => $this->normalizePrice($legacy['price'] ?? 0),
+            'prefix' => (string)($legacy['prefix'] ?? ''),
+            'validity_days' => $this->normalizeValidityDays($legacy['validity_days'] ?? null),
+            'start_on' => $this->normalizeStartOn($legacy['start_on'] ?? 'first_login'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $profile
+     * @param array{color: string, price: float, prefix: string, validity_days: int|null, start_on: string}|null $meta
+     */
+    private function applyMetadata(array &$profile, ?array $meta): void
+    {
+        $profile['color'] = (string)($meta['color'] ?? '');
+        $profile['price'] = $meta !== null ? (string)(float)$meta['price'] : '';
+        $profile['prefix'] = (string)($meta['prefix'] ?? '');
+        $profile['validity_days'] = $meta !== null && $meta['validity_days'] !== null
+            ? (string)$meta['validity_days']
+            : '';
+        $profile['start_on'] = (string)($meta['start_on'] ?? 'first_login');
     }
 
     private function normalizeStartOn(mixed $value): string
@@ -341,21 +439,21 @@ ROS;
     }
 
     /**
-     * Build the `on-login` script for a profile. When the profile is in
-     * `first_login` mode with a validity period, the script stamps `exp=` onto
-     * the user the first time they log in (only if not already present, so
-     * later logins never reset the window). Returns '' otherwise.
+     * Build the `on-login` script for a profile. The guarded metadata marker is
+     * always included; first-login profiles additionally stamp `exp=` onto the
+     * user (only if not already present, so later logins never reset the window).
      */
     private function buildOnLoginScript(array $values): string
     {
+        $metadata = $this->metadata->encode($values);
         $days = $this->normalizeValidityDays($values['validity_days'] ?? null);
         if ($days === null || $this->normalizeStartOn($values['start_on'] ?? 'first_login') !== 'first_login') {
-            return '';
+            return $metadata;
         }
 
         $routine = $this->routerDateParseRoutine();
 
-        return <<<ROS
+        return $metadata . PHP_EOL . PHP_EOL . <<<ROS
 # janathan: stamp expiry at first login
 :local uid [/ip hotspot user find where name="\$user"];
 :local currentComment [/ip hotspot user get \$uid comment];

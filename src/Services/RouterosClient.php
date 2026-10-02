@@ -71,7 +71,7 @@ class RouterosClient
         }
 
         try {
-            $this->client = new Client(new Config($options));
+            $this->client = new RouterosApiClient(new Config($options));
         } catch (Throwable $e) {
             throw $this->wrapConnectionError($e);
         }

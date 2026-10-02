@@ -12,9 +12,9 @@ use Throwable;
 /**
  * Shared RouterOS connection plumbing for the hotspot/profile services.
  *
- * Stateless on purpose: the using service owns its {@see RouterRepository},
- * {@see RouterConnectionManager} and {@see HotspotProfileRepository} fields and
- * passes them into these helpers, so this trait carries no state of its own.
+ * Stateless on purpose: the using service owns its
+ * {@see RouterRepository} and {@see RouterConnectionManager} fields and passes
+ * them into these helpers, so this trait carries no state of its own.
  */
 trait ConnectsRouter
 {

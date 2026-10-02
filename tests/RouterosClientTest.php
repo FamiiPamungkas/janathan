@@ -6,8 +6,10 @@ namespace Fame1302\Janathan\Tests;
 
 use Fame1302\Janathan\Exceptions\RouterosConnectionException;
 use Fame1302\Janathan\Services\RouterosClient;
+use Fame1302\Janathan\Services\RouterosApiClient;
 use PHPUnit\Framework\TestCase;
 use RouterOS\Client;
+use RouterOS\Config;
 use RouterOS\Exceptions\ClientException;
 use RouterOS\Exceptions\ConnectException;
 
@@ -72,5 +74,25 @@ class RouterosClientTest extends TestCase
         // Assert
         $this->assertSame([], $users);
         $this->assertFalse($sut->isHotspotAvailable());
+    }
+
+    public function testMultilineProfileScriptIsPreserved(): void
+    {
+        $source = ':if (false) do={' . PHP_EOL
+            . '  :put "janathan-profile:v1:test";' . PHP_EOL
+            . '};';
+        $client = new RouterosApiClient(
+            new Config(['host' => 'test', 'user' => 'u', 'pass' => 'p']),
+            false
+        );
+
+        $result = $client->parseResponse([
+            '!re',
+            '=name=basic',
+            '=on-login=' . $source,
+            '!done',
+        ]);
+
+        $this->assertSame($source, $result[0]['on-login']);
     }
 }

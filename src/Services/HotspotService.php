@@ -15,7 +15,6 @@ readonly class HotspotService
     public function __construct(
         private RouterRepository         $routers,
         private RouterConnectionManager  $connections,
-        private HotspotProfileRepository $profileMeta,
         private ProfileService           $profiles
     )
     {
@@ -990,7 +989,7 @@ readonly class HotspotService
             return $comment;
         }
 
-        $meta = $this->profileMeta->findByName($routerId, $profileName);
+        $meta = $this->profiles->getProfileByName($routerId, $profileName);
         if ($meta === null || ($meta['start_on'] ?? '') !== 'user_creation') {
             return $comment;
         }

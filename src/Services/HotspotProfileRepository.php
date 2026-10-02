@@ -7,13 +7,9 @@ namespace Fame1302\Janathan\Services;
 use PDO;
 
 /**
- * Local metadata (color, price) for MikroTik hotspot user profiles.
- *
- * RouterOS has no place for these fields, so they live in SQLite keyed by
- * (router_id, profile_id), where profile_id is the RouterOS `.id`. The name
- * is stored alongside as a fallback matcher: rows self-heal when a profile
- * is renamed (matched by id) or when `.id` values change after a backup
- * restore / netinstall (matched by name).
+ * Legacy SQLite metadata used while profiles migrate to RouterOS on-login
+ * scripts. Rows are keyed by (router_id, profile_id), with the name retained
+ * as a fallback matcher for backup restores and netinstalls.
  */
 class HotspotProfileRepository
 {
@@ -125,6 +121,12 @@ class HotspotProfileRepository
             'DELETE FROM hotspot_profiles WHERE router_id = :router_id AND profile_id = :profile_id'
         );
         $stmt->execute(['router_id' => $routerId, 'profile_id' => $profileId]);
+    }
+
+    public function deleteById(int $id): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM hotspot_profiles WHERE id = :id');
+        $stmt->execute(['id' => $id]);
     }
 
     /**
