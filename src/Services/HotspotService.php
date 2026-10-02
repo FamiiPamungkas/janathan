@@ -297,6 +297,14 @@ readonly class HotspotService
 
         $expiry = $this->parseExpiry((string)($user['comment'] ?? ''));
         $now = date('Y-m-d H:i:s');
+        $profileName = (string)($user['profile'] ?? '');
+        $rateLimit = $profileName === '' ? '' : $this->profiles->getRateLimitByName($routerId, $profileName);
+        [$limitRx, $limitTx] = $this->parseProfileRateLimit($rateLimit);
+        $rawLimitUptime = (string)($user['limit-uptime'] ?? '');
+        $limitUptime = (in_array(trim($rawLimitUptime), ['', '0', '00:00:00'], true)
+            || $this->parseDurationSeconds($rawLimitUptime) === 0)
+            ? ''
+            : $this->formatUptime($rawLimitUptime);
 
         return [
             'id' => $user['.id'] ?? '',
@@ -307,8 +315,9 @@ readonly class HotspotService
             'password' => $user['password'] ?? '',
             'server' => $user['server'] ?? '',
             'mac_address' => $user['mac-address'] ?? '',
-            'limit_bytes_in' => $user['limit-bytes-in'] ?? '',
-            'limit_bytes_out' => $user['limit-bytes-out'] ?? '',
+            'limit_rx' => $limitRx,
+            'limit_tx' => $limitTx,
+            'limit_uptime' => $limitUptime,
             'uptime' => $this->formatUptime((string)($user['uptime'] ?? '')),
             'bytes_in' => $this->formatBytes((int)($user['bytes-in'] ?? 0)),
             'bytes_out' => $this->formatBytes((int)($user['bytes-out'] ?? 0)),
@@ -924,6 +933,26 @@ readonly class HotspotService
         }
 
         return $this->appendExpiry($comment, $days);
+    }
+
+    /**
+     * Profile rate-limit starts with router Rx/Tx rates; later groups describe bursts.
+     * A single rate applies in both directions.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function parseProfileRateLimit(string $rateLimit): array
+    {
+        $rateLimit = trim($rateLimit);
+        if ($rateLimit === '' || strtolower($rateLimit) === 'unlimited') {
+            return ['', ''];
+        }
+
+        $firstGroup = preg_split('/\s+/', $rateLimit, 2)[0] ?? '';
+        [$rx, $tx] = array_pad(explode('/', $firstGroup, 2), 2, null);
+        $tx ??= $rx;
+
+        return [$rx === '0' ? '' : $rx, $tx === '0' ? '' : $tx];
     }
 
     /**

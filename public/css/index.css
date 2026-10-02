@@ -69,6 +69,61 @@
     }
 }
 
+/* User detail modal scrollbars */
+@layer components {
+    .user-detail-overlay-scroll {
+        color-scheme: dark;
+        scrollbar-color: var(--color-zinc-500) transparent;
+        scrollbar-width: thin;
+    }
+
+    .user-detail-overlay-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .user-detail-overlay-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .user-detail-overlay-scroll::-webkit-scrollbar-thumb {
+        background: var(--color-zinc-500);
+        border-radius: 9999px;
+    }
+
+    .user-detail-scroll {
+        color-scheme: light;
+        --detail-scrollbar-track: var(--color-white);
+        --detail-scrollbar-thumb: var(--color-zinc-500);
+        --detail-scrollbar-thumb-hover: var(--color-zinc-600);
+        scrollbar-color: var(--detail-scrollbar-thumb) var(--detail-scrollbar-track);
+        scrollbar-width: thin;
+    }
+
+    .dark .user-detail-scroll {
+        color-scheme: dark;
+        --detail-scrollbar-track: var(--color-zinc-800);
+        --detail-scrollbar-thumb-hover: var(--color-zinc-400);
+    }
+
+    .user-detail-scroll::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .user-detail-scroll::-webkit-scrollbar-track {
+        background: var(--detail-scrollbar-track);
+    }
+
+    .user-detail-scroll::-webkit-scrollbar-thumb {
+        background: var(--detail-scrollbar-thumb);
+        border: 2px solid var(--detail-scrollbar-track);
+        border-radius: 9999px;
+    }
+
+    .user-detail-scroll::-webkit-scrollbar-thumb:hover {
+        background: var(--detail-scrollbar-thumb-hover);
+    }
+}
+
 /* Modal responsive transform: bottom-sheet on mobile, centered scale on desktop */
 @layer base {
     .modal-transform {

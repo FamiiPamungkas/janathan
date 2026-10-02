@@ -35,6 +35,26 @@ readonly class ProfileService
         return null;
     }
 
+    public function getRateLimitByName(int $routerId, string $name): string
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $profiles = $client->getHotspotProfiles();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        foreach ($profiles as $profile) {
+            if (($profile['name'] ?? '') === $name) {
+                return (string)($profile['rate-limit'] ?? '');
+            }
+        }
+
+        return '';
+    }
+
     /**
      * @return string[] Sorted unique profile names for form selects.
      */

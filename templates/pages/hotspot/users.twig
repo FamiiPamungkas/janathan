@@ -715,7 +715,7 @@
     :aria-hidden="!detailModal"
     tabindex="-1"
     role="dialog"
-    class="fixed inset-0 z-50 overflow-x-hidden overflow-y-auto bg-zinc-900/75 backdrop-blur-xs will-change-auto p-4 sm:items-center sm:justify-center sm:p-8"
+    class="user-detail-overlay-scroll fixed inset-0 z-50 overflow-x-hidden overflow-y-auto bg-zinc-900/75 backdrop-blur-xs will-change-auto p-4 sm:items-center sm:justify-center sm:p-8"
 >
     <div
         x-show="detailModal"
@@ -733,7 +733,7 @@
                 <i class="ph ph-x text-base" aria-hidden="true"></i>
             </button>
         </div>
-        <div class="max-h-[85dvh] overflow-y-auto p-5 sm:max-h-[70vh]">
+        <div class="user-detail-scroll max-h-[85dvh] overflow-y-auto p-5 sm:max-h-[70vh]">
             <div x-show="detailLoading" class="flex items-center justify-center gap-2 py-12 text-sm text-zinc-500 dark:text-zinc-400">
                 <i class="ph ph-spinner animate-spin text-xl" aria-hidden="true"></i>
             </div>
@@ -788,40 +788,40 @@
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_expires') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.expires_at || '—'"></dd>
                             </div>
-                            <div class="sm:col-span-2">
+                            <div>
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.server') }}</dt>
                                 <dd class="mt-0.5 text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.server || '{{ trans('hotspot.users.any_server') }}'"></dd>
                             </div>
-                        </dl>
-                    </div>
-
-                    <!-- Connection section -->
-                    <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.mac_address') }}</p>
-                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                            <div class="sm:col-span-2">
+                            <div>
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.mac_address') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.mac_address || '—'"></dd>
                             </div>
+                        </dl>
+                    </div>
+
+                    <!-- Limits section -->
+                    <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limits') }}</p>
+                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                             <div>
-                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_in') }}</dt>
-                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_bytes_in || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_rx') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_rx || '{{ trans('hotspot.users.no_limit') }}'"></dd>
                             </div>
                             <div>
-                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_out') }}</dt>
-                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_bytes_out || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_tx') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_tx || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_uptime') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_uptime || '{{ trans('hotspot.users.no_limit') }}'"></dd>
                             </div>
                         </dl>
                     </div>
 
-                    <!-- Traffic section -->
+                    <!-- Statistic section -->
                     <div class="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-700/50">
-                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_uptime') }}</p>
-                        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                            <div>
-                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_uptime') }}</dt>
-                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.uptime || '—'"></dd>
-                            </div>
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.statistic') }}</p>
+                        <dl class="grid grid-cols-2 gap-x-6 gap-y-3">
                             <div>
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_bytes_in') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.bytes_in"></dd>
@@ -829,6 +829,10 @@
                             <div>
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_bytes_out') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.bytes_out"></dd>
+                            </div>
+                            <div class="col-span-2">
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.th_uptime') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.uptime || '—'"></dd>
                             </div>
                         </dl>
                     </div>
