@@ -31,6 +31,19 @@
             <input type="hidden" name="list_filter_status" value="{{ listFilters.status|default('all') }}">
 
             <div>
+                <label for="server" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.server') }}</label>
+                {% set currentServer = values.server is defined ? values.server : user.server|default('all') %}
+                <select id="server" name="server" required
+                    class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.server %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    <option value="all" {% if currentServer == 'all' %}selected{% endif %}>{{ trans('hotspot.user_form.all_servers') }}</option>
+                    {% for server in servers %}
+                        <option value="{{ server }}" {% if currentServer == server %}selected{% endif %}>{{ server }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.server %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.server }}</p>{% endif %}
+            </div>
+
+            <div>
                 <label for="name" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.name') }}</label>
                 <input type="text" id="name" name="name" required placeholder="{{ trans('hotspot.user_form.name_ph') }}" autocomplete="off"
                     value="{{ values.name|default(user.name|default('')) }}"
@@ -60,6 +73,36 @@
                     {% endfor %}
                 </select>
                 {% if errors.profile %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.profile }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="limit_uptime" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.limit_uptime') }}</label>
+                    <input type="text" id="limit_uptime" name="limit_uptime" placeholder="{{ trans('hotspot.user_form.limit_uptime_ph') }}" autocomplete="off"
+                        value="{{ values.limit_uptime is defined ? values.limit_uptime : user.limit_uptime|default('') }}" aria-describedby="limit_uptime_help"
+                        class="block w-full rounded-lg border px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 {% if errors.limit_uptime %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                    <p id="limit_uptime_help" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.limit_uptime_help') }}</p>
+                    {% if errors.limit_uptime %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.limit_uptime }}</p>{% endif %}
+                </div>
+                <div>
+                    <label for="data_limit" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ trans('hotspot.user_form.data_limit') }}</label>
+                    <div class="flex w-full overflow-hidden rounded-lg border bg-white focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/30 dark:bg-zinc-900 dark:focus-within:border-teal-500 {% if errors.data_limit %}border-red-400 dark:border-red-500{% else %}border-zinc-300 dark:border-zinc-600{% endif %}">
+                        <input type="number" id="data_limit" name="data_limit" min="0" step="0.5" inputmode="decimal" placeholder="{{ trans('hotspot.user_form.data_limit_ph') }}"
+                            value="{{ values.data_limit is defined ? values.data_limit : user.data_limit|default('') }}" aria-describedby="data_limit_help"
+                            class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-teal-50/50 focus:outline-none focus:ring-0 dark:text-zinc-100 dark:focus:bg-zinc-800">
+                        <span class="w-px shrink-0 self-stretch bg-zinc-300 dark:bg-zinc-600" aria-hidden="true"></span>
+                        {% set currentDataLimitUnit = values.data_limit_unit is defined ? values.data_limit_unit : user.data_limit_unit|default('MB') %}
+                        <label for="data_limit_unit" class="sr-only">{{ trans('hotspot.user_form.data_limit_unit') }}</label>
+                        <select id="data_limit_unit" name="data_limit_unit" aria-describedby="data_limit_help"
+                            class="w-16 shrink-0 border-0 bg-zinc-50 px-2 py-2 text-sm text-zinc-900 focus:bg-teal-50 focus:outline-none focus:ring-0 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:bg-zinc-700">
+                            <option value="MB" {% if currentDataLimitUnit == 'MB' %}selected{% endif %}>MB</option>
+                            <option value="GB" {% if currentDataLimitUnit == 'GB' %}selected{% endif %}>GB</option>
+                            {% if currentDataLimitUnit == 'B' %}<option value="B" selected>{{ trans('hotspot.user_form.data_limit_bytes') }}</option>{% endif %}
+                        </select>
+                    </div>
+                    <p id="data_limit_help" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.data_limit_help') }}</p>
+                    {% if errors.data_limit %}<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ errors.data_limit }}</p>{% endif %}
+                </div>
             </div>
 
             <div>

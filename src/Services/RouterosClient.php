@@ -181,6 +181,11 @@ class RouterosClient
         return $this->hotspotQuery('/ip/hotspot/user/print');
     }
 
+    public function getHotspotServers(): array
+    {
+        return $this->hotspotQuery('/ip/hotspot/print');
+    }
+
     public function getHotspotUser(string $id): ?array
     {
         $result = $this->hotspotQuery('/ip/hotspot/user/print', ['.id' => $id]);

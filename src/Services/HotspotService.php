@@ -67,6 +67,26 @@ readonly class HotspotService
     }
 
     /**
+     * @return string[] Sorted unique HotSpot server names for user forms.
+     */
+    public function getServerNames(int $routerId): array
+    {
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+
+        try {
+            $rows = $client->getHotspotServers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        return array_values(array_filter(
+            $this->extractNames($rows),
+            static fn(string $name): bool => $name !== 'all'
+        ));
+    }
+
+    /**
      * @param array{q?: string, profile?: string, comment?: string, status?: string, sort?: string, direction?: string} $filters
      * @return array{q: string, profile: string, comment: string, status: string, sort: string, direction: string}
      */
@@ -300,6 +320,7 @@ readonly class HotspotService
         $profileName = (string)($user['profile'] ?? '');
         $rateLimit = $profileName === '' ? '' : $this->profiles->getRateLimitByName($routerId, $profileName);
         [$limitRx, $limitTx] = $this->parseProfileRateLimit($rateLimit);
+        [$dataLimit, $dataLimitUnit] = $this->formatDataLimitForForm((string)($user['limit-bytes-total'] ?? '0'));
         $rawLimitUptime = (string)($user['limit-uptime'] ?? '');
         $limitUptime = (in_array(trim($rawLimitUptime), ['', '0', '00:00:00'], true)
             || $this->parseDurationSeconds($rawLimitUptime) === 0)
@@ -318,6 +339,7 @@ readonly class HotspotService
             'limit_rx' => $limitRx,
             'limit_tx' => $limitTx,
             'limit_uptime' => $limitUptime,
+            'data_limit' => $dataLimit === '' ? '' : $dataLimit . ' ' . $dataLimitUnit,
             'uptime' => $this->formatUptime((string)($user['uptime'] ?? '')),
             'bytes_in' => $this->formatBytes((int)($user['bytes-in'] ?? 0)),
             'bytes_out' => $this->formatBytes((int)($user['bytes-out'] ?? 0)),
@@ -347,7 +369,7 @@ readonly class HotspotService
      * by random characters; each password is random characters. One router
      * connection is reused for the whole batch.
      *
-     * @param array{qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool} $values
+     * @param array{server: string, limit_uptime: string, data_limit: string, data_limit_unit: string, qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool} $values
      * @return array{created: int, failed: int, errors: string[], comment: string}
      * @throws RuntimeException When the router cannot be reached.
      */
@@ -381,6 +403,10 @@ readonly class HotspotService
                         'profile' => $values['profile'],
                         'comment' => $comment,
                         'password' => $password,
+                        'server' => $values['server'],
+                        'limit_uptime' => $values['limit_uptime'],
+                        'data_limit' => $values['data_limit'],
+                        'data_limit_unit' => $values['data_limit_unit'],
                     ], false));
                     $result['created']++;
                 } catch (RouterosCommandException $e) {
@@ -858,13 +884,55 @@ readonly class HotspotService
 
     private function buildUser(array $u): array
     {
+        [$dataLimit, $dataLimitUnit] = $this->formatDataLimitForForm((string)($u['limit-bytes-total'] ?? '0'));
+
         return [
             'id' => $u['.id'] ?? '',
             'name' => $u['name'] ?? '',
             'profile' => $u['profile'] ?? '',
+            'server' => $u['server'] ?? 'all',
+            'limit_uptime' => in_array((string)($u['limit-uptime'] ?? ''), ['', '0', '0s', '00:00:00'], true)
+                ? '' : (string)$u['limit-uptime'],
+            'data_limit' => $dataLimit,
+            'data_limit_unit' => $dataLimitUnit,
             'comment' => $u['comment'] ?? '',
             'disabled' => $this->isYes($u['disabled'] ?? null),
         ];
+    }
+
+    /**
+     * Show whole or half GB/MB, while preserving other byte values exactly.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function formatDataLimitForForm(string $rawBytes): array
+    {
+        $bytes = filter_var($rawBytes, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+        if ($bytes === false) {
+            return [$rawBytes, 'B'];
+        }
+        if ($bytes === 0) {
+            return ['', 'MB'];
+        }
+
+        $gb = 1073741824;
+        if ($bytes >= intdiv($gb, 2) && $bytes <= 1000000 * $gb
+            && $bytes % intdiv($gb, 2) === 0) {
+            $whole = intdiv($bytes, $gb);
+            $fraction = $bytes % $gb === 0 ? '' : '.5';
+
+            return [$whole . $fraction, 'GB'];
+        }
+
+        $mb = 1048576;
+        if ($bytes <= 1000000 * $mb && $bytes % intdiv($mb, 2) === 0) {
+            $whole = intdiv($bytes, $mb);
+            $fraction = $bytes % $mb === 0 ? '' : '.5';
+
+            return [$whole . $fraction, 'MB'];
+        }
+
+        return [(string)$bytes, 'B'];
     }
 
     /**
@@ -1067,6 +1135,21 @@ readonly class HotspotService
             'comment' => $values['comment'] ?? '',
             'disabled' => !empty($values['disabled']) ? 'yes' : 'no',
         ];
+
+        if (isset($values['server'])) {
+            $fields['server'] = $values['server'];
+        }
+        if (isset($values['limit_uptime'])) {
+            $fields['limit-uptime'] = $values['limit_uptime'] === '' ? '0' : $values['limit_uptime'];
+        }
+        if (isset($values['data_limit'])) {
+            $amount = $values['data_limit'];
+            $unit = $values['data_limit_unit'] ?? 'B';
+            $factor = $unit === 'GB' ? 1073741824 : 1048576;
+            $fields['limit-bytes-total'] = $amount === '' ? '0' : ($unit === 'B'
+                ? $amount
+                : (string)(int)round((float)$amount * $factor));
+        }
 
         $password = $values['password'] ?? '';
         if ($password !== '' || !$isUpdate) {

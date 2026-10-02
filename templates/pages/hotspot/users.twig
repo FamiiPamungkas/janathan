@@ -811,9 +811,13 @@
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_tx') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_tx || '{{ trans('hotspot.users.no_limit') }}'"></dd>
                             </div>
-                            <div class="sm:col-span-2">
+                            <div>
                                 <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.limit_uptime') }}</dt>
                                 <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.limit_uptime || '{{ trans('hotspot.users.no_limit') }}'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.users.data_limit') }}</dt>
+                                <dd class="mt-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100" x-text="detailUser.data_limit || '{{ trans('hotspot.users.no_limit') }}'"></dd>
                             </div>
                         </dl>
                     </div>
@@ -839,6 +843,7 @@
                 </div>
             </template>
         </div>
+        <div class="h-4 shrink-0 bg-transparent" aria-hidden="true"></div>
     </div>
 </div>
 </div>

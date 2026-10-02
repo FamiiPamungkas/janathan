@@ -797,10 +797,12 @@ class HotspotController
         $routerId = (int)$_SESSION['router_id'];
         $profiles = [];
         $profilesWithPrefix = [];
+        $servers = [];
 
         try {
             $profiles = $this->profiles->getProfileNames($routerId);
             $profilesWithPrefix = $this->profiles->getProfiles($routerId)['profiles'];
+            $servers = $this->hotspot->getServerNames($routerId);
         } catch (\Throwable $e) {
             return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
@@ -812,6 +814,7 @@ class HotspotController
 
         $html = $this->twig->render('pages/hotspot/generate.twig', [
             'profiles' => $profiles,
+            'servers' => $servers,
             'prefixMap' => $prefixMap,
             'errors' => [],
             'values' => [],
@@ -1132,9 +1135,11 @@ class HotspotController
     ): Response
     {
         $profiles = [];
+        $servers = [];
 
         try {
             $profiles = $this->profiles->getProfileNames((int)$_SESSION['router_id']);
+            $servers = $this->hotspot->getServerNames((int)$_SESSION['router_id']);
         } catch (\Throwable $e) {
             if ($errorBanner === null) {
                 $errorBanner = $e->getMessage();
@@ -1152,6 +1157,7 @@ class HotspotController
             'errors' => $errors,
             'values' => $values,
             'profiles' => $profiles,
+            'servers' => $servers,
             'errorBanner' => $errorBanner,
             'formAction' => $user === null ? 'hotspot.users.store' : 'hotspot.users.update',
             'formParams' => $user === null ? [] : ['id' => $user['id']],
@@ -1174,18 +1180,21 @@ class HotspotController
         $routerId = (int)$_SESSION['router_id'];
         $profiles = [];
         $prefixMap = [];
+        $servers = [];
 
         try {
             $profiles = $this->profiles->getProfileNames($routerId);
             foreach ($this->profiles->getProfiles($routerId)['profiles'] as $p) {
                 $prefixMap[$p['name']] = $p['prefix'] ?? '';
             }
+            $servers = $this->hotspot->getServerNames($routerId);
         } catch (\Throwable $e) {
             return $this->renderUnreachable($request, $response, $e, 'hotspot.users');
         }
 
         $html = $this->twig->render('pages/hotspot/generate.twig', [
             'profiles' => $profiles,
+            'servers' => $servers,
             'prefixMap' => $prefixMap,
             'errors' => $errors,
             'values' => $values,
@@ -1300,24 +1309,24 @@ class HotspotController
     }
 
     /**
-     * @return array{name: string, password: string, profile: string, comment: string, disabled: bool}
+     * @return array{server: string, name: string, password: string, profile: string, limit_uptime: string, data_limit: string, data_limit_unit: string, comment: string, disabled: bool}
      */
     private function extractUserValues(mixed $body): array
     {
         $body = is_array($body) ? $body : [];
 
-        return [
+        return array_merge($this->extractUserSettings($body), [
             'name' => trim((string)($body['name'] ?? '')),
             'password' => (string)($body['password'] ?? ''),
             'profile' => trim((string)($body['profile'] ?? '')),
             'comment' => trim((string)($body['comment'] ?? '')),
             'disabled' => !empty($body['disabled']),
-        ];
+        ]);
     }
 
     private function validateUser(array $values, bool $isEdit): array
     {
-        $errors = [];
+        $errors = $this->validateUserSettings($values);
 
         if ($values['name'] === '') {
             $errors['name'] = 'Name is required.';
@@ -1343,7 +1352,52 @@ class HotspotController
     }
 
     /**
-     * @return array{qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool}
+     * @return array{server: string, limit_uptime: string, data_limit: string, data_limit_unit: string}
+     */
+    private function extractUserSettings(array $body): array
+    {
+        return [
+            'server' => trim((string)($body['server'] ?? 'all')),
+            'limit_uptime' => trim((string)($body['limit_uptime'] ?? '')),
+            'data_limit' => trim((string)($body['data_limit'] ?? '')),
+            'data_limit_unit' => trim((string)($body['data_limit_unit'] ?? 'MB')),
+        ];
+    }
+
+    private function validateUserSettings(array $values): array
+    {
+        $errors = [];
+
+        if ($values['server'] === '') {
+            $errors['server'] = $this->translator->trans('hotspot.user_form.server_required');
+        }
+
+        if ($values['limit_uptime'] !== ''
+            && $values['limit_uptime'] !== '0'
+            && preg_match('/^(?=.+)(?:\d+w)?(?:\d+d)?(?:\d+h)?(?:\d+m)?(?:\d+s)?$/i', $values['limit_uptime']) !== 1
+            && preg_match('/^(?:\d+w)?(?:\d+d)? ?\d{1,2}:[0-5]\d:[0-5]\d$/i', $values['limit_uptime']) !== 1
+        ) {
+            $errors['limit_uptime'] = $this->translator->trans('hotspot.user_form.limit_uptime_invalid');
+        }
+
+        $dataLimitUnit = $values['data_limit_unit'];
+        $dataLimit = $values['data_limit'];
+        if (!in_array($dataLimitUnit, ['B', 'MB', 'GB'], true)
+            || ($dataLimit !== '' && (
+                $dataLimitUnit === 'B'
+                    ? (preg_match('/^\d+$/', $dataLimit) !== 1
+                        || filter_var($dataLimit, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]) === false)
+                    : (preg_match('/^\d+(?:\.(?:0+|5(?:0+)?))?$/', $dataLimit) !== 1 || (float)$dataLimit > 1000000)
+            ))
+        ) {
+            $errors['data_limit'] = $this->translator->trans('hotspot.user_form.data_limit_invalid');
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @return array{server: string, limit_uptime: string, data_limit: string, data_limit_unit: string, qty: int, profile: string, prefix: string, comment: string, char_lowercase: bool, char_uppercase: bool, char_numbers: bool, name_length: int, password_length: int, password_same_as_username: bool}
      */
     private function extractGenerateValues(mixed $body): array
     {
@@ -1352,7 +1406,7 @@ class HotspotController
         $nameLength = (int)($body['name_length'] ?? 6);
         $passwordLength = (int)($body['password_length'] ?? 4);
 
-        return [
+        return array_merge($this->extractUserSettings($body), [
             'qty' => (int)($body['qty'] ?? 0),
             'profile' => trim((string)($body['profile'] ?? '')),
             'prefix' => trim((string)($body['prefix'] ?? '')),
@@ -1363,7 +1417,7 @@ class HotspotController
             'name_length' => $nameLength < 1 ? 1 : $nameLength,
             'password_length' => $passwordLength < 1 ? 1 : $passwordLength,
             'password_same_as_username' => !empty($body['password_same_as_username']),
-        ];
+        ]);
     }
 
     private function validateGenerate(array $values): array
@@ -1379,6 +1433,8 @@ class HotspotController
         if ($values['profile'] === '') {
             $errors['profile'] = 'Profile is required.';
         }
+
+        $errors = array_merge($errors, $this->validateUserSettings($values));
 
         if (!$values['char_lowercase'] && !$values['char_uppercase'] && !$values['char_numbers']) {
             $errors['character'] = $this->translator->trans('hotspot.generate.char_set_required');
