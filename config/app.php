@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     'APP_DEBUG'               => 'true',
     'APP_NAME'                => 'Janathan',
-    'APP_VERSION'             => '0.7.0',
+    'APP_VERSION'             => '0.8.0',
     'APP_BASE_PATH'           => '',
     'DB_PATH'                 => 'database/janathan.sqlite',
     'MIKROTIK_TIMEOUT'        => '5',
