@@ -55,7 +55,7 @@
                 <i class="ph ph-gear text-xl" aria-hidden="true"></i>
             </div>
             <div class="min-w-0">
-                <p class="flex items-center gap-2 font-semibold">
+                <p class="flex items-center gap-2 text-sm font-semibold">
                     <span class="truncate">{{ profile.name }}</span>
                     {% if profile.color %}
                         <span class="h-2.5 w-2.5 flex-none rounded-full" style="background-color: {{ profile.color }}" title="{{ profile.color }}"></span>
@@ -63,18 +63,30 @@
                 </p>
             </div>
         </div>
-        <dl class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm">
-            <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_rate_limit') }}</dt>
-                <dd class="truncate font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ profile.rate_limit }}</dd>
+        <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+            <div class="min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_rate_limit') }}</dt>
+                <dd class="mt-0.5 truncate leading-5 font-mono {{ profile.rate_limit is null ? 'text-xs text-zinc-600 dark:text-zinc-400' : 'font-medium text-sm' }}">{{ profile.rate_limit }}</dd>
             </div>
-            <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_price') }}</dt>
-                <dd class="font-medium tabular-nums">{{ profile.price is not null ? profile.price|number_format(2, '.', ',') : '—' }}</dd>
+            <div class="min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_price') }}</dt>
+                <dd class="mt-0.5 tabular-nums leading-5 font-mono {{ profile.price is null ? 'text-xs text-zinc-600 dark:text-zinc-400' : 'font-medium text-sm' }}">{{ profile.price is not null ? profile.price|number_format(2, '.', ',') : '—' }}</dd>
             </div>
-            <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_shared_users') }}</dt>
-                <dd class="font-medium tabular-nums">{{ profile.shared_users }}</dd>
+            <div class="min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_shared_users') }}</dt>
+                <dd class="mt-0.5 font-medium tabular-nums text-sm leading-5 font-mono">{{ profile.shared_users }}</dd>
+            </div>
+            <div class="min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_prefix') }}</dt>
+                <dd class="mt-0.5 truncate leading-5 font-mono {{ profile.prefix ? 'font-medium text-sm' : 'text-xs text-zinc-600 dark:text-zinc-400' }}">{{ profile.prefix ?: '—' }}</dd>
+            </div>
+            <div class="min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_validity') }}</dt>
+                <dd class="mt-0.5 tabular-nums leading-5 font-mono {{ profile.validity_days is null ? 'text-xs text-zinc-600 dark:text-zinc-400' : 'font-medium text-sm' }}">{{ profile.validity_days is not null ? profile.validity_days ~ ' ' ~ trans('hotspot.profiles.days') : '—' }}</dd>
+            </div>
+            <div class="col-span-2 min-w-0">
+                <dt class="text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.profiles.col_start_on') }}</dt>
+                <dd class="mt-0.5 font-medium text-sm leading-5">{{ profile.start_on == 'user_creation' ? trans('hotspot.profiles.start_on_creation') : trans('hotspot.profiles.start_on_first_login') }}</dd>
             </div>
         </dl>
         <div class="mt-4 flex items-center gap-2">
@@ -104,6 +116,9 @@
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_name') }}</th>
                     <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_rate_limit') }}</th>
                     <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_price') }}</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_prefix') }}</th>
+                    <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_validity') }}</th>
+                    <th class="px-4 py-3 text-start font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_start_on') }}</th>
                     <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_shared_users') }}</th>
                     <th class="px-4 py-3 text-end font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.profiles.th_actions') }}</th>
                 </tr>
@@ -120,9 +135,12 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ profile.rate_limit }}</td>
-                    <td class="px-4 py-3 text-end font-medium tabular-nums">{{ profile.price is not null ? profile.price|number_format(2, '.', ',') : '—' }}</td>
-                    <td class="px-4 py-3 text-end font-medium tabular-nums">{{ profile.shared_users }}</td>
+                    <td class="px-4 py-3 font-mono font-medium text-sm text-zinc-600 dark:text-zinc-400">{{ profile.rate_limit }}</td>
+                    <td class="px-4 py-3 text-end tabular-nums text-zinc-600 dark:text-zinc-400 {{ profile.price is null ? 'text-xs' : 'font-medium text-sm' }}">{{ profile.price is not null ? profile.price|number_format(2, '.', ',') : '—' }}</td>
+                    <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400 font-mono {{ profile.prefix ? 'font-medium text-sm' : 'text-xs' }}">{{ profile.prefix ?: '—' }}</td>
+                    <td class="px-4 py-3 text-end tabular-nums font-mono text-zinc-600 dark:text-zinc-400 {{ profile.validity_days is null ? 'text-xs' : 'font-medium text-sm' }}">{{ profile.validity_days is not null ? profile.validity_days ~ ' ' ~ trans('hotspot.profiles.days') : '—' }}</td>
+                    <td class="px-4 py-3 font-medium text-sm text-zinc-600 dark:text-zinc-400">{{ profile.start_on == 'user_creation' ? trans('hotspot.profiles.start_on_creation') : trans('hotspot.profiles.start_on_first_login') }}</td>
+                    <td class="px-4 py-3 text-end font-medium tabular-nums text-sm font-mono text-zinc-600 dark:text-zinc-400">{{ profile.shared_users }}</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
                             <a href="{{ url_for('hotspot.users') }}?profile={{ profile.name|url_encode }}" title="{{ trans('hotspot.view_users') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">

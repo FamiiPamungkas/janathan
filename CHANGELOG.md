@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Choose a hotspot server and set uptime and total data limits when creating or editing users and generating vouchers.
 - Show each user's total data limit in the detail modal.
 
+### Fixed
+
+- Fixed profile list text sizing inconsistency: unified metadata values to consistent font-medium/text-sm hierarchy, added font-mono to technical values (rate limit, price, prefix, validity, shared users), and made empty values use smaller text-xs styling matching the users page layout.
+- Aligned desktop profile table colors to match users table reference (text-zinc-600 dark:text-zinc-400 for values, profile name retains default color).
+
 ### Changed
 
 - Group the data limit amount and MB/GB unit into one control and place the limits above Comment.
