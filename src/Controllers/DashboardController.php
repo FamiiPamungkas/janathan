@@ -62,7 +62,13 @@ class DashboardController
         }
 
         try {
-            $data = $this->dashboard->getStatsData((int) $_SESSION['router_id']);
+            $interface = $request->getQueryParams()['interface'] ?? null;
+            $interface = is_string($interface) ? trim($interface) : null;
+            if ($interface !== null && strlen($interface) > 255) {
+                $interface = null;
+            }
+
+            $data = $this->dashboard->getStatsData((int) $_SESSION['router_id'], $interface);
         } catch (\Throwable $e) {
             return $this->json($response, ['error' => $e->getMessage()], 502);
         }

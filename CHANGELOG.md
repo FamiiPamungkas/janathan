@@ -29,16 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Choose a hotspot server and set uptime and total data limits when creating or editing users and generating vouchers.
 - Show each user's total data limit in the detail modal.
+- Add a live RX/TX traffic-speed chart with a per-router remembered interface selection.
 
 ### Fixed
 
 - Fixed profile list text sizing inconsistency: unified metadata values to consistent font-medium/text-sm hierarchy, added font-mono to technical values (rate limit, price, prefix, validity, shared users), and made empty values use smaller text-xs styling matching the users page layout.
 - Aligned desktop profile table colors to match users table reference (text-zinc-600 dark:text-zinc-400 for values, profile name retains default color).
+- Keep the router information card at its natural height instead of stretching to match hotspot logs.
 
 ### Changed
 
 - Group the data limit amount and MB/GB unit into one control and place the limits above Comment.
 - Add a transparent footer to the user detail modal so its scrollbar clears the rounded edge.
+- Restructure the dashboard router-first: full-width router overview hero, hotspot snapshot strip, then traffic and scroll-bounded logs as secondary details.
 
 ## [0.8.0] - 2026-10-02
 

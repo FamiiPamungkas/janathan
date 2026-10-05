@@ -144,6 +144,25 @@ class RouterosClient
         }
     }
 
+    public function getInterfaces(): array
+    {
+        $result = $this->query('/interface/print');
+        $this->assertNotTrap($result);
+
+        return $result;
+    }
+
+    public function monitorInterfaceTraffic(string $interface): array
+    {
+        $result = $this->attributeQuery('/interface/monitor-traffic', [
+            'interface' => $interface,
+            'once' => null,
+        ]);
+        $this->assertNotTrap($result);
+
+        return $result[0] ?? [];
+    }
+
     /**
      * RouterOS firmware version, detected from `/system/resource/print`.
      * Returns null when it cannot be determined (e.g. unparseable value).
@@ -345,6 +364,15 @@ class RouterosClient
      * `equal()` instead of `where()` query filters. Used for add/set/remove.
      */
     public function writeQuery(string $command, array $attributes = []): array
+    {
+        return $this->attributeQuery($command, $attributes);
+    }
+
+    /**
+     * Run a command whose arguments are RouterOS API attributes (`=key=value`)
+     * rather than query filters (`?key=value`).
+     */
+    private function attributeQuery(string $command, array $attributes = []): array
     {
         $this->connect();
 

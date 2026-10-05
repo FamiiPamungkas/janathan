@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fame1302\Janathan\Tests;
 
 use Fame1302\Janathan\Exceptions\RouterosConnectionException;
+use Fame1302\Janathan\Exceptions\RouterosCommandException;
 use Fame1302\Janathan\Services\RouterosClient;
 use Fame1302\Janathan\Services\RouterosApiClient;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +13,7 @@ use RouterOS\Client;
 use RouterOS\Config;
 use RouterOS\Exceptions\ClientException;
 use RouterOS\Exceptions\ConnectException;
+use RouterOS\Query;
 
 class RouterosClientTest extends TestCase
 {
@@ -74,6 +76,47 @@ class RouterosClientTest extends TestCase
         // Assert
         $this->assertSame([], $users);
         $this->assertFalse($sut->isHotspotAvailable());
+    }
+
+    public function testMonitorTrafficUsesRouterosCommandAttributes(): void
+    {
+        $response = $this->createMock(Client::class);
+        $response->method('read')->willReturn([[
+            'rx-bits-per-second' => '125000',
+            'tx-bits-per-second' => '64000',
+        ]]);
+
+        $client = $this->createMock(Client::class);
+        $client->expects($this->once())
+            ->method('query')
+            ->with($this->callback(static function (Query $query): bool {
+                self::assertSame([
+                    '/interface/monitor-traffic',
+                    '=interface=ether1',
+                    '=once',
+                ], $query->getQuery());
+
+                return true;
+            }))
+            ->willReturn($response);
+
+        $result = $this->makeClient($client)->monitorInterfaceTraffic('ether1');
+
+        self::assertSame('125000', $result['rx-bits-per-second']);
+        self::assertSame('64000', $result['tx-bits-per-second']);
+    }
+
+    public function testInterfaceTrapThrowsCommandException(): void
+    {
+        $response = $this->createMock(Client::class);
+        $response->method('read')->willReturn([['message' => 'not enough permissions']]);
+
+        $client = $this->createMock(Client::class);
+        $client->method('query')->willReturn($response);
+
+        $this->expectException(RouterosCommandException::class);
+
+        $this->makeClient($client)->getInterfaces();
     }
 
     public function testMultilineProfileScriptIsPreserved(): void

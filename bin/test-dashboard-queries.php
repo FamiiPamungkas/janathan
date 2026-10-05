@@ -8,8 +8,9 @@ declare(strict_types=1);
  * diagnosed from the dev machine (run on Windows via Laragon PHP).
  *
  * Usage:
- *   php bin/test-dashboard-queries.php [routerId] [iterations]
+ *   php bin/test-dashboard-queries.php [routerId] [iterations] [interface]
  * If routerId is omitted, the first router in the DB is used.
+ * Pass an interface name to include the live traffic query used by the chart.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -38,6 +39,7 @@ if ($id <= 0) {
 }
 
 $iterations = (int) ($argv[2] ?? 5);
+$interface = trim((string) ($argv[3] ?? ''));
 
 $queries = [
     'users'    => static fn ($c) => $c->getHotspotUsers(),
@@ -47,10 +49,18 @@ $queries = [
     'active'   => static fn ($c) => $c->getActiveUsers(),
     'hosts'    => static fn ($c) => $c->getHotspotHosts(),
     'identity' => static fn ($c) => $c->getIdentity(),
+    'interfaces' => static fn ($c) => $c->getInterfaces(),
     'logs'     => static fn ($c) => $c->getHotspotLogs(),
 ];
 
+if ($interface !== '') {
+    $queries['traffic'] = static fn ($c) => $c->monitorInterfaceTraffic($interface);
+}
+
 echo "Iterations: {$iterations}\n";
+if ($interface !== '') {
+    echo "Traffic interface: {$interface}\n";
+}
 echo str_repeat('-', 70) . "\n";
 
 for ($i = 1; $i <= $iterations; $i++) {

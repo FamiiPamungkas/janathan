@@ -24,8 +24,17 @@ readonly class DashboardService
     public function getDashboardData(int $routerId): array
     {
         $data = $this->collect($routerId, withLogs: true);
+        $interfacesAvailable = true;
 
-        return $this->buildData(
+        try {
+            $interfaces = $this->connections->get($routerId)->getInterfaces();
+        } catch (Throwable $e) {
+            $this->logQueryFailure('interfaces', $e);
+            $interfaces = [];
+            $interfacesAvailable = false;
+        }
+
+        $result = $this->buildData(
             $data['router'],
             $data['resource'],
             $data['active'],
@@ -36,6 +45,12 @@ readonly class DashboardService
             $data['clock'],
             $data['logs']
         );
+
+        $result['interfaces'] = $this->buildInterfaces($interfaces);
+        $result['interfacesAvailable'] = $interfacesAvailable;
+        $result['trafficSpeed'] = $this->buildTrafficSpeed(null, []);
+
+        return $result;
     }
 
     /**
@@ -45,11 +60,20 @@ readonly class DashboardService
      *
      * @return array{demo: bool, router: array, stats: array, logs: array, hotspotAvailable: bool}
      */
-    public function getStatsData(int $routerId): array
+    public function getStatsData(int $routerId, ?string $interface = null): array
     {
         $data = $this->collect($routerId, withLogs: false);
 
-        return $this->buildData(
+        $traffic = [];
+        if ($interface !== null && $interface !== '') {
+            try {
+                $traffic = $this->connections->get($routerId)->monitorInterfaceTraffic($interface);
+            } catch (Throwable $e) {
+                $this->logQueryFailure('traffic', $e);
+            }
+        }
+
+        $result = $this->buildData(
             $data['router'],
             $data['resource'],
             $data['active'],
@@ -60,6 +84,10 @@ readonly class DashboardService
             $data['clock'],
             $data['logs']
         );
+
+        $result['trafficSpeed'] = $this->buildTrafficSpeed($interface, $traffic);
+
+        return $result;
     }
 
     /**
@@ -196,6 +224,7 @@ readonly class DashboardService
         return [
             'demo' => false,
             'router' => [
+                'id' => (int)$router['id'],
                 'name' => $router['name'],
                 'host' => $router['host'],
                 'port' => $router['port'],
@@ -225,6 +254,37 @@ readonly class DashboardService
             ],
             'logs' => $this->buildHotspotLogs($logs),
             'hotspotAvailable' => $hotspotAvailable,
+        ];
+    }
+
+    private function buildInterfaces(array $interfaces): array
+    {
+        $result = [];
+
+        foreach ($interfaces as $interface) {
+            $name = trim((string)($interface['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $result[] = [
+                'name' => $name,
+                'type' => (string)($interface['type'] ?? ''),
+                'running' => ($interface['running'] ?? 'false') === 'true',
+                'disabled' => ($interface['disabled'] ?? 'false') === 'true',
+            ];
+        }
+
+        return $result;
+    }
+
+    private function buildTrafficSpeed(?string $interface, array $traffic): array
+    {
+        return [
+            'interface' => $interface ?? '',
+            'available' => $interface !== null && $interface !== '' && $traffic !== [],
+            'rxBitsPerSecond' => max(0, (int)($traffic['rx-bits-per-second'] ?? 0)),
+            'txBitsPerSecond' => max(0, (int)($traffic['tx-bits-per-second'] ?? 0)),
         ];
     }
 

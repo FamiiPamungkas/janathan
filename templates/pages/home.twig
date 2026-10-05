@@ -8,6 +8,13 @@
         stats: {{ stats|json_encode|e('html_attr') }},
         logs: {{ logs|json_encode|e('html_attr') }},
         router: {{ router|json_encode|e('html_attr') }},
+        interfaces: {{ interfaces|json_encode|e('html_attr') }},
+        interfacesAvailable: {{ interfacesAvailable ? 'true' : 'false' }},
+        trafficSpeed: {{ trafficSpeed|json_encode|e('html_attr') }},
+        selectedInterface: '',
+        trafficHistory: [],
+        trafficWindowMs: 180000,
+        trafficWindowEnd: Date.now(),
         hotspotAvailable: {{ hotspotAvailable ? 'true' : 'false' }},
         url: '{{ url_for('dashboard.data')|e('html_attr') }}',
         urlLogs: '{{ url_for('dashboard.logs')|e('html_attr') }}',
@@ -18,11 +25,51 @@
         logsUpdatedAt: null,
         error: '',
         refreshing: false,
+        pendingStatsRefresh: false,
+        trafficLoading: false,
         logsRefreshing: false,
         timer: null,
         logsTimer: null,
         init() {
+            this.restoreInterface();
             this.start();
+        },
+        restoreInterface() {
+            const available = this.interfaces.filter(item => !item.disabled);
+            if (available.length === 0) {
+                return;
+            }
+
+            let stored = '';
+            try {
+                stored = localStorage.getItem(this.interfaceStorageKey()) || '';
+            } catch (e) {
+                stored = '';
+            }
+
+            const saved = available.find(item => item.name === stored);
+            const preferred = available.find(item => item.running) || available[0];
+            this.selectedInterface = (saved || preferred).name;
+            this.trafficLoading = true;
+        },
+        interfaceStorageKey() {
+            return 'janathan-dashboard-interface-' + this.router.id;
+        },
+        selectInterface() {
+            this.trafficHistory = [];
+            this.trafficLoading = true;
+            this.trafficSpeed = {
+                interface: this.selectedInterface,
+                available: false,
+                rxBitsPerSecond: 0,
+                txBitsPerSecond: 0
+            };
+            try {
+                localStorage.setItem(this.interfaceStorageKey(), this.selectedInterface);
+            } catch (e) {
+                // The selection still works when browser storage is unavailable.
+            }
+            this.refreshStats(true);
         },
         start() {
             this.stop();
@@ -32,6 +79,7 @@
         },
         stop() {
             this.polling = false;
+            this.pendingStatsRefresh = false;
             if (this.timer) {
                 clearInterval(this.timer);
                 this.timer = null;
@@ -44,13 +92,22 @@
         togglePolling() {
             this.polling ? this.stop() : this.start();
         },
-        async refreshStats() {
+        async refreshStats(queueIfBusy = false) {
             if (this.refreshing) {
+                if (queueIfBusy) {
+                    this.pendingStatsRefresh = true;
+                }
                 return;
             }
             this.refreshing = true;
+            const requestedInterface = this.selectedInterface;
+            this.trafficLoading = requestedInterface !== '' && this.trafficHistory.length < 2;
             try {
-                const res = await fetch(this.url);
+                const url = new URL(this.url, window.location.href);
+                if (requestedInterface) {
+                    url.searchParams.set('interface', requestedInterface);
+                }
+                const res = await fetch(url);
                 const data = await res.json();
                 if (!res.ok) {
                     throw new Error(data.error || 'Failed to refresh dashboard data.');
@@ -58,12 +115,34 @@
                 this.stats = data.stats;
                 this.router = data.router;
                 this.hotspotAvailable = data.hotspotAvailable;
+                if (data.trafficSpeed && requestedInterface === this.selectedInterface) {
+                    this.trafficSpeed = data.trafficSpeed;
+                    if (data.trafficSpeed.available) {
+                        this.trafficHistory.push({
+                            rx: data.trafficSpeed.rxBitsPerSecond,
+                            tx: data.trafficSpeed.txBitsPerSecond,
+                            at: Date.now()
+                        });
+                    }
+                }
                 this.lastUpdated = new Date();
                 this.error = '';
             } catch (e) {
                 this.error = e.message || 'Failed to refresh dashboard data.';
             } finally {
                 this.refreshing = false;
+                this.trafficWindowEnd = Date.now();
+                const cutoff = this.trafficWindowEnd - this.trafficWindowMs;
+                this.trafficHistory = this.trafficHistory.filter(sample => sample.at >= cutoff);
+                if (requestedInterface === this.selectedInterface) {
+                    this.trafficLoading = false;
+                }
+                if (this.pendingStatsRefresh && this.polling) {
+                    this.pendingStatsRefresh = false;
+                    this.refreshStats(true);
+                } else {
+                    this.pendingStatsRefresh = false;
+                }
             }
         },
         async refreshLogs() {
@@ -104,6 +183,44 @@
         },
         timeLabel() {
             return this.lastUpdated ? this.lastUpdated.toLocaleTimeString() : '';
+        },
+        formatBitRate(bits) {
+            const value = Math.max(0, Number(bits) || 0);
+            const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
+            let amount = value;
+            let unit = 0;
+            while (amount >= 1000 && unit < units.length - 1) {
+                amount /= 1000;
+                unit++;
+            }
+            const decimals = amount >= 100 || unit === 0 ? 0 : amount >= 10 ? 1 : 2;
+            return amount.toFixed(decimals) + ' ' + units[unit];
+        },
+        trafficPeak(key) {
+            return this.trafficHistory.reduce((peak, sample) => Math.max(peak, sample[key] || 0), 0);
+        },
+        trafficMax() {
+            return Math.max(1, this.trafficPeak('rx'), this.trafficPeak('tx'));
+        },
+        trafficPoints(key) {
+            const count = this.trafficHistory.length;
+            if (count === 0) {
+                return '';
+            }
+            const max = this.trafficMax();
+            const start = this.trafficWindowEnd - this.trafficWindowMs;
+            return this.trafficHistory.map((sample, index) => {
+                const x = Math.max(0, ((sample.at - start) / this.trafficWindowMs) * 1000);
+                const y = 208 - ((sample[key] || 0) / max) * 196;
+                return x.toFixed(1) + ',' + y.toFixed(1);
+            }).join(' ');
+        },
+        trafficChartLabel() {
+            return '{{ trans('dashboard.traffic.chart_label') }} ' + this.selectedInterface
+                + '. RX ' + this.formatBitRate(this.trafficSpeed.rxBitsPerSecond)
+                + ', TX ' + this.formatBitRate(this.trafficSpeed.txBitsPerSecond)
+                + '. {{ trans('dashboard.traffic.peak') }} RX ' + this.formatBitRate(this.trafficPeak('rx'))
+                + ', TX ' + this.formatBitRate(this.trafficPeak('tx')) + '.';
         }
     }">
     <!-- Page header -->
@@ -112,8 +229,8 @@
             <h1 class="text-2xl font-bold tracking-tight">{{ trans('menu.dashboard') }}</h1>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 <span class="inline-flex items-center gap-1.5">
-                    <span class="relative flex size-2">
-                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>
+                    <span class="relative flex size-2" aria-hidden="true">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75 motion-safe:animate-ping" x-show="polling"></span>
                         <span class="relative inline-flex size-2 rounded-full bg-teal-500"></span>
                     </span>
                     {{ router.name }}
@@ -139,7 +256,7 @@
     </div>
 
     <!-- Connection error notice -->
-    <div x-show="error" x-transition class="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+    <div x-cloak x-show="error" x-transition class="mt-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
         <i class="ph ph-x-circle mt-0.5 flex-none text-xl text-red-500" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">{{ trans('dashboard.connection_lost') }}</p>
@@ -148,75 +265,29 @@
     </div>
 
     <!-- Hotspot unavailable notice -->
-    {% if not hotspotAvailable %}
-    <div x-show="!hotspotAvailable" class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+    <div x-cloak x-show="!hotspotAvailable" class="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
         <i class="ph ph-info mt-0.5 flex-none text-xl" aria-hidden="true"></i>
         <div>
             <p class="text-sm font-semibold">{{ trans('dashboard.hotspot_unavailable_title') }}</p>
             <p class="mt-0.5 text-sm">{{ trans('dashboard.hotspot_unavailable_body') }}</p>
         </div>
     </div>
-    {% endif %}
 
-    <!-- Stat cards -->
-    <div class="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
-                    <i class="ph ph-users-three text-base" aria-hidden="true"></i>
-                </div>
-                <span class="text-sm font-medium">{{ trans('dashboard.stat.active_sessions') }}</span>
-            </div>
-            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.activeSessions"></p>
-            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.active_sessions_sub') }}</p>
-        </div>
-
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
-                    <i class="ph ph-identification-card text-base" aria-hidden="true"></i>
-                </div>
-                <span class="text-sm font-medium">{{ trans('dashboard.stat.total_users') }}</span>
-            </div>
-            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.totalUsers"></p>
-            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.total_users_sub') }}</p>
-        </div>
-
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
-                    <i class="ph ph-chart-bar text-base" aria-hidden="true"></i>
-                </div>
-                <span class="text-sm font-medium">{{ trans('dashboard.stat.traffic') }}</span>
-            </div>
-            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.traffic"></p>
-            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.traffic_sub') }}</p>
-        </div>
-
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
-                    <i class="ph ph-gauge text-base" aria-hidden="true"></i>
-                </div>
-                <span class="text-sm font-medium">{{ trans('dashboard.stat.cpu') }}</span>
-            </div>
-            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.cpu + '%'"></p>
-            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.cpu_sub') }}</p>
-        </div>
-    </div>
-
-    <!-- System resources + hotspot logs -->
-    <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <!-- Router resources -->
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-1">
-            <h2 class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                <span class="relative flex size-2.5">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>
+    <!-- Primary: router overview hero -->
+    <section class="mt-6 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800" aria-labelledby="router-overview-title">
+        <div class="border-b border-zinc-100 px-4 py-4 dark:border-zinc-700/50 sm:px-5">
+            <h2 id="router-overview-title" class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                <span class="relative flex size-2.5" aria-hidden="true">
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75 motion-safe:animate-ping" x-show="polling"></span>
                     <span class="relative inline-flex size-2.5 rounded-full bg-teal-500"></span>
                 </span>
-                {{ trans('dashboard.router') }}
+                <i class="ph ph-router text-base text-teal-500" aria-hidden="true"></i>
+                {{ trans('dashboard.router_overview') }}
             </h2>
-            <dl class="mt-4 space-y-3 text-sm">
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.router_subtitle') }}</p>
+        </div>
+        <div class="grid grid-cols-1 gap-6 p-4 sm:p-5 lg:grid-cols-2">
+            <dl class="space-y-3 text-sm">
                 <div class="flex justify-between gap-4">
                     <dt class="text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.router_identity') }}</dt>
                     <dd class="truncate font-medium" x-text="router.identity"></dd>
@@ -243,7 +314,7 @@
                 </div>
             </dl>
 
-            <div class="mt-6 space-y-5">
+            <div class="space-y-5">
                 <div>
                     <div class="mb-1.5 flex items-center justify-between text-sm">
                         <span class="font-medium">{{ trans('dashboard.res_cpu') }}</span>
@@ -273,6 +344,171 @@
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- Secondary: hotspot snapshot -->
+    <section class="mt-6" aria-labelledby="hotspot-snapshot-title">
+        <h2 id="hotspot-snapshot-title" class="sr-only">{{ trans('dashboard.snapshot_title') }}</h2>
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
+                    <i class="ph ph-users-three text-base" aria-hidden="true"></i>
+                </div>
+                <span class="text-sm font-medium">{{ trans('dashboard.stat.active_sessions') }}</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.activeSessions"></p>
+            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.active_sessions_sub') }}</p>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+                    <i class="ph ph-identification-card text-base" aria-hidden="true"></i>
+                </div>
+                <span class="text-sm font-medium">{{ trans('dashboard.stat.total_users') }}</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.totalUsers"></p>
+            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.total_users_sub') }}</p>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
+                    <i class="ph ph-chart-line-up text-base" aria-hidden="true"></i>
+                </div>
+                <span class="text-sm font-medium">{{ trans('dashboard.stat.traffic') }}</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.traffic"></p>
+            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.traffic_sub') }}</p>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                    <i class="ph ph-gauge text-base" aria-hidden="true"></i>
+                </div>
+                <span class="text-sm font-medium">{{ trans('dashboard.stat.cpu') }}</span>
+            </div>
+            <p class="mt-3 text-2xl font-bold tabular-nums sm:text-3xl" x-text="stats.cpu + '%'"></p>
+            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.stat.cpu_sub') }}</p>
+        </div>
+        </div>
+    </section>
+
+    <!-- Secondary details: traffic + logs -->
+    <div class="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-5">
+    <!-- Interface traffic -->
+    <section class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-3" aria-labelledby="traffic-chart-title">
+        <div class="flex flex-col gap-4 border-b border-zinc-100 px-4 py-4 dark:border-zinc-700/50 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 id="traffic-chart-title" class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('dashboard.traffic.title') }}</h2>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('dashboard.traffic.subtitle') }}</p>
+            </div>
+            <label class="flex min-w-0 items-center gap-2 text-sm">
+                <span class="flex-none font-medium text-zinc-600 dark:text-zinc-300">{{ trans('dashboard.traffic.interface') }}</span>
+                <select
+                    x-model="selectedInterface"
+                    @change="selectInterface"
+                    :disabled="interfaces.filter(item => !item.disabled).length === 0"
+                    class="min-w-0 rounded-lg border-zinc-300 bg-white py-1.5 pe-8 ps-3 text-sm text-zinc-900 focus:border-teal-500 focus:ring-teal-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                >
+                    <template x-for="item in interfaces" :key="item.name">
+                        <option
+                            :value="item.name"
+                            :disabled="item.disabled"
+                            x-text="item.name + (item.type ? ' · ' + item.type : '') + (!item.running ? ' · {{ trans('dashboard.traffic.offline') }}' : '')"
+                        ></option>
+                    </template>
+                </select>
+            </label>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div x-cloak x-show="selectedInterface" class="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-8">
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                        <span class="h-0.5 w-5 bg-teal-500" aria-hidden="true"></span>
+                        {{ trans('dashboard.traffic.rx') }}
+                    </div>
+                    <p class="mt-1 text-xl font-bold tabular-nums text-zinc-950 dark:text-white sm:text-2xl" x-text="formatBitRate(trafficSpeed.rxBitsPerSecond)"></p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ trans('dashboard.traffic.peak') }} <span class="tabular-nums" x-text="formatBitRate(trafficPeak('rx'))"></span>
+                    </p>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                        <span class="w-5 border-t-2 border-dashed border-violet-500" aria-hidden="true"></span>
+                        {{ trans('dashboard.traffic.tx') }}
+                    </div>
+                    <p class="mt-1 text-xl font-bold tabular-nums text-zinc-950 dark:text-white sm:text-2xl" x-text="formatBitRate(trafficSpeed.txBitsPerSecond)"></p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ trans('dashboard.traffic.peak') }} <span class="tabular-nums" x-text="formatBitRate(trafficPeak('tx'))"></span>
+                    </p>
+                </div>
+            </div>
+
+            <div x-cloak x-show="selectedInterface" class="relative mt-5 h-56 overflow-hidden rounded-lg bg-zinc-50 dark:bg-zinc-900/60">
+                <svg
+                    x-show="trafficHistory.length >= 2"
+                    class="h-full w-full"
+                    width="1000"
+                    height="220"
+                    viewBox="0 0 1000 220"
+                    preserveAspectRatio="none"
+                    role="img"
+                    :aria-label="trafficChartLabel()"
+                >
+                    <g class="text-zinc-200 dark:text-zinc-700/70" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke">
+                        <line x1="0" y1="12" x2="1000" y2="12"></line>
+                        <line x1="0" y1="61" x2="1000" y2="61"></line>
+                        <line x1="0" y1="110" x2="1000" y2="110"></line>
+                        <line x1="0" y1="159" x2="1000" y2="159"></line>
+                        <line x1="0" y1="208" x2="1000" y2="208"></line>
+                    </g>
+                    <polyline
+                        :points="trafficPoints('rx')"
+                        fill="none"
+                        stroke="var(--color-teal-500)"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke"
+                    ></polyline>
+                    <polyline
+                        :points="trafficPoints('tx')"
+                        fill="none"
+                        stroke="var(--color-violet-500)"
+                        stroke-width="3"
+                        stroke-dasharray="8 6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke"
+                    ></polyline>
+                </svg>
+
+                <div x-show="trafficLoading || (trafficSpeed.available && trafficHistory.length < 2)" class="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ trans('dashboard.traffic.waiting') }}
+                </div>
+                <div x-show="!trafficLoading && !trafficSpeed.available" class="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ trans('dashboard.traffic.unavailable') }}
+                </div>
+            </div>
+
+            <div x-cloak x-show="selectedInterface && trafficHistory.length >= 2" class="mt-2 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                <span>{{ trans('dashboard.traffic.history') }}</span>
+                <span class="tabular-nums" x-text="formatBitRate(trafficMax()) + ' {{ trans('dashboard.traffic.scale') }}'"></span>
+                <span>{{ trans('dashboard.traffic.now') }}</span>
+            </div>
+
+            <div x-cloak x-show="!selectedInterface && interfacesAvailable" class="flex h-56 items-center justify-center rounded-lg bg-zinc-50 px-4 text-center text-sm text-zinc-500 dark:bg-zinc-900/60 dark:text-zinc-400">
+                {{ trans('dashboard.traffic.no_interfaces') }}
+            </div>
+            <div x-cloak x-show="!selectedInterface && !interfacesAvailable" class="flex h-56 items-center justify-center rounded-lg bg-zinc-50 px-4 text-center text-sm text-zinc-500 dark:bg-zinc-900/60 dark:text-zinc-400">
+                {{ trans('dashboard.traffic.interfaces_unavailable') }}
+            </div>
+        </div>
+    </section>
 
         <!-- Hotspot logs -->
         <div class="lg:col-span-2">
@@ -288,7 +524,7 @@
                 </div>
 
                 <!-- Mobile: stacked log entries -->
-                <div class="divide-y divide-zinc-100 md:hidden dark:divide-zinc-700/50">
+                <div class="max-h-[340px] divide-y divide-zinc-100 overflow-y-auto md:hidden dark:divide-zinc-700/50">
                     <template x-for="l in logs" :key="l.id">
                         <div class="p-4">
                             <div class="flex items-center justify-between gap-3">
@@ -301,7 +537,7 @@
                 </div>
 
                 <!-- Desktop: table -->
-                <div class="hidden overflow-x-auto md:block">
+                <div class="hidden max-h-[340px] overflow-auto md:block">
                     <table class="min-w-full align-middle text-sm">
                         <thead>
                             <tr class="border-b border-zinc-100 dark:border-zinc-700/50">
