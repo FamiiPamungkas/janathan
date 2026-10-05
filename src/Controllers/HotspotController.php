@@ -1103,6 +1103,76 @@ class HotspotController
         return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
     }
 
+    public function changeLimits(Request $request, Response $response): Response
+    {
+        if (($redirect = $this->withoutRouter($request, $response)) !== null) {
+            return $redirect;
+        }
+
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+        $ids = isset($body['user_ids']) && is_array($body['user_ids'])
+            ? array_values(array_filter(array_map('strval', $body['user_ids'])))
+            : [];
+        $uptimeMode = $body['uptime_mode'] ?? 'keep';
+        $dataMode = $body['data_mode'] ?? 'keep';
+        $values = $this->extractUserSettings($body);
+        $values['server'] = 'all';
+
+        if ($ids === []) {
+            $this->flash->add('error', $this->translator->trans('hotspot.bulk_change_limits.required'));
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        if (!in_array($uptimeMode, ['keep', 'set', 'unlimited'], true)
+            || !in_array($dataMode, ['keep', 'set', 'unlimited'], true)
+            || ($uptimeMode === 'keep' && $dataMode === 'keep')
+            || ($uptimeMode === 'set' && $values['limit_uptime'] === '')
+            || ($dataMode === 'set' && $values['data_limit'] === '')
+        ) {
+            $this->flash->add('error', $this->translator->trans('hotspot.bulk_change_limits.invalid'));
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        if ($uptimeMode !== 'set') {
+            $values['limit_uptime'] = '';
+        }
+        if ($dataMode !== 'set') {
+            $values['data_limit'] = '';
+            $values['data_limit_unit'] = 'MB';
+        }
+        $errors = $this->validateUserSettings($values);
+        if ($errors !== []) {
+            $this->flash->add('error', implode(' ', $errors));
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+        if ($uptimeMode === 'keep') {
+            unset($values['limit_uptime']);
+        }
+        if ($dataMode === 'keep') {
+            unset($values['data_limit']);
+        }
+
+        try {
+            $result = $this->hotspot->changeUsersLimitsByIds((int) $_SESSION['router_id'], $ids, $values);
+        } catch (\Throwable $e) {
+            $this->flash->add('error', $e->getMessage());
+
+            return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+        }
+
+        if ($result['updated'] > 0) {
+            $message = $this->translator->trans('hotspot.bulk_change_limits.success', ['count' => $result['updated']]);
+            $this->flash->add('success', $message);
+        }
+        if ($result['failed'] > 0) {
+            $this->flash->add('error', $this->translator->trans('hotspot.bulk_change_limits.failed', ['count' => $result['failed']]));
+        }
+
+        return $this->redirectUsers($response, $request, $this->listFiltersFromRequest($request));
+    }
+
     public function resetUserCounters(Request $request, Response $response, array $args): Response
     {
         if (($redirect = $this->withoutRouter($request, $response)) !== null) {

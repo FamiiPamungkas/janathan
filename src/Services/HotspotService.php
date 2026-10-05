@@ -745,6 +745,55 @@ readonly class HotspotService
     }
 
     /**
+     * Update only the requested limits for selected, existing hotspot users.
+     *
+     * @param list<string> $userIds
+     * @param array{limit_uptime?: string, data_limit?: string, data_limit_unit?: string} $values
+     * @return array{updated: int, failed: int}
+     */
+    public function changeUsersLimitsByIds(int $routerId, array $userIds, array $values): array
+    {
+        $userIds = array_values(array_unique($userIds));
+        $fields = $this->normalizeLimitFields($values);
+        if ($userIds === [] || $fields === []) {
+            return ['updated' => 0, 'failed' => 0];
+        }
+
+        /** @var $client RouterosClient */
+        [$router, $client] = $this->connect($this->routers, $this->connections, $routerId);
+        try {
+            $rows = $client->getHotspotUsers();
+        } catch (Throwable $e) {
+            throw $this->unreachable($router, $e);
+        }
+
+        $existingIds = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && ($row['name'] ?? '') !== 'default-trial') {
+                $existingIds[] = (string)($row['.id'] ?? '');
+            }
+        }
+        $updated = 0;
+        $failed = 0;
+        foreach ($userIds as $id) {
+            if (!in_array($id, $existingIds, true)) {
+                $failed++;
+                continue;
+            }
+            try {
+                $client->setHotspotUser($id, $fields);
+                $updated++;
+            } catch (RouterosCommandException $e) {
+                $failed++;
+            } catch (Throwable $e) {
+                throw $this->unreachable($router, $e);
+            }
+        }
+
+        return ['updated' => $updated, 'failed' => $failed];
+    }
+
+    /**
      * Drop the `default-trial` record id from a user-id selection.
      *
      * @param list<string> $userIds
@@ -1138,6 +1187,19 @@ readonly class HotspotService
         if (isset($values['server'])) {
             $fields['server'] = $values['server'];
         }
+        $fields = array_merge($fields, $this->normalizeLimitFields($values));
+
+        $password = $values['password'] ?? '';
+        if ($password !== '' || !$isUpdate) {
+            $fields['password'] = $password;
+        }
+
+        return $fields;
+    }
+
+    private function normalizeLimitFields(array $values): array
+    {
+        $fields = [];
         if (isset($values['limit_uptime'])) {
             $fields['limit-uptime'] = $values['limit_uptime'] === '' ? '0' : $values['limit_uptime'];
         }
@@ -1148,11 +1210,6 @@ readonly class HotspotService
             $fields['limit-bytes-total'] = $amount === '' ? '0' : ($unit === 'B'
                 ? $amount
                 : (string)(int)round((float)$amount * $factor));
-        }
-
-        $password = $values['password'] ?? '';
-        if ($password !== '' || !$isUpdate) {
-            $fields['password'] = $password;
         }
 
         return $fields;

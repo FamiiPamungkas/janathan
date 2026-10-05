@@ -189,8 +189,12 @@
 {% endfor %}
 <div x-data="{
     printModal: false, printUserId: null, printUserName: '',
-    printManyModal: false, deleteManyModal: false, resetManyModal: false, changeExpiryModal: false,
+    printManyModal: false, deleteManyModal: false, resetManyModal: false, changeExpiryModal: false, changeLimitsModal: false,
     newExpiry: '',
+    changeUptime: '',
+    changeDataLimit: '',
+    changeDataLimitUnit: 'MB',
+    uptimeMode: 'keep', dataMode: 'keep',
     deleteUserId: null, deleteUserName: '', deleteUserModal: false,
     resetUserId: null, resetUserName: '', resetUserModal: false,
     detailModal: false, detailUser: null, detailLoading: false, showPassword: false, detailDialogAnimated: false,
@@ -215,6 +219,14 @@
             }
         }
         this.changeExpiryModal = true;
+    },
+    openChangeLimitsModal() {
+        this.changeUptime = '';
+        this.changeDataLimit = '';
+        this.changeDataLimitUnit = 'MB';
+        this.uptimeMode = 'keep';
+        this.dataMode = 'keep';
+        this.changeLimitsModal = true;
     },
     openDetail(id) {
         this.detailUser = null;
@@ -269,6 +281,23 @@
     <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
     <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
     <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
+    <template x-for="id in selected" :key="id">
+        <input type="hidden" name="user_ids[]" :value="id">
+    </template>
+</form>
+<form x-ref="changeLimitsManyForm" method="post" action="{{ url_for('hotspot.users.changeLimits') }}" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="list_filter_q" value="{{ listQ }}">
+    <input type="hidden" name="list_filter_profile" value="{{ listProfile }}">
+    <input type="hidden" name="list_filter_comment" value="{{ listComment }}">
+    <input type="hidden" name="list_filter_status" value="{{ listStatus }}">
+    <input type="hidden" name="list_filter_sort" value="{{ listSort }}">
+    <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
+    <input type="hidden" name="uptime_mode" :value="uptimeMode">
+    <input type="hidden" name="data_mode" :value="dataMode">
+    <input type="hidden" name="limit_uptime" :value="changeUptime">
+    <input type="hidden" name="data_limit" :value="changeDataLimit">
+    <input type="hidden" name="data_limit_unit" :value="changeDataLimitUnit">
     <template x-for="id in selected" :key="id">
         <input type="hidden" name="user_ids[]" :value="id">
     </template>
@@ -476,6 +505,11 @@
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
             </button>
+            <button type="button" @click="openChangeLimitsModal()"
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-400 bg-white px-3.5 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50 dark:border-green-400 dark:bg-zinc-800 dark:text-green-400 dark:hover:bg-green-500/10">
+                <i class="ph ph-sliders-horizontal text-base" aria-hidden="true"></i>
+                {{ trans('hotspot.bulk_change_limits.title') }}
+            </button>
             <button type="button" @click="openExpiryModal()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3.5 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-50 dark:border-blue-500/40 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-500/10">
                 <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
@@ -573,6 +607,67 @@
                 <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.change_expiry') }}
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Change limits many modal -->
+<div x-show="changeLimitsModal" x-cloak @keydown.escape.window="changeLimitsModal = false" class="fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/50 p-4 sm:items-center" x-transition.opacity>
+    <div role="dialog" aria-modal="true" aria-labelledby="change-limits-title" x-trap.inert.noscroll="changeLimitsModal" class="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+         @click.outside="changeLimitsModal = false" x-transition>
+        <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
+            <h2 id="change-limits-title" class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.bulk_change_limits.title') }}</h2>
+            <button type="button" @click="changeLimitsModal = false"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                <i class="ph ph-x text-xl" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="px-4 pt-3 pb-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {{ trans('hotspot.bulk_change_limits.selected_count', {count: '<span class="font-medium text-zinc-800 dark:text-zinc-200" x-text="selected.length"></span>'})|raw }}
+        </p>
+        <div class="p-3 pt-2">
+            {% for field in ['uptime', 'data'] %}
+            <label for="{{ field }}-mode" class="mb-1.5 mt-3 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans(field == 'uptime' ? 'hotspot.user_form.limit_uptime' : 'hotspot.user_form.data_limit') }}</label>
+            <select id="{{ field }}-mode" x-model="{{ field == 'uptime' ? 'uptimeMode' : 'dataMode' }}" class="mb-2 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
+                {% for mode, key in {keep: 'keep_current', set: 'set_limit', unlimited: 'unlimited'} %}
+                <option value="{{ mode }}">{{ trans('hotspot.bulk_change_limits.' ~ key) }}</option>
+                {% endfor %}
+            </select>
+            {% if field == 'uptime' %}
+            <label for="change_uptime" class="sr-only">{{ trans('hotspot.user_form.limit_uptime') }}</label>
+            <input type="text" id="change_uptime" x-model="changeUptime" x-show="uptimeMode === 'set'" :disabled="uptimeMode !== 'set'"
+                class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-teal-400"
+                placeholder="{{ trans('hotspot.user_form.limit_uptime_ph') }}" aria-describedby="change_uptime_help">
+            <p id="change_uptime_help" x-show="uptimeMode === 'set'" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.limit_uptime_help') }}</p>
+            {% else %}
+            <label for="change_data_limit" class="sr-only">{{ trans('hotspot.user_form.data_limit') }}</label>
+            <div x-show="dataMode === 'set'" class="flex w-full overflow-hidden rounded-lg border border-zinc-300 bg-white dark:border-zinc-600 dark:bg-zinc-900">
+                <input type="number" id="change_data_limit" x-model="changeDataLimit" min="0" step="0.5" inputmode="decimal"
+                    class="block min-w-0 flex-1 rounded-l-lg border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-teal-400"
+                    aria-describedby="change_data_limit_help">
+                <label for="change_data_limit_unit" class="sr-only">{{ trans('hotspot.user_form.data_limit_unit') }}</label>
+                <select id="change_data_limit_unit" x-model="changeDataLimitUnit" aria-describedby="change_data_limit_help"
+                    class="rounded-r-lg bg-zinc-100 px-2 py-2 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    <option value="MB">MB</option>
+                    <option value="GB">GB</option>
+                </select>
+            </div>
+            <p id="change_data_limit_help" x-show="dataMode === 'set'" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.user_form.data_limit_help') }}</p>
+            {% endif %}
+            {% endfor %}
+            <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{{ trans('hotspot.bulk_change_limits.usage_help') }}</p>
+
+            <div class="mt-4 flex items-center justify-end gap-2 p-3">
+                <button type="button" @click="changeLimitsModal = false"
+                    class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                    {{ trans('hotspot.cancel') }}
+                </button>
+                <button type="button" :disabled="(uptimeMode === 'keep' && dataMode === 'keep') || (uptimeMode === 'set' && !changeUptime.trim()) || (dataMode === 'set' && changeDataLimit === '')" @click="$refs.changeLimitsManyForm.submit()"
+                    class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3.5 text-sm font-semibold text-white transition hover:bg-green-700 focus:ring-3 focus:ring-green-500/30 active:bg-green-800">
+                    <i class="ph ph-sliders-horizontal text-base" aria-hidden="true"></i>
+                    {{ trans('hotspot.bulk_change_limits.title') }}
+                </button>
+            </div>
         </div>
     </div>
 </div>
