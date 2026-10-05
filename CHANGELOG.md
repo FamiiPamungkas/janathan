@@ -113,3 +113,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Twig templating with PSR-7 middleware pipeline (Slim 4 + PHP-DI).
 - SQLite storage (no MySQL/ORM required).
 - PHPUnit test suite.
+
+### Added
+- Remove legacy SQLite `hotspot_profiles` table — profile metadata now lives exclusively in RouterOS `on-login` scripts.
+
+### Fixed
+- Restore `applyMetadata()` helper for profile edit-form metadata display (color, price, prefix, validity days, start_on).
+
+### Changed
+- Profile metadata now read from RouterOS `on-login` scripts only; SQLite `hotspot_profiles` table no longer created or maintained.
