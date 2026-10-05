@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Add a mobile select-all checkbox bar above the stacked hotspot user cards, matching the desktop table header behavior with indeterminate state and selected/total count.
+- Keep the user-list Filter and Reset buttons on one row at narrower desktop widths by using the available filter-grid space.
 
 ## [0.10.0] - 2026-10-05
 
