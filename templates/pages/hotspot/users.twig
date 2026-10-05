@@ -336,8 +336,18 @@
     <input type="hidden" name="list_filter_direction" value="{{ listDirection }}">
 </form>
 
+<!-- Mobile: select all bar -->
+<div class="mt-6 flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-700 dark:bg-zinc-800 md:hidden">
+    <input id="mobile-select-all" type="checkbox" :checked="allSelected" :indeterminate.prop="someSelected" @change="toggleAll()"
+        class="h-5 w-5 flex-none rounded border-zinc-300 text-teal-600 focus:ring-teal-500 dark:border-zinc-600 dark:bg-zinc-800">
+    <label for="mobile-select-all" class="flex flex-1 cursor-pointer select-none items-center justify-between py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        {{ trans('hotspot.users.select_all') }}
+        <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400"><span x-text="selected.length"></span>/{{ users|length }}</span>
+    </label>
+</div>
+
 <!-- Mobile: stacked cards -->
-<div class="mt-6 grid grid-cols-1 gap-3 md:hidden">
+<div class="mt-3 grid grid-cols-1 gap-3 md:hidden">
     {% for user in users %}
     <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
         <div class="flex items-center gap-3">
