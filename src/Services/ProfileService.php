@@ -13,9 +13,8 @@ readonly class ProfileService
     use ConnectsRouter;
 
     public function __construct(
-        private RouterRepository         $routers,
+        private RouterRepository $routers,
         private RouterConnectionManager  $connections,
-        private HotspotProfileRepository $profileMeta,
         private ProfileMetadataCodec     $metadata
     )
     {
@@ -89,11 +88,9 @@ readonly class ProfileService
             throw $this->unreachable($router, $e);
         }
 
-        $profiles = $this->migrateLegacyMetadata($routerId, $profiles, $hotspotAvailable, $client);
-
         return [
             'router' => $router,
-            'profiles' => $this->mergeMeta($routerId, $profiles, $hotspotAvailable),
+            'profiles' => $this->mergeMeta($routerId, $profiles),
             'hotspotAvailable' => $hotspotAvailable,
         ];
     }
@@ -117,12 +114,6 @@ readonly class ProfileService
         }
 
         $meta = $this->metadata->decode((string)($profile['on-login'] ?? ''));
-        if ($meta === null) {
-            $legacy = $this->findLegacyMetadata($routerId, $id, (string)($profile['name'] ?? ''));
-            if ($legacy !== null) {
-                $meta = $this->migrateLegacyProfile($profile, $legacy, $client);
-            }
-        }
 
         $built = $this->buildProfile($profile);
         $this->applyMetadata($built, $meta);
@@ -213,8 +204,6 @@ readonly class ProfileService
             fn(RouterosClient $client) => $client->removeHotspotProfile($id)
         );
 
-        $this->profileMeta->delete($routerId, $id);
-
         try {
             $this->removeProfileExpiryScheduler($routerId, $id);
         } catch (Throwable $e) {
@@ -223,163 +212,34 @@ readonly class ProfileService
     }
 
     /**
-     * Merge RouterOS profiles with embedded metadata, falling back to legacy
-     * SQLite rows while an older installation is being migrated.
+     * Merge RouterOS profiles with embedded metadata.
      *
      * @return array<int, array{id: string, name: string, rate_limit: string, shared_users: string, color: string, price: float|null, prefix: string, validity_days: int|null, start_on: string}>
      */
-    public function mergeMeta(int $routerId, array $profiles, bool $hotspotAvailable): array
+    public function mergeMeta(int $routerId, array $profiles): array
     {
-        $byId = [];
-        $byName = [];
-        foreach ($this->profileMeta->allForRouter($routerId) as $m) {
-            $byId[(string)$m['profile_id']] = $m;
-            $byName[(string)$m['name']] = $m;
-        }
-
         $rows = [];
-        $matchedIds = [];
 
         foreach ($profiles as $p) {
             $profileId = (string)($p['.id'] ?? '');
             $name = (string)($p['name'] ?? '');
 
             $embedded = $this->metadata->decode((string)($p['on-login'] ?? ''));
-            $legacy = null;
-            if ($embedded === null) {
-                $legacy = $byId[$profileId] ?? null;
-                if ($legacy === null && $name !== '') {
-                    $legacy = $byName[$name] ?? null;
-                }
-            }
-
-            $meta = $embedded ?? ($legacy !== null ? $this->legacyMetadata($legacy) : null);
-
-            if ($legacy !== null) {
-                if ((string)$legacy['profile_id'] !== $profileId || (string)$legacy['name'] !== $name) {
-                    $this->profileMeta->heal((int)$legacy['id'], $routerId, $profileId, $name);
-                }
-                $matchedIds[] = (int)$legacy['id'];
-            }
 
             $rows[] = [
                 'id' => $profileId,
                 'name' => $name,
                 'rate_limit' => $p['rate-limit'] ?? '-',
                 'shared_users' => $p['shared-users'] ?? '-',
-                'color' => (string)($meta['color'] ?? ''),
-                'price' => $meta !== null ? (float)$meta['price'] : null,
-                'prefix' => (string)($meta['prefix'] ?? ''),
-                'validity_days' => $meta['validity_days'] ?? null,
-                'start_on' => (string)($meta['start_on'] ?? 'first_login'),
+                'color' => (string)($embedded['color'] ?? ''),
+                'price' => $embedded !== null ? (float)$embedded['price'] : null,
+                'prefix' => (string)($embedded['prefix'] ?? ''),
+                'validity_days' => $embedded['validity_days'] ?? null,
+                'start_on' => (string)($embedded['start_on'] ?? 'first_login'),
             ];
         }
 
-        if ($hotspotAvailable) {
-            $this->profileMeta->deleteUnmatched($routerId, $matchedIds);
-        }
-
         return $rows;
-    }
-
-    /**
-     * Backfill metadata from the old SQLite store into RouterOS. Failed writes
-     * deliberately leave the row in SQLite so the current installation keeps
-     * working until the router accepts the migration.
-     */
-    private function migrateLegacyMetadata(
-        int $routerId,
-        array $profiles,
-        bool $hotspotAvailable,
-        RouterosClient $client
-    ): array {
-        if (!$hotspotAvailable) {
-            return $profiles;
-        }
-
-        $byId = [];
-        $byName = [];
-        foreach ($this->profileMeta->allForRouter($routerId) as $legacy) {
-            $byId[(string)$legacy['profile_id']] = $legacy;
-            $byName[(string)$legacy['name']] = $legacy;
-        }
-
-        if ($byId === [] && $byName === []) {
-            return $profiles;
-        }
-
-        foreach ($profiles as $index => $profile) {
-            $profileId = (string)($profile['.id'] ?? '');
-            $name = (string)($profile['name'] ?? '');
-            $legacy = $byId[$profileId] ?? ($name !== '' ? ($byName[$name] ?? null) : null);
-
-            if ($legacy === null) {
-                continue;
-            }
-
-            if ($this->metadata->decode((string)($profile['on-login'] ?? '')) !== null) {
-                $this->profileMeta->deleteById((int)$legacy['id']);
-                continue;
-            }
-
-            $this->migrateLegacyProfile($profile, $legacy, $client);
-            $profiles[$index] = $profile;
-        }
-
-        return $profiles;
-    }
-
-    private function findLegacyMetadata(int $routerId, string $profileId, string $name): ?array
-    {
-        $legacy = $this->profileMeta->findByProfileId($routerId, $profileId);
-
-        return $legacy ?? ($name !== '' ? $this->profileMeta->findByName($routerId, $name) : null);
-    }
-
-    /**
-     * @return array{color: string, price: float, prefix: string, validity_days: int|null, start_on: string}
-     */
-    private function migrateLegacyProfile(
-        array &$profile,
-        array $legacy,
-        RouterosClient $client
-    ): array {
-        $meta = $this->legacyMetadata($legacy);
-        $source = $this->metadata->append((string)($profile['on-login'] ?? ''), $meta);
-        $profileId = (string)($profile['.id'] ?? '');
-
-        if ($profileId === '') {
-            return $meta;
-        }
-
-        try {
-            $client->setHotspotProfile($profileId, ['on-login' => $source]);
-            $profile['on-login'] = $source;
-            if ($this->metadata->decode($source) !== null) {
-                $this->profileMeta->deleteById((int)$legacy['id']);
-            }
-        } catch (Throwable $e) {
-            Logger::log('PROFILE METADATA MIGRATION', [
-                'profile' => (string)($profile['name'] ?? ''),
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return $meta;
-    }
-
-    /**
-     * @return array{color: string, price: float, prefix: string, validity_days: int|null, start_on: string}
-     */
-    private function legacyMetadata(array $legacy): array
-    {
-        return [
-            'color' => (string)($legacy['color'] ?? ''),
-            'price' => $this->normalizePrice($legacy['price'] ?? 0),
-            'prefix' => (string)($legacy['prefix'] ?? ''),
-            'validity_days' => $this->normalizeValidityDays($legacy['validity_days'] ?? null),
-            'start_on' => $this->normalizeStartOn($legacy['start_on'] ?? 'first_login'),
-        ];
     }
 
     /**

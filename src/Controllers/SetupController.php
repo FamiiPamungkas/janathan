@@ -79,6 +79,8 @@ class SetupController
             $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
             $pdo->exec('PRAGMA foreign_keys = ON');
 
+            $pdo->exec('DROP TABLE IF EXISTS hotspot_profiles');
+
             $this->createSchema($pdo);
 
             $appKey = bin2hex(random_bytes(32));
@@ -140,21 +142,6 @@ class SetupController
                 currency      TEXT NOT NULL DEFAULT 'IDR',
                 created_at    TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-
-            CREATE TABLE IF NOT EXISTS hotspot_profiles (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                router_id     INTEGER NOT NULL,
-                profile_id    TEXT NOT NULL,
-                name          TEXT NOT NULL,
-                color         TEXT NOT NULL DEFAULT '',
-                price         REAL NOT NULL DEFAULT 0,
-                prefix        TEXT NOT NULL DEFAULT '',
-                validity_days INTEGER,
-                start_on      TEXT NOT NULL DEFAULT 'first_login',
-                created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
-                UNIQUE (router_id, profile_id)
             );
 
             CREATE TABLE IF NOT EXISTS voucher_templates (

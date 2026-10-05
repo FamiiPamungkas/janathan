@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Fame1302\Janathan\Services\CryptoService;
-use Fame1302\Janathan\Services\HotspotProfileRepository;
 use Fame1302\Janathan\Services\RouterConnectionManager;
 use Fame1302\Janathan\Services\RouterRepository;
 use Fame1302\Janathan\Services\RouterosClientFactory;
@@ -32,38 +31,6 @@ return array_merge($shared, [
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $pdo->exec('PRAGMA foreign_keys = ON');
-
-        $pdo->exec(
-            <<<'SQL'
-            CREATE TABLE IF NOT EXISTS hotspot_profiles (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                router_id     INTEGER NOT NULL,
-                profile_id    TEXT NOT NULL,
-                name          TEXT NOT NULL,
-                color         TEXT NOT NULL DEFAULT '',
-                price         REAL NOT NULL DEFAULT 0,
-                prefix        TEXT NOT NULL DEFAULT '',
-                validity_days INTEGER,
-                start_on      TEXT NOT NULL DEFAULT 'first_login',
-                created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
-                UNIQUE (router_id, profile_id)
-            );
-            SQL
-        );
-
-        $columns = $pdo->query("PRAGMA table_info(hotspot_profiles)")->fetchAll(PDO::FETCH_COLUMN, 1);
-        if (!in_array('prefix', $columns, true)) {
-            $pdo->exec('ALTER TABLE hotspot_profiles ADD COLUMN prefix TEXT NOT NULL DEFAULT \'\'');
-        }
-
-        $profileColumns = $pdo->query("PRAGMA table_info(hotspot_profiles)")->fetchAll(PDO::FETCH_COLUMN, 1);
-        if (!in_array('validity_days', $profileColumns, true)) {
-            $pdo->exec('ALTER TABLE hotspot_profiles ADD COLUMN validity_days INTEGER');
-        }
-        if (!in_array('start_on', $profileColumns, true)) {
-            $pdo->exec('ALTER TABLE hotspot_profiles ADD COLUMN start_on TEXT NOT NULL DEFAULT \'first_login\'');
-        }
 
         $userColumns = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_COLUMN, 1);
         if (!in_array('locale', $userColumns, true)) {
@@ -123,10 +90,6 @@ return array_merge($shared, [
     },
 
     VoucherTemplateRenderer::class => fn (ContainerInterface $container) => new VoucherTemplateRenderer(),
-
-    HotspotProfileRepository::class => function (ContainerInterface $container) {
-        return new HotspotProfileRepository($container->get(PDO::class));
-    },
 
     RouterosClientFactory::class => fn (ContainerInterface $container) => new RouterosClientFactory(),
 

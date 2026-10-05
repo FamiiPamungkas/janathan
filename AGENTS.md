@@ -90,7 +90,7 @@ config/app.php     - committed app config (source file, no secrets)
 - **Security:** Router passwords must never be rendered to templates or logged; only `RouterRepository::getCredentials()` may decrypt them. `APP_KEY` is stored in the `settings` table and must never change after routers have been saved.
 
 ## App Flow / Data Model
-- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY`), `hotspot_profiles`, `voucher_templates`, `settings` (key-value store including `APP_KEY`).
+- SQLite via PDO (no ORM). Tables: `users` (app logins), `routers` (saved MikroTik connections; `password_enc` is AES-256-GCM encrypted with `APP_KEY`), `voucher_templates`, `settings` (key-value store including `APP_KEY`).
 - Flow: log in (`/login`) → manage routers (`/routers`) → "Connect" validates the RouterOS connection and stores `router_id` in the session → dashboard (`/`) opens a fresh RouterOS connection per request using the selected router's decrypted credentials.
 - Session-based auth (`AuthMiddleware`) protects all routes except `/login`. Every POST carries a CSRF token (`CsrfMiddleware` + `csrf_token` Twig global).
 
@@ -131,6 +131,8 @@ composer test   # or: vendor/bin/phpunit
 PHPUnit 10, configured in `phpunit.xml`. Tests live in `tests/`.
 
 ## Committing
+
+- When the user asks to commit changes, review `git status` and the staged diff before committing. Stage only files needed for the requested changes. Exclude unused, unrelated, or forbidden files, including local databases (SQLite files and journal/WAL/SHM files), caches, logs, temporary files, generated build artifacts, dependencies, `.env` files, and secrets. Do not force-add ignored files.
 
 When committing changes, separate commits by concern:
 - Put source code changes (features/patches) in their own conventional commit: `feat:` for features, `fix:` for bug fixes.
