@@ -41,7 +41,10 @@ return [
                     $url = $app->getRouteCollector()->getRouteParser()->urlFor('home');
                     return (new \Slim\Psr7\Response())->withHeader('Location', $url)->withStatus(302);
                 }
-                $defaultHandler = new \Slim\Handlers\ErrorHandler($app);
+                $defaultHandler = new \Slim\Handlers\ErrorHandler(
+                    $app->getCallableResolver(),
+                    $app->getResponseFactory()
+                );
                 return $defaultHandler($request, $exception, $displayErrorDetails, $logErrors, $logErrorDetails);
             }
         );
