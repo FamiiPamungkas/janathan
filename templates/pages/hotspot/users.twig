@@ -134,7 +134,7 @@
                 <option value="desc" {% if filters.direction|default('asc') == 'desc' %}selected{% endif %}>{{ trans('hotspot.users.sort_descending') }}</option>
             </select>
         </div>
-        <div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
+        <div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
             <button type="submit"
                 class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-3.5 text-sm font-semibold text-white transition hover:bg-teal-600 focus:ring-3 focus:ring-teal-500/30 active:bg-teal-700 sm:flex-none">
                 <i class="ph ph-funnel text-base" aria-hidden="true"></i>
