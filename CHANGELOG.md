@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-10-05
+
+### Added
+
+- Bulk uptime and total data limit editing for selected hotspot users, with independent Keep current, Set limit, and Unlimited options and MB/GB units.
+- English and Indonesian labels, input validation, and success/failure counts for bulk limit updates while preserving user-list filters and existing usage counters.
+
+### Fixed
+
+- Correct the Slim error-handler constructor so application errors no longer trigger a secondary fatal TypeError.
+
 ## [Unreleased]
 
 ### Added
