@@ -1,5 +1,6 @@
 /* Tailwind CSS */
 @import "tailwindcss";
+@import "../../node_modules/uplot/dist/uPlot.min.css" layer(components);
 
 /* Plugins */
 @plugin "@tailwindcss/forms";
@@ -66,6 +67,23 @@
 @layer base {
     i.ph {
         flex-shrink: 0;
+    }
+}
+
+/* Live dashboard traffic chart */
+@layer components {
+    .traffic-chart .uplot {
+        font-family: var(--default-font-family), sans-serif;
+    }
+
+    .traffic-chart .u-cursor-x,
+    .traffic-chart .u-cursor-y {
+        border-color: var(--color-zinc-400);
+    }
+
+    .dark .traffic-chart .u-cursor-x,
+    .dark .traffic-chart .u-cursor-y {
+        border-color: var(--color-zinc-500);
     }
 }
 

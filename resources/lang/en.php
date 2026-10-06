@@ -72,7 +72,7 @@ return [
         'res_storage' => 'Storage',
         'traffic' => [
             'title' => 'Interface Traffic',
-            'subtitle' => 'Live RX and TX speed over a rolling three-minute window.',
+            'subtitle' => 'Live RX and TX speed from the latest 20 samples.',
             'interface' => 'Interface',
             'rx' => 'Receive (RX)',
             'tx' => 'Transmit (TX)',
@@ -81,7 +81,7 @@ return [
             'unavailable' => 'Traffic data is unavailable for this interface.',
             'no_interfaces' => 'No enabled router interfaces are available.',
             'interfaces_unavailable' => 'Router interfaces could not be loaded.',
-            'history' => '3 minutes ago',
+            'history' => '60 seconds ago',
             'now' => 'Now',
             'scale' => 'scale',
             'offline' => 'Offline',

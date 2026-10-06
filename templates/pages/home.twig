@@ -13,8 +13,11 @@
         trafficSpeed: {{ trafficSpeed|json_encode|e('html_attr') }},
         selectedInterface: '',
         trafficHistory: [],
-        trafficWindowMs: 180000,
+        trafficWindowMs: 60000,
+        trafficMaxPoints: 20,
         trafficWindowEnd: Date.now(),
+        trafficChart: null,
+        trafficHover: null,
         hotspotAvailable: {{ hotspotAvailable ? 'true' : 'false' }},
         url: '{{ url_for('dashboard.data')|e('html_attr') }}',
         urlLogs: '{{ url_for('dashboard.logs')|e('html_attr') }}',
@@ -32,7 +35,11 @@
         logsTimer: null,
         init() {
             this.restoreInterface();
+            this.$nextTick(() => this.initTrafficChart());
             this.start();
+        },
+        destroy() {
+            this.trafficChart?.destroy();
         },
         restoreInterface() {
             const available = this.interfaces.filter(item => !item.disabled);
@@ -57,6 +64,7 @@
         },
         selectInterface() {
             this.trafficHistory = [];
+            this.trafficChart?.clear();
             this.trafficLoading = true;
             this.trafficSpeed = {
                 interface: this.selectedInterface,
@@ -133,7 +141,10 @@
                 this.refreshing = false;
                 this.trafficWindowEnd = Date.now();
                 const cutoff = this.trafficWindowEnd - this.trafficWindowMs;
-                this.trafficHistory = this.trafficHistory.filter(sample => sample.at >= cutoff);
+                this.trafficHistory = this.trafficHistory
+                    .filter(sample => sample.at >= cutoff)
+                    .slice(-this.trafficMaxPoints);
+                this.updateTrafficChart();
                 if (requestedInterface === this.selectedInterface) {
                     this.trafficLoading = false;
                 }
@@ -202,18 +213,25 @@
         trafficMax() {
             return Math.max(1, this.trafficPeak('rx'), this.trafficPeak('tx'));
         },
-        trafficPoints(key) {
-            const count = this.trafficHistory.length;
-            if (count === 0) {
-                return '';
-            }
-            const max = this.trafficMax();
-            const start = this.trafficWindowEnd - this.trafficWindowMs;
-            return this.trafficHistory.map((sample, index) => {
-                const x = Math.max(0, ((sample.at - start) / this.trafficWindowMs) * 1000);
-                const y = 208 - ((sample[key] || 0) / max) * 196;
-                return x.toFixed(1) + ',' + y.toFixed(1);
-            }).join(' ');
+        initTrafficChart() {
+            this.trafficChart = window.createTrafficChart(this.$refs.trafficChart, {
+                rxLabel: '{{ trans('dashboard.traffic.rx') }}',
+                txLabel: '{{ trans('dashboard.traffic.tx') }}',
+                formatBitRate: value => this.formatBitRate(value),
+                onHover: sample => this.trafficHover = sample
+            });
+            this.updateTrafficChart();
+        },
+        updateTrafficChart() {
+            this.trafficChart?.update(this.trafficHistory, this.trafficWindowEnd, this.trafficWindowMs);
+        },
+        trafficHoverTime() {
+            return this.trafficHover
+                ? new Date(this.trafficHover.at).toLocaleTimeString(
+                    document.documentElement.lang,
+                    { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+                )
+                : '';
         },
         trafficChartLabel() {
             return '{{ trans('dashboard.traffic.chart_label') }} ' + this.selectedInterface
@@ -449,43 +467,27 @@
             </div>
 
             <div x-cloak x-show="selectedInterface" class="relative mt-5 h-56 overflow-hidden rounded-lg bg-zinc-50 dark:bg-zinc-900/60">
-                <svg
+                <div
+                    x-ref="trafficChart"
                     x-show="trafficHistory.length >= 2"
-                    class="h-full w-full"
-                    width="1000"
-                    height="220"
-                    viewBox="0 0 1000 220"
-                    preserveAspectRatio="none"
+                    class="traffic-chart h-full w-full"
                     role="img"
                     :aria-label="trafficChartLabel()"
+                ></div>
+
+                <div
+                    x-cloak
+                    x-show="trafficHover && trafficHistory.length >= 2"
+                    class="pointer-events-none absolute right-2 top-2 z-10 min-w-36 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-2 text-xs shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-800/95"
                 >
-                    <g class="text-zinc-200 dark:text-zinc-700/70" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke">
-                        <line x1="0" y1="12" x2="1000" y2="12"></line>
-                        <line x1="0" y1="61" x2="1000" y2="61"></line>
-                        <line x1="0" y1="110" x2="1000" y2="110"></line>
-                        <line x1="0" y1="159" x2="1000" y2="159"></line>
-                        <line x1="0" y1="208" x2="1000" y2="208"></line>
-                    </g>
-                    <polyline
-                        :points="trafficPoints('rx')"
-                        fill="none"
-                        stroke="var(--color-teal-500)"
-                        stroke-width="3"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                    ></polyline>
-                    <polyline
-                        :points="trafficPoints('tx')"
-                        fill="none"
-                        stroke="var(--color-violet-500)"
-                        stroke-width="3"
-                        stroke-dasharray="8 6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                    ></polyline>
-                </svg>
+                    <p class="font-medium tabular-nums text-zinc-700 dark:text-zinc-200" x-text="trafficHoverTime()"></p>
+                    <div class="mt-1.5 grid grid-cols-[auto_auto] gap-x-3 gap-y-1 tabular-nums">
+                        <span class="font-medium text-teal-600 dark:text-teal-400">RX</span>
+                        <span class="text-right text-zinc-700 dark:text-zinc-200" x-text="trafficHover ? formatBitRate(trafficHover.rx) : ''"></span>
+                        <span class="font-medium text-violet-600 dark:text-violet-400">TX</span>
+                        <span class="text-right text-zinc-700 dark:text-zinc-200" x-text="trafficHover ? formatBitRate(trafficHover.tx) : ''"></span>
+                    </div>
+                </div>
 
                 <div x-show="trafficLoading || (trafficSpeed.available && trafficHistory.length < 2)" class="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
                     {{ trans('dashboard.traffic.waiting') }}

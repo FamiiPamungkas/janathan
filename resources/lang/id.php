@@ -72,7 +72,7 @@ return [
         'res_storage' => 'Penyimpanan',
         'traffic' => [
             'title' => 'Traffic Interface',
-            'subtitle' => 'Kecepatan RX dan TX langsung dalam rentang tiga menit.',
+            'subtitle' => 'Kecepatan RX dan TX langsung dari 20 sampel terakhir.',
             'interface' => 'Interface',
             'rx' => 'Terima (RX)',
             'tx' => 'Kirim (TX)',
@@ -81,7 +81,7 @@ return [
             'unavailable' => 'Data traffic tidak tersedia untuk interface ini.',
             'no_interfaces' => 'Tidak ada interface router aktif yang tersedia.',
             'interfaces_unavailable' => 'Interface router tidak dapat dimuat.',
-            'history' => '3 menit lalu',
+            'history' => '60 detik lalu',
             'now' => 'Sekarang',
             'scale' => 'skala',
             'offline' => 'Offline',
