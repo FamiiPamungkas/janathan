@@ -2,18 +2,28 @@
 setlocal EnableDelayedExpansion
 set "ROOT=%~dp0"
 set "DIST=%ROOT%dist\janathan"
+set "ZIP=%ROOT%dist\janathan.zip"
 
 rem ================================================================
-rem  Janathan - production build for shared hosting (Windows/Laragon)
+rem  Janathan - production build + optional deploy for shared hosting (Windows/Laragon)
 rem  Builds assets, installs production PHP deps, assembles a ready
-rem  deploy folder at dist\janathan\. The package ships WITHOUT a
-rem  database - the web setup wizard creates it (schema, APP_KEY and
-rem  first admin) on the first browser visit. APP_BASE_PATH is applied
-rem  to the dist config/app.php during the build (source stays untouched).
+rem  package folder at dist\janathan\ plus a zip at dist\janathan.zip.
+rem  The package ships WITHOUT a database - the web setup wizard
+rem  creates it (schema, APP_KEY and first admin) on the first browser
+rem  visit. APP_BASE_PATH is applied to the dist config/app.php during
+rem  the build (source stays untouched). After the build, the zip can
+rem  optionally be copied to a server via scp and unpacked there with
+rem  a Docker container restart (/scp / /deploy).
 rem ================================================================
 rem  Options:
-rem    /nopause           skip the final confirmation prompt
+rem    /nopause           skip all interactive prompts (implies /noscp, /nodeploy)
 rem    /basepath <path>   set APP_BASE_PATH non-interactively (e.g. /basepath /janathan)
+rem    /scp               copy dist\janathan.zip to a server via scp
+rem                       non-interactively (reads SSH_USER, SSH_HOST, SSH_DIR env vars)
+rem    /noscp             never offer the SSH copy
+rem    /deploy            after a successful scp, unzip the package on the server
+rem                       and restart the Docker containers non-interactively
+rem    /nodeploy          never offer the remote unzip + restart
 rem    set LARAGON=<path> if Laragon is not at C:\laragon
 rem ================================================================
 
@@ -22,10 +32,18 @@ chcp 65001 >nul 2>&1
 if defined LARAGON (set "LARAGON_ROOT=%LARAGON%") else (set "LARAGON_ROOT=C:\laragon")
 
 set "NOPAUSE="
+set "DOSCP="
+set "NOSCP="
+set "DODEPLOY="
+set "NODEPLOY="
 
 :parse_args
 if "%~1"=="" goto :args_done
 if /i "%~1"=="/nopause" ( set "NOPAUSE=1" & shift & goto :parse_args )
+if /i "%~1"=="/scp" ( set "DOSCP=1" & shift & goto :parse_args )
+if /i "%~1"=="/noscp" ( set "NOSCP=1" & shift & goto :parse_args )
+if /i "%~1"=="/deploy" ( set "DODEPLOY=1" & shift & goto :parse_args )
+if /i "%~1"=="/nodeploy" ( set "NODEPLOY=1" & shift & goto :parse_args )
 if /i "%~1"=="/basepath" goto :basepath_parse
 shift
 goto :parse_args
@@ -200,15 +218,129 @@ call :check "%DIST%\docker-compose.yml"
 call :check "%DIST%\docker-entrypoint.sh"
 if "%MISSING%"=="1" goto :fail
 
+rem ----------------------------------------------------------------
+rem 4. Create zip archive (PowerShell Compress-Archive)
+rem ----------------------------------------------------------------
+echo Creating %ZIP%...
+if exist "%ZIP%" del /q "%ZIP%"
+powershell -NoProfile -Command "Compress-Archive -Path '%DIST%' -DestinationPath '%ZIP%' -Force"
+if errorlevel 1 (echo  [FAIL] Could not create zip archive & goto :fail)
+if not exist "%ZIP%" (echo  [FAIL] Could not create zip archive & goto :fail)
+
+rem ----------------------------------------------------------------
+rem 5. Optional: copy the zip to a server via SSH (scp)
+rem ----------------------------------------------------------------
+set "DO_SCP="
+if defined NOSCP goto :scp_done
+if defined DOSCP goto :scp_noninteractive
+if defined NOPAUSE goto :scp_done
+set "SCP_ASK="
+set /p "SCP_ASK=Copy janathan.zip to a server via SSH (scp)? [y/N]: "
+if /i not "%SCP_ASK%"=="y" goto :scp_done
+goto :scp_prompts
+
+:scp_noninteractive
+if not defined SSH_USER (echo  [FAIL] /scp needs SSH_USER env var. & goto :fail)
+if not defined SSH_HOST (echo  [FAIL] /scp needs SSH_HOST env var. & goto :fail)
+if not defined SSH_DIR (echo  [FAIL] /scp needs SSH_DIR env var. & goto :fail)
+set "DO_SCP=1"
+goto :scp_run
+
+:scp_prompts
+if defined SSH_USER (
+    set "SCP_USER="
+    set /p "SCP_USER=SSH username [%SSH_USER%]: "
+    if defined SCP_USER set "SSH_USER=!SCP_USER!"
+) else (
+    set /p "SSH_USER=SSH username: "
+)
+if defined SSH_HOST (
+    set "SCP_HOST="
+    set /p "SCP_HOST=Server IP/host [%SSH_HOST%]: "
+    if defined SCP_HOST set "SSH_HOST=!SCP_HOST!"
+) else (
+    set /p "SSH_HOST=Server IP/host: "
+)
+if defined SSH_DIR (
+    set "SCP_DIR="
+    set /p "SCP_DIR=Remote directory [%SSH_DIR%]: "
+    if defined SCP_DIR set "SSH_DIR=!SCP_DIR!"
+) else (
+    set /p "SSH_DIR=Remote directory (e.g. /home/user): "
+)
+if not defined SSH_USER (echo  [FAIL] SSH upload needs a username, server IP/host and directory. & goto :fail)
+if not defined SSH_HOST (echo  [FAIL] SSH upload needs a username, server IP/host and directory. & goto :fail)
+if not defined SSH_DIR (echo  [FAIL] SSH upload needs a username, server IP/host and directory. & goto :fail)
+set "DO_SCP=1"
+
+:scp_run
+where scp >nul 2>&1
+if errorlevel 1 (echo  [FAIL] scp not found. Install the Windows OpenSSH client to use the SSH copy. & goto :fail)
+echo Copying janathan.zip to %SSH_USER%@%SSH_HOST%:%SSH_DIR%/ ...
+scp "%ZIP%" "%SSH_USER%@%SSH_HOST%:%SSH_DIR%/"
+if errorlevel 1 (echo  [FAIL] scp upload failed ^(build itself succeeded^). & goto :fail)
+set "SCP_STATUS=copied to %SSH_USER%@%SSH_HOST%:%SSH_DIR%/"
+goto :deploy_step
+
+:scp_done
+set "SCP_STATUS=skipped"
+
+:deploy_step
+rem ----------------------------------------------------------------
+rem 6. Optional: unzip on the server and restart Docker containers
+rem    (only after a successful scp - there is nothing to unpack
+rem    otherwise). unzip merges: files in the archive overwrite,
+rem    everything else on the server (e.g. database/janathan.sqlite,
+rem    which is NOT shipped in the zip) is left untouched.
+rem ----------------------------------------------------------------
+set "DO_DEPLOY="
+if defined NODEPLOY goto :deploy_done
+if not defined DO_SCP goto :deploy_no_scp
+if defined DODEPLOY goto :deploy_run
+if defined NOPAUSE goto :deploy_done
+set "DEPLOY_ASK="
+set /p "DEPLOY_ASK=Unzip on the server and restart containers? [y/N]: "
+if /i not "%DEPLOY_ASK%"=="y" goto :deploy_done
+goto :deploy_run
+
+:deploy_no_scp
+if defined DODEPLOY (echo  [FAIL] /deploy needs a successful SSH copy first ^(combine with /scp, or answer y at the copy prompt^). & goto :fail)
+goto :deploy_done
+
+:deploy_run
+where ssh >nul 2>&1
+if errorlevel 1 (echo  [FAIL] ssh not found. Install the Windows OpenSSH client to use the remote deploy. & goto :fail)
+ssh "%SSH_USER%@%SSH_HOST%" "command -v unzip >/dev/null 2>&1"
+if errorlevel 1 (echo  [FAIL] 'unzip' not found on %SSH_HOST%. Install it there first. & goto :fail)
+echo Unpacking janathan.zip on %SSH_HOST% and restarting containers...
+ssh "%SSH_USER%@%SSH_HOST%" "cd '%SSH_DIR%' && unzip -o janathan.zip && cd janathan && (docker compose down && docker compose up -d || docker-compose down && docker-compose up -d)"
+if errorlevel 1 (echo  [FAIL] Remote deploy failed ^(build + scp succeeded^). & goto :fail)
+set "DEPLOY_STATUS=unpacked + containers restarted"
+goto :deploy_summary
+
+:deploy_done
+set "DEPLOY_STATUS=skipped"
+
+:deploy_summary
 echo.
 echo Build finished successfully.
 echo.
-echo  Deploy package  : %DIST%
+echo  Package folder  : %DIST%
+echo  Zip archive     : %ZIP%
 if defined APP_BASE_PATH (echo  APP_BASE_PATH   : !APP_BASE_PATH!) else (echo  APP_BASE_PATH   : ^(empty^))
 echo  Database        : created on first visit by the web setup wizard
 echo                    (admin account + APP_KEY are set up there)
-echo  Next steps      : upload it, make sure "database" stays writable, open the site.
-echo                    (full guide: README-DEPLOY.md in the package)
+if not "%SCP_STATUS%"=="skipped" echo  SSH copy        : %SCP_STATUS%
+if not "%DEPLOY_STATUS%"=="skipped" (
+    echo  SSH deploy      : %DEPLOY_STATUS%
+) else (
+    if not "%SCP_STATUS%"=="skipped" (
+        echo                    On the server: unzip janathan.zip, make "database" writable, open the site.
+    ) else (
+        echo  Next steps      : upload the zip, make sure "database" stays writable, open the site.
+        echo                    (full guide: README-DEPLOY.md in the package)
+    )
+)
 echo  Docker          : cd %DIST% ^&^& docker compose up -d --build
 echo                    (binds the package as a volume; edit docker-compose.yml
 echo                     for APP_BASE_PATH, DB_PATH, Mikrotik timeouts, port)

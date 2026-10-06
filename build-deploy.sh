@@ -1,16 +1,25 @@
 #!/usr/bin/env bash
 # ================================================================
-#  Janathan - production build for shared hosting (Linux)
+#  Janathan - production build + optional deploy for shared hosting (Linux)
 #  Builds assets, installs production PHP deps, assembles a ready
-#  deploy folder at dist/janathan/. The package ships WITHOUT a
-#  database - the web setup wizard creates it (schema, APP_KEY and
-#  first admin) on the first browser visit. APP_BASE_PATH is applied
-#  to the dist config/app.php during the build (source stays untouched).
+#  package folder at dist/janathan/ plus a zip at dist/janathan.zip.
+#  The package ships WITHOUT a database - the web setup wizard
+#  creates it (schema, APP_KEY and first admin) on the first browser
+#  visit. APP_BASE_PATH is applied to the dist config/app.php during
+#  the build (source stays untouched). After the build, the zip can
+#  optionally be copied to a server via scp and unpacked there with
+#  a Docker container restart (--scp / --deploy).
 # ================================================================
 #  Options:
-#    --nopause           skip the final confirmation prompt
+#    --nopause           skip all interactive prompts (implies --no-scp, --no-deploy)
 #    --basepath <path>   set APP_BASE_PATH non-interactively (e.g. --basepath /janathan)
-#    env overrides:      PHP, NPM, COMPOSER
+#    --scp               copy dist/janathan.zip to a server via scp
+#                        non-interactively (reads SSH_USER, SSH_HOST, SSH_DIR env vars)
+#    --no-scp            never offer the SSH copy
+#    --deploy            after a successful scp, unzip the package on the server
+#                        and restart the Docker containers non-interactively
+#    --no-deploy         never offer the remote unzip + restart
+#    env overrides:      PHP, NPM, COMPOSER, SSH_USER, SSH_HOST, SSH_DIR
 # ================================================================
 
 set -euo pipefail
@@ -23,14 +32,29 @@ DIST="$ROOT/dist/janathan"
 # ----------------------------------------------------------------
 NOPAUSE=""
 APP_BASE_PATH_ARG=""
+SCP_MODE="auto"
+DEPLOY_MODE="auto"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --nopause)  NOPAUSE=1; shift ;;
         --basepath) APP_BASE_PATH_ARG="${2:-}"; shift 2 ;;
+        --scp)      SCP_MODE="yes"; shift ;;
+        --no-scp)   SCP_MODE="no"; shift ;;
+        --deploy)   DEPLOY_MODE="yes"; shift ;;
+        --no-deploy) DEPLOY_MODE="no"; shift ;;
         *)          echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+# --nopause implies --no-scp / --no-deploy unless explicitly requested
+# (--scp / --deploy set "yes" regardless of flag order, so they always win).
+if [[ -n "$NOPAUSE" && "$SCP_MODE" == "auto" ]]; then
+    SCP_MODE="no"
+fi
+if [[ -n "$NOPAUSE" && "$DEPLOY_MODE" == "auto" ]]; then
+    DEPLOY_MODE="no"
+fi
 
 # ----------------------------------------------------------------
 # Helpers
@@ -221,10 +245,120 @@ if [[ $? -ne 0 ]]; then
     fail
 fi
 
+# ----------------------------------------------------------------
+# 5. Optional: copy the zip to a server via SSH (scp)
+# ----------------------------------------------------------------
+DO_SCP=""
+SSH_USER="${SSH_USER:-}"
+SSH_HOST="${SSH_HOST:-}"
+SSH_DIR="${SSH_DIR:-}"
+
+if [[ "$SCP_MODE" == "no" ]]; then
+    :
+elif [[ "$SCP_MODE" == "yes" ]]; then
+    if [[ -z "$SSH_USER" || -z "$SSH_HOST" || -z "$SSH_DIR" ]]; then
+        echo "  [FAIL] --scp needs SSH_USER, SSH_HOST and SSH_DIR env vars."
+        echo "         Example: SSH_USER=user SSH_HOST=192.168.1.10 SSH_DIR=/home/user ./build-deploy.sh --scp"
+        fail
+    fi
+    DO_SCP=1
+else
+    echo
+    read -r -p "Copy $ZIP_FILE to a server via SSH (scp)? [y/N]: " SCP_ASK || true
+    if [[ "${SCP_ASK:-}" =~ ^[Yy]$ ]]; then
+        if [[ -n "$SSH_USER" ]]; then
+            read -r -p "SSH username [$SSH_USER]: " SCP_USER || true
+            [[ -n "${SCP_USER:-}" ]] && SSH_USER="$SCP_USER"
+        else
+            read -r -p "SSH username: " SSH_USER || true
+        fi
+        if [[ -n "$SSH_HOST" ]]; then
+            read -r -p "Server IP/host [$SSH_HOST]: " SCP_HOST || true
+            [[ -n "${SCP_HOST:-}" ]] && SSH_HOST="$SCP_HOST"
+        else
+            read -r -p "Server IP/host: " SSH_HOST || true
+        fi
+        if [[ -n "$SSH_DIR" ]]; then
+            read -r -p "Remote directory [$SSH_DIR]: " SCP_DIR || true
+            [[ -n "${SCP_DIR:-}" ]] && SSH_DIR="$SCP_DIR"
+        else
+            read -r -p "Remote directory (e.g. /home/user): " SSH_DIR || true
+        fi
+        if [[ -z "$SSH_USER" || -z "$SSH_HOST" || -z "$SSH_DIR" ]]; then
+            echo "  [FAIL] SSH upload needs a username, server IP/host and directory."
+            fail
+        fi
+        DO_SCP=1
+    fi
+fi
+
+SCP_STATUS="skipped"
+if [[ -n "$DO_SCP" ]]; then
+    if ! command -v scp &>/dev/null; then
+        echo "  [FAIL] scp not found. Install an OpenSSH client to use the SSH copy."
+        fail
+    fi
+    echo "Copying $(basename "$ZIP_FILE") to $SSH_USER@$SSH_HOST:$SSH_DIR/ ..."
+    if scp "$ZIP_FILE" "$SSH_USER@$SSH_HOST:$SSH_DIR/"; then
+        SCP_STATUS="copied to $SSH_USER@$SSH_HOST:$SSH_DIR/"
+    else
+        echo "  [FAIL] scp upload failed (build itself succeeded)."
+        fail
+    fi
+fi
+
+# ----------------------------------------------------------------
+# 6. Optional: unzip on the server and restart Docker containers
+#    (only offered after a successful scp - there is nothing to
+#    unpack otherwise). unzip merges: files in the archive overwrite,
+#    everything else on the server (e.g. database/janathan.sqlite,
+#    which is NOT shipped in the zip) is left untouched.
+# ----------------------------------------------------------------
+DO_DEPLOY=""
+if [[ "$DEPLOY_MODE" == "no" ]]; then
+    :
+elif [[ -z "$DO_SCP" ]]; then
+    if [[ "$DEPLOY_MODE" == "yes" ]]; then
+        echo "  [FAIL] --deploy needs a successful SSH copy first"
+        echo "         (combine with --scp, or answer y at the copy prompt)."
+        fail
+    fi
+elif [[ "$DEPLOY_MODE" == "yes" ]]; then
+    DO_DEPLOY=1
+else
+    echo
+    read -r -p "Unzip on the server and restart containers? [y/N]: " DEPLOY_ASK || true
+    if [[ "${DEPLOY_ASK:-}" =~ ^[Yy]$ ]]; then
+        DO_DEPLOY=1
+    fi
+fi
+
+DEPLOY_STATUS="skipped"
+if [[ -n "$DO_DEPLOY" ]]; then
+    if ! command -v ssh &>/dev/null; then
+        echo "  [FAIL] ssh not found. Install an OpenSSH client to use the remote deploy."
+        fail
+    fi
+    if ! ssh "$SSH_USER@$SSH_HOST" "command -v unzip >/dev/null 2>&1"; then
+        echo "  [FAIL] 'unzip' not found on $SSH_HOST. Install it there first."
+        fail
+    fi
+    # Shell-escape the remote dir (handles spaces); the remote side is sh.
+    REMOTE_DIR_Q=$(printf '%q' "$SSH_DIR")
+    echo "Unpacking janathan.zip on $SSH_HOST and restarting containers..."
+    REMOTE_CMD="cd $REMOTE_DIR_Q && unzip -o janathan.zip && cd janathan && (docker compose down && docker compose up -d || docker-compose down && docker-compose up -d)"
+    if ssh "$SSH_USER@$SSH_HOST" "$REMOTE_CMD"; then
+        DEPLOY_STATUS="unpacked + containers restarted"
+    else
+        echo "  [FAIL] Remote deploy failed (build + scp succeeded)."
+        fail
+    fi
+fi
+
 echo
 echo "Build finished successfully."
 echo
-echo "  Deploy package  : $DIST"
+echo "  Package folder  : $DIST"
 echo "  Zip archive     : $ZIP_FILE"
 if [[ -n "$APP_BASE_PATH" ]]; then
     echo "  APP_BASE_PATH   : $APP_BASE_PATH"
@@ -233,8 +367,17 @@ else
 fi
 echo "  Database        : created on first visit by the web setup wizard"
 echo "                    (admin account + APP_KEY are set up there)"
-echo "  Next steps      : upload the zip, make sure \"database\" stays writable, open the site."
-echo "                    (full guide: README-DEPLOY.md in the package)"
+if [[ "$SCP_STATUS" != "skipped" ]]; then
+    echo "  SSH copy        : $SCP_STATUS"
+fi
+if [[ "$DEPLOY_STATUS" != "skipped" ]]; then
+    echo "  SSH deploy      : $DEPLOY_STATUS"
+elif [[ "$SCP_STATUS" != "skipped" ]]; then
+    echo "                    On the server: unzip janathan.zip, make \"database\" writable, open the site."
+else
+    echo "  Next steps      : upload the zip, make sure \"database\" stays writable, open the site."
+    echo "                    (full guide: README-DEPLOY.md in the package)"
+fi
 echo "  Docker          : unzip $ZIP_FILE -d /tmp/janathan && cd /tmp/janathan/janathan && docker-compose up -d --build"
 echo "                    (binds the package as a volume; edit docker-compose.yml"
 echo "                     for APP_BASE_PATH, DB_PATH, Mikrotik timeouts, port)"
