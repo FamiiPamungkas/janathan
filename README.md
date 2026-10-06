@@ -89,15 +89,21 @@ footprint and easy deployment on cheap shared hosting or a home-lab VPS.
 
 ## Deployment (shared hosting)
 
-A Windows batch build is provided:
+Production packages are built with:
 
 ```bat
 build-deploy.bat
 ```
 
-It assembles a production package at `dist\janathan/` (compiled assets,
-production-only Composer deps, no database — the web setup wizard creates it
-on the first browser visit).
+```bash
+./build-deploy.sh
+```
+
+They assemble a package at `dist/janathan/` plus a zip at `dist/janathan.zip`
+(compiled assets, production-only Composer deps, no database — the web setup
+wizard creates it on the first browser visit). When the build finishes it can
+optionally copy the zip to your server over SSH (`scp`) — just answer `y` and
+enter the SSH username, server IP/host, and remote directory.
 
 Upload that folder, point your document root at its `public/` directory, and
 ensure `database/` stays writable. The package also supports sub-folder
@@ -151,7 +157,7 @@ first admin account.
 - The container health-check hits `/` over HTTP; logs are visible with
   `docker-compose logs -f janathan`.
 
-The Windows shared-hosting build (`build-deploy.bat`) is a separate path and is
+The shared-hosting deploy builds (`build-deploy.bat` / `build-deploy.sh`) are a separate path and are
 unaffected by the Docker setup.
 
 ## Configuration

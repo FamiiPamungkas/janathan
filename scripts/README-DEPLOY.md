@@ -16,6 +16,24 @@ already routes all requests to it.
 Upload the **whole package folder** (e.g. as `/home/<user>/janathan`) or just
 its contents — see step 2 for which mode you're deploying.
 
+> **Tip:** both build scripts offer to copy `dist/janathan.zip` to your server
+> over SSH (`scp`) when the build finishes — just answer `y` and enter the SSH
+> username, server IP/host, and remote directory. For non-interactive builds use
+> `--scp` (Linux, with `SSH_USER`/`SSH_HOST`/`SSH_DIR` env vars) or `/scp`
+> (Windows).
+>
+> After a successful copy they can also unpack the zip on the server and restart
+> the Docker containers for you (`unzip -o` + `down` then `up -d`, no rebuild —
+> the image is runtime-only and the new code comes from the bind mount). The
+> server needs `unzip` installed. Two caveats:
+>
+> - `unzip` only overwrites files inside the archive — the live
+>   `database/janathan.sqlite` is **not** shipped in the zip, so existing data
+>   survives. But `config/app.php` **is** shipped and *will* be overwritten —
+>   re-apply any server-side edits (e.g. `APP_BASE_PATH`) afterwards.
+> - If `Dockerfile` / `docker-entrypoint.sh` changed, run
+>   `docker compose up -d --build` manually once on the server.
+
 ## 2. Point the document root at `public/`
 
 - **cPanel:** *Domains* → your domain → change **Document Root** to

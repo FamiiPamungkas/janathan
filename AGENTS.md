@@ -37,8 +37,8 @@ A lightweight Mikrotik (RouterOS) management web app — hotspot user management
 /tests             - PHPUnit tests (phpunit.xml configured)
 /scripts           - copy-phosphor.mjs, README-DEPLOY.md
 database/          - SQLite storage (gitignored)
-build-deploy.bat   - Windows production build script
-build-deploy.sh    - Linux production build script (outputs dist/janathan.zip)
+build-deploy.bat   - Windows deploy script: builds production package (dist\janathan\ + dist\janathan.zip), optional scp upload + remote restart
+build-deploy.sh    - Linux deploy script: builds production package (dist/janathan/ + dist/janathan.zip), optional scp upload + remote restart
 Dockerfile         - multi-stage Docker image (php:8.3-apache)
 docker-compose.yml - single-container compose (DB volume + session tmpfs)
 .dockerignore      - excludes vendored/build artifacts from the image
@@ -121,8 +121,8 @@ config/app.php     - committed app config (source file, no secrets)
 | `php bin/gen-apple-icon.php` | Generate apple-touch-icon.png |
 | `npm run build` | Compile icons + CSS + JS |
 | `npm run dev` | Watch mode for CSS/JS |
-| `build-deploy.bat` | Windows production build (see `scripts/README-DEPLOY.md`) |
-| `build-deploy.sh`  | Linux production build + zip output (see `scripts/README-DEPLOY.md`) |
+| `build-deploy.bat` | Windows build + deploy incl. zip, optional scp upload + remote restart (see `scripts/README-DEPLOY.md`) |
+| `build-deploy.sh`  | Linux build + deploy incl. zip, optional scp upload + remote restart (see `scripts/README-DEPLOY.md`) |
 
 ## Testing
 ```bash
