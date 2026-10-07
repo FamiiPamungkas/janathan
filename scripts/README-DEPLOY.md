@@ -18,7 +18,9 @@ its contents — see step 2 for which mode you're deploying.
 
 > **Tip:** both build scripts offer to copy `dist/janathan.zip` to your server
 > over SSH (`scp`) when the build finishes — just answer `y` and enter the SSH
-> username, server IP/host, and remote directory. For non-interactive builds use
+> username, server IP/host, and remote directory (an absolute path such as
+> `/home/user/docker`, or `~/docker` — both work; the directory is created
+> with `mkdir -p` if needed). For non-interactive builds use
 > `--scp` (Linux, with `SSH_USER`/`SSH_HOST`/`SSH_DIR` env vars) or `/scp`
 > (Windows).
 >

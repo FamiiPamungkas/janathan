@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional remote deploy: after a successful SSH copy, both scripts offer to unpack the zip on the server and restart the Docker containers (`unzip -o`, then `down` + `up -d` without rebuild; `--deploy`/`/deploy` for non-interactive use, `--no-deploy`/`/nodeploy` to skip).
 - Windows deploy script now also produces `dist\janathan.zip` (previously folder-only) so both platforms ship the same artifact.
 
+## [0.11.1] - 2026-10-07
+
+### Fixed
+
+- Fix remote deploy failing with `cd: ~/docker: No such file or directory`: a leading `~/` / `~user/` in the SSH directory is now expanded via `$HOME` with POSIX-safe quoting (spaces and single quotes handled) in both `build-deploy.sh` and `build-deploy.bat`, and the remote directory is auto-created with `mkdir -p` before `scp`.
+
 ## [0.11.0] - 2026-10-06
 
 ### Added
