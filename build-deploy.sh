@@ -68,6 +68,33 @@ check() {
     fi
 }
 
+# Quote a remote path for the server's shell (sh).
+# A leading ~/ must NOT be quoted/escaped as-is: printf '%q' turns it
+# into \~/ and '...' / "..." inhibit tilde expansion, so
+# cd '~/docker' fails with "No such file or directory". Rewrite ~/...
+# to $HOME/... and single-quote only the remainder (POSIX-safe,
+# handles spaces and single quotes).
+remote_quote_dir() {
+    local dir="$1"
+    local rest esc prefix
+    if [[ "$dir" == "~" ]]; then
+        printf '%s' '$HOME'
+    elif [[ "${dir:0:2}" == "~/" ]]; then
+        rest="${dir:2}"
+        esc="${rest//\'/\'\\\'\'}"
+        printf "%s" "\$HOME/'$esc'"
+    elif [[ "${dir:0:1}" == "~" && "$dir" == */* ]]; then
+        # ~user/... - keep the ~user prefix unquoted, quote the rest
+        prefix="${dir%%/*}"
+        rest="${dir#*/}"
+        esc="${rest//\'/\'\\\'\'}"
+        printf "%s" "$prefix/'$esc'"
+    else
+        esc="${dir//\'/\'\\\'\'}"
+        printf "'%s'" "$esc"
+    fi
+}
+
 echo
 echo "==============================================================="
 echo "  Janathan production build"
@@ -282,7 +309,7 @@ else
             read -r -p "Remote directory [$SSH_DIR]: " SCP_DIR || true
             [[ -n "${SCP_DIR:-}" ]] && SSH_DIR="$SCP_DIR"
         else
-            read -r -p "Remote directory (e.g. /home/user): " SSH_DIR || true
+            read -r -p "Remote directory (e.g. /home/user or ~/docker): " SSH_DIR || true
         fi
         if [[ -z "$SSH_USER" || -z "$SSH_HOST" || -z "$SSH_DIR" ]]; then
             echo "  [FAIL] SSH upload needs a username, server IP/host and directory."
@@ -293,9 +320,21 @@ else
 fi
 
 SCP_STATUS="skipped"
+REMOTE_DIR_Q=""
 if [[ -n "$DO_SCP" ]]; then
     if ! command -v scp &>/dev/null; then
         echo "  [FAIL] scp not found. Install an OpenSSH client to use the SSH copy."
+        fail
+    fi
+    if ! command -v ssh &>/dev/null; then
+        echo "  [FAIL] ssh not found. Install an OpenSSH client to use the SSH copy."
+        fail
+    fi
+    # Tilde-safe quoting for the remote shell (see remote_quote_dir).
+    REMOTE_DIR_Q=$(remote_quote_dir "$SSH_DIR")
+    echo "Ensuring remote directory exists on $SSH_HOST..."
+    if ! ssh "$SSH_USER@$SSH_HOST" "mkdir -p $REMOTE_DIR_Q"; then
+        echo "  [FAIL] Could not create remote directory (build itself succeeded)."
         fail
     fi
     echo "Copying $(basename "$ZIP_FILE") to $SSH_USER@$SSH_HOST:$SSH_DIR/ ..."
@@ -343,8 +382,10 @@ if [[ -n "$DO_DEPLOY" ]]; then
         echo "  [FAIL] 'unzip' not found on $SSH_HOST. Install it there first."
         fail
     fi
-    # Shell-escape the remote dir (handles spaces); the remote side is sh.
-    REMOTE_DIR_Q=$(printf '%q' "$SSH_DIR")
+    # Reuse the tilde-safe quoted dir from the scp step (recompute defensively).
+    if [[ -z "$REMOTE_DIR_Q" ]]; then
+        REMOTE_DIR_Q=$(remote_quote_dir "$SSH_DIR")
+    fi
     echo "Unpacking janathan.zip on $SSH_HOST and restarting containers..."
     REMOTE_CMD="cd $REMOTE_DIR_Q && unzip -o janathan.zip && cd janathan && (docker compose down && docker compose up -d || docker-compose down && docker-compose up -d)"
     if ssh "$SSH_USER@$SSH_HOST" "$REMOTE_CMD"; then

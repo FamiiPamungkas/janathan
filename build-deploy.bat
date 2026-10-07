@@ -266,7 +266,7 @@ if defined SSH_DIR (
     set /p "SCP_DIR=Remote directory [%SSH_DIR%]: "
     if defined SCP_DIR set "SSH_DIR=!SCP_DIR!"
 ) else (
-    set /p "SSH_DIR=Remote directory (e.g. /home/user): "
+    set /p "SSH_DIR=Remote directory (e.g. /home/user or ~/docker): "
 )
 if not defined SSH_USER (echo  [FAIL] SSH upload needs a username, server IP/host and directory. & goto :fail)
 if not defined SSH_HOST (echo  [FAIL] SSH upload needs a username, server IP/host and directory. & goto :fail)
@@ -276,6 +276,13 @@ set "DO_SCP=1"
 :scp_run
 where scp >nul 2>&1
 if errorlevel 1 (echo  [FAIL] scp not found. Install the Windows OpenSSH client to use the SSH copy. & goto :fail)
+where ssh >nul 2>&1
+if errorlevel 1 (echo  [FAIL] ssh not found. Install the Windows OpenSSH client to use the SSH copy. & goto :fail)
+rem Build a tilde-safe quoted remote path (~/... -> $HOME/'...').
+call :remote_quote SSH_DIR REMOTE_DIR_Q
+echo Ensuring remote directory exists on %SSH_HOST%...
+ssh "%SSH_USER%@%SSH_HOST%" "mkdir -p !REMOTE_DIR_Q!"
+if errorlevel 1 (echo  [FAIL] Could not create remote directory ^(build itself succeeded^). & goto :fail)
 echo Copying janathan.zip to %SSH_USER%@%SSH_HOST%:%SSH_DIR%/ ...
 scp "%ZIP%" "%SSH_USER%@%SSH_HOST%:%SSH_DIR%/"
 if errorlevel 1 (echo  [FAIL] scp upload failed ^(build itself succeeded^). & goto :fail)
@@ -312,8 +319,9 @@ where ssh >nul 2>&1
 if errorlevel 1 (echo  [FAIL] ssh not found. Install the Windows OpenSSH client to use the remote deploy. & goto :fail)
 ssh "%SSH_USER%@%SSH_HOST%" "command -v unzip >/dev/null 2>&1"
 if errorlevel 1 (echo  [FAIL] 'unzip' not found on %SSH_HOST%. Install it there first. & goto :fail)
+if not defined REMOTE_DIR_Q call :remote_quote SSH_DIR REMOTE_DIR_Q
 echo Unpacking janathan.zip on %SSH_HOST% and restarting containers...
-ssh "%SSH_USER%@%SSH_HOST%" "cd '%SSH_DIR%' && unzip -o janathan.zip && cd janathan && (docker compose down && docker compose up -d || docker-compose down && docker-compose up -d)"
+ssh "%SSH_USER%@%SSH_HOST%" "cd !REMOTE_DIR_Q! && unzip -o janathan.zip && cd janathan && (docker compose down && docker compose up -d || docker-compose down && docker-compose up -d)"
 if errorlevel 1 (echo  [FAIL] Remote deploy failed ^(build + scp succeeded^). & goto :fail)
 set "DEPLOY_STATUS=unpacked + containers restarted"
 goto :deploy_summary
@@ -358,4 +366,38 @@ exit /b 1
 if exist "%~1" exit /b 0
 echo  [FAIL] Missing: %~1
 set "MISSING=1"
+exit /b 0
+
+:remote_quote
+rem Builds a tilde-safe POSIX-quoted path for the server's sh.
+rem %1 = input var name (e.g. SSH_DIR), %2 = output var name.
+rem ~/... -> $HOME/'...', ~ -> $HOME, ~user/... -> ~user/'...', else '...'.
+rem Plain '...'/ "..." would inhibit tilde expansion (cd '~/docker' fails),
+rem so the leading ~/^~user prefix must stay unquoted.
+set "RQ_IN=!%~1!"
+if "!RQ_IN!"=="~" (
+    set "%~2=$HOME"
+    exit /b 0
+)
+if "!RQ_IN:~0,2!"=="~/" (
+    set "RQ_REST=!RQ_IN:~2!"
+    set "RQ_REST=!RQ_REST:'='\''!"
+    set "%~2=$HOME/'!RQ_REST!'"
+    exit /b 0
+)
+if "!RQ_IN:~0,1!"=="~" (
+    for /f "tokens=1* delims=/" %%A in ("!RQ_IN!") do (
+        set "RQ_PREFIX=%%A"
+        set "RQ_REST=%%B"
+    )
+    if defined RQ_REST (
+        set "RQ_REST=!RQ_REST:'='\''!"
+        set "%~2=!RQ_PREFIX!/'!RQ_REST!'"
+    ) else (
+        set "%~2=!RQ_IN!"
+    )
+    exit /b 0
+)
+set "RQ_ESC=!RQ_IN:'='\''!"
+set "%~2='!RQ_ESC!'"
 exit /b 0
