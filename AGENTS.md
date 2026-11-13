@@ -111,6 +111,7 @@ config/app.php     - committed app config (source file, no secrets)
   - **Outline / tinted buttons:** keep the border + background tint ramp, e.g. `hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20`. Neutral zinc outlines press to `active:bg-zinc-100 dark:active:bg-zinc-700/50`.
   - **Ghost controls** (borderless icon buttons, e.g. modal close): `hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70`.
   - When introducing a new color or component, derive its `active:` state from the same ramp before shipping.
+- **Slow actions must show a busy state.** Any control that submits a form gets the shared busy treatment from `public/js/index.js` automatically: on submit the button disables (prevents double-submit), dims (`btn-busy`), and its Phosphor glyph swaps to a spinning `ph-circle-notch` until the page reloads. Normal `<button type="submit">` buttons need no markup. Buttons that submit programmatically use the Alpine directive instead of `@click`: `x-busy="$refs.someForm.submit()"` (the expression is evaluated first, so guards like `if (newExpiry) ...` prevent a false spinner). Never hand-roll spinners or add per-button busy state.
 - After changing any markup, rebuild assets (`npm run build`) and verify in both light and dark mode.
 
 ## Localization
