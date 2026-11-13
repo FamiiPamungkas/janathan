@@ -5,13 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.12.0] - 2026-11-13
 
 ### Added
 
 - Optional SSH copy: both deploy scripts offer to copy `dist/janathan.zip` to a server via `scp` when the build finishes (prompts for SSH username, server IP/host, and remote directory; `--scp`/`/scp` for non-interactive use, `--no-scp`/`/noscp` to skip).
 - Optional remote deploy: after a successful SSH copy, both scripts offer to unpack the zip on the server and restart the Docker containers (`unzip -o`, then `down` + `up -d` without rebuild; `--deploy`/`/deploy` for non-interactive use, `--no-deploy`/`/nodeploy` to skip).
 - Windows deploy script now also produces `dist\janathan.zip` (previously folder-only) so both platforms ship the same artifact.
+- Spinner busy state on form submissions: submit buttons disable, dim, and show a spinning icon until the page reloads, preventing double submits (`x-busy` directive for programmatic submits).
+
+### Fixed
+
+- Missing pressed (`active:`) states on interactive controls: buttons that only had `hover:` feedback looked inert on touch devices; all buttons, links, and menu items now darken on press in light and dark mode.
 
 ## [0.11.1] - 2026-10-07
 
