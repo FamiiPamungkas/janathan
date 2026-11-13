@@ -106,6 +106,11 @@ config/app.php     - committed app config (source file, no secrets)
 - Dark mode: class-based via the `dark` variant; Pinemix Dark Mode Toggle persists to `localStorage` key `dark-mode` (`'on' | 'off' | 'system'`). `layout.twig` applies the preference before paint.
 - Icons: **Phosphor Icons** webfont. Use `<i class="ph ph-<name>" aria-hidden="true">` — icons inherit `color` via `text-*` classes. Size via font-size classes (`text-xs`/`text-base`/`text-xl`/`text-2xl`), not `size-*`. When adapting Pinemix components with Heroicons/Lucide SVGs, replace with the equivalent Phosphor glyph.
 - **Keep control sizing consistent.** Standalone icon-only buttons: fixed `h-8 w-8` + `size-5` icon + `rounded-lg` (align with the 32px app logo). Text buttons: `px-3.5 py-2` (primary/secondary), `px-3 py-1.5` (inline actions).
+- **UI/UX consistency and best practice are mandatory for every interactive control** (buttons, links, tappable rows, menu items): always provide the full set of visual states — `hover:`, `active:` (pressed state), and `disabled:` styles where applicable. `active:` is critical on touch devices, where `hover:` never applies; a control whose only visual state change is `hover:` looks inert on mobile. Follow the established state ramps:
+  - **Filled buttons:** one step darker per state, e.g. `hover:bg-teal-600 active:bg-teal-700` (same pattern for red/amber/green/blue: `-700` on hover, `-800` on active).
+  - **Outline / tinted buttons:** keep the border + background tint ramp, e.g. `hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20`. Neutral zinc outlines press to `active:bg-zinc-100 dark:active:bg-zinc-700/50`.
+  - **Ghost controls** (borderless icon buttons, e.g. modal close): `hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70`.
+  - When introducing a new color or component, derive its `active:` state from the same ramp before shipping.
 - After changing any markup, rebuild assets (`npm run build`) and verify in both light and dark mode.
 
 ## Localization
