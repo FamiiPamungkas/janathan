@@ -56,6 +56,24 @@
     }
 }
 
+/* Busy state: button running a slow action (handled in public/js/index.js) */
+@layer components {
+    .btn-busy {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .btn-busy i.ph {
+        animation: btn-spin 0.8s linear infinite;
+    }
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Alpine x-cloak style (https://alpinejs.dev/directives/cloak) */
 @layer base {
     [x-cloak] {

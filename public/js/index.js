@@ -169,6 +169,54 @@ window.createTrafficChart = function (element, options) {
     };
 };
 
+// Busy state: when a slow action (RouterOS calls) runs, disable the button,
+// dim it, and swap its Phosphor glyph for a spinning circle-notch until the
+// page reloads. Normal <form> submits are handled globally via the submit
+// listener below; buttons that submit programmatically use the x-busy
+// Alpine directive (e.g. x-busy="$refs.resetManyForm.submit()").
+const setButtonBusy = (button) => {
+    if (!button || button.dataset.busy) {
+        return;
+    }
+    button.dataset.busy = "1";
+    button.disabled = true;
+    button.classList.add("btn-busy");
+    const icon = button.querySelector("i.ph");
+    if (icon) {
+        for (const cls of [...icon.classList]) {
+            if (cls !== "ph" && cls.startsWith("ph-")) {
+                icon.classList.remove(cls);
+            }
+        }
+        icon.classList.add("ph-circle-notch");
+    } else {
+        const spinner = document.createElement("i");
+        spinner.className = "ph ph-circle-notch";
+        spinner.setAttribute("aria-hidden", "true");
+        button.prepend(spinner);
+    }
+};
+
+document.addEventListener("submit", (event) => {
+    const form = event.target;
+    setButtonBusy(event.submitter ?? form.querySelector('button[type="submit"]'));
+});
+
+Alpine.directive("busy", (el, { expression }, { evaluate }) => {
+    el.addEventListener("click", () => {
+        if (el.dataset.busy) {
+            return;
+        }
+        try {
+            evaluate(expression);
+        } catch (error) {
+            console.error(error);
+            return;
+        }
+        setButtonBusy(el);
+    });
+});
+
 Alpine.start();
 
 window.exportBlob = function (content, filename, mime) {

@@ -580,7 +580,7 @@
                 class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
-            <button type="button" @click="$refs.resetManyForm.submit()"
+            <button type="button" x-busy="$refs.resetManyForm.submit()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 text-sm font-semibold text-white transition hover:bg-amber-700 focus:ring-3 focus:ring-amber-500/30 active:bg-amber-800">
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
@@ -613,7 +613,7 @@
                 class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
-            <button type="button" @click="if (newExpiry) $refs.changeExpiryManyForm.submit()"
+            <button type="button" x-busy="if (newExpiry) $refs.changeExpiryManyForm.submit()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:ring-3 focus:ring-blue-500/30 active:bg-blue-800">
                 <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.change_expiry') }}
@@ -673,7 +673,7 @@
                     class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                     {{ trans('hotspot.cancel') }}
                 </button>
-                <button type="button" :disabled="(uptimeMode === 'keep' && dataMode === 'keep') || (uptimeMode === 'set' && !changeUptime.trim()) || (dataMode === 'set' && changeDataLimit === '')" @click="$refs.changeLimitsManyForm.submit()"
+                <button type="button" :disabled="(uptimeMode === 'keep' && dataMode === 'keep') || (uptimeMode === 'set' && !changeUptime.trim()) || (dataMode === 'set' && changeDataLimit === '')" x-busy="$refs.changeLimitsManyForm.submit()"
                     class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3.5 text-sm font-semibold text-white transition hover:bg-green-700 focus:ring-3 focus:ring-green-500/30 active:bg-green-800">
                     <i class="ph ph-sliders-horizontal text-base" aria-hidden="true"></i>
                     {{ trans('hotspot.bulk_change_limits.title') }}
@@ -714,7 +714,7 @@
                 class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
-            <button type="button" @click="$refs.deleteManyForm.submit()"
+            <button type="button" x-busy="$refs.deleteManyForm.submit()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3.5 text-sm font-semibold text-white transition hover:bg-red-700 focus:ring-3 focus:ring-red-500/30 active:bg-red-800">
                 <i class="ph ph-trash text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.delete_users_btn') }}
@@ -769,7 +769,7 @@
                 class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
-            <button type="button" @click="$refs.resetUserForm.submit()"
+            <button type="button" x-busy="$refs.resetUserForm.submit()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 text-sm font-semibold text-white transition hover:bg-amber-700 focus:ring-3 focus:ring-amber-500/30 active:bg-amber-800">
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
@@ -797,7 +797,7 @@
                 class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
-            <button type="button" @click="$refs.deleteUserForm.submit()"
+            <button type="button" x-busy="$refs.deleteUserForm.submit()"
                 class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3.5 text-sm font-semibold text-white transition hover:bg-red-700 focus:ring-3 focus:ring-red-500/30 active:bg-red-800">
                 <i class="ph ph-trash text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.delete_users_btn') }}
