@@ -260,7 +260,7 @@
         <div>
             <div class="flex items-center justify-end grow gap-3">
                 <span class="text-xs text-zinc-500 dark:text-zinc-400" x-show="lastUpdated" x-text="'{{ trans('dashboard.updated') }} ' + timeLabel()"></span>
-                <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <button type="button" @click="togglePolling" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 <template x-if="polling">
                     <i class="ph ph-pause text-base" aria-hidden="true"></i>
                 </template>

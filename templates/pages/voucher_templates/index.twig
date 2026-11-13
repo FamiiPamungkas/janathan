@@ -93,16 +93,16 @@
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-2">
-                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                     <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                 </button>
                 {% if not template.is_default %}
-                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                     <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                 </a>
                 <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('{{ trans('voucher_templates.remove_confirm', {name: template.name})|e('js') }}')) $event.preventDefault()">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                         <i class="ph ph-trash text-xl" aria-hidden="true"></i>
                     </button>
                 </form>
@@ -117,7 +117,7 @@
             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 {{ trans('voucher_templates.empty_text') }}
             </p>
-            <a href="{{ url_for('voucher_templates.create') }}" class="mt-3 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600">
+            <a href="{{ url_for('voucher_templates.create') }}" class="mt-3 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-600 active:bg-teal-700">
                 {{ trans('voucher_templates.empty_create') }}
             </a>
         </div>
@@ -171,16 +171,16 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-end gap-2">
-                                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <button type="button" @click="open({{ template.id }}, '{{ template.name|e('js') }}', '{{ url_for('voucher_templates.preview_render', {id: template.id})|e('js') }}')" title="{{ trans('voucher_templates.preview') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                     <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                                 </button>
                                 {% if not template.is_default %}
-                                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                <a href="{{ url_for('voucher_templates.edit', {id: template.id}) }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                     <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                                 </a>
                                 <form method="post" action="{{ url_for('voucher_templates.delete', {id: template.id}) }}" x-data="{}" @submit="if (!window.confirm('{{ trans('voucher_templates.remove_confirm', {name: template.name})|e('js') }}')) $event.preventDefault()">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                                    <button type="submit" title="{{ trans('hotspot.remove') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                                         <i class="ph ph-trash text-xl" aria-hidden="true"></i>
                                     </button>
                                 </form>
@@ -218,7 +218,7 @@
                     <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('voucher_templates.preview') }}</p>
                     <p class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-text="templateName"></p>
                 </div>
-                <button type="button" @click="shown = false" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                <button type="button" @click="shown = false" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                     <i class="ph ph-x text-xl" aria-hidden="true"></i>
                 </button>
             </div>
@@ -239,7 +239,7 @@
                         <div class="flex flex-col gap-2">
                             <template x-for="p in profiles" :key="p.name">
                                 <button type="button" @click="printProfile(p)"
-                                    class="flex w-full items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-start transition hover:border-teal-400 hover:bg-teal-50/50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/10">
+                                    class="flex w-full items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-start transition hover:border-teal-400 hover:bg-teal-50/50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                                     <span class="inline-block h-4 w-4 flex-none rounded-full border border-zinc-300 dark:border-zinc-600" :style="'background-color:' + (p.color || '#14b8a6')"></span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate text-sm font-medium text-zinc-800 dark:text-zinc-200" x-text="p.name"></span>

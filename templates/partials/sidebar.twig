@@ -29,7 +29,7 @@
             </div>
             <span class="text-lg font-bold tracking-tight">Janathan</span>
         </a>
-        <button type="button" @click="sidebarOpen = false" aria-label="Close navigation" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100">
+        <button type="button" @click="sidebarOpen = false" aria-label="Close navigation" class="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50 dark:hover:text-zinc-100">
             <i class="ph ph-x text-xl" aria-hidden="true"></i>
         </button>
     </div>
@@ -41,14 +41,14 @@
 
             {% if active_router %}
             <!-- Dashboard -->
-            <a href="{{ url_for('dashboard') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if dashboard_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+            <a href="{{ url_for('dashboard') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if dashboard_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                 <i class="ph ph-squares-four flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Dashboard</span>
             </a>
 
             <!-- Hotspot -->
             <div x-data="{ open: {{ hotspot_active ? 'true' : 'false' }} }">
-                <button type="button" @click="open = !open" aria-expanded="open" class="group flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium {% if hotspot_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                <button type="button" @click="open = !open" aria-expanded="open" class="group flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium {% if hotspot_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                     <span class="flex flex-1 items-center gap-3">
                         <i class="ph ph-broadcast flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Hotspot</span>
@@ -59,43 +59,43 @@
                 <div x-show="open" x-cloak class="relative mt-1 flex flex-col gap-1">
                     <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-5 w-px bg-zinc-200 dark:bg-zinc-700"></span>
 
-                    <a href="{{ url_for('hotspot.users') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if users_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.users') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if users_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if users_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-users-three flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">User List</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.profiles') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if profiles_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.profiles') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if profiles_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if profiles_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-gear flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Profile List</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.users.generate') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if generate_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.users.generate') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if generate_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if generate_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-magic-wand flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Generate Users</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.active') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if active_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.active') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if active_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if active_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-wifi-high flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Active Users</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.hosts') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if hosts_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.hosts') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if hosts_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if hosts_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-desktop flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Hosts</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.cookies') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if cookies_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.cookies') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if cookies_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if cookies_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-cookie flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">Cookies</span>
                     </a>
 
-                    <a href="{{ url_for('hotspot.ip_bindings') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if ip_bindings_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+                    <a href="{{ url_for('hotspot.ip_bindings') }}" class="group relative flex items-center gap-3 rounded-xl py-2 ps-9 pe-3 text-sm {% if ip_bindings_active %}bg-zinc-100 text-zinc-900 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                         <span aria-hidden="true" class="absolute left-5 size-1.5 -translate-x-1/2 rounded-full {% if ip_bindings_active %}bg-teal-500{% else %}bg-zinc-300 group-hover:bg-zinc-400 dark:bg-zinc-600 dark:group-hover:bg-zinc-500{% endif %}"></span>
                         <i class="ph ph-link-simple flex-none text-base opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                         <span class="truncate">IP Bindings</span>
@@ -113,19 +113,19 @@
             {% endif %}
 
             <!-- Voucher Templates -->
-            <a href="{{ url_for('voucher_templates.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if voucher_templates_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+            <a href="{{ url_for('voucher_templates.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if voucher_templates_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                 <i class="ph ph-ticket flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Voucher Templates</span>
             </a>
 
             <!-- Routers -->
-            <a href="{{ url_for('routers.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if routers_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+            <a href="{{ url_for('routers.index') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if routers_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                 <i class="ph ph-database flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">Routers</span>
             </a>
 
             <!-- Admin Setting -->
-            <a href="{{ url_for('admin.edit') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if admin_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 dark:hover:text-white{% endif %}">
+            <a href="{{ url_for('admin.edit') }}" class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium {% if admin_active %}bg-zinc-100 text-zinc-950 dark:bg-zinc-700/60 dark:text-white{% else %}text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-700/60 active:bg-zinc-100 dark:active:bg-zinc-600/60 dark:hover:text-white{% endif %}">
                 <i class="ph ph-user-gear flex-none text-xl opacity-40 group-hover:opacity-80" aria-hidden="true"></i>
                 <span class="truncate">{{ trans('menu.admin') }}</span>
             </a>

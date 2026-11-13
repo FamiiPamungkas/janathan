@@ -23,7 +23,7 @@
     <div class="flex w-fit items-center gap-2">
         {% if users is not empty %}
         <button type="button" @click="exportModal = true"
-            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
             <i class="ph ph-export text-base" aria-hidden="true"></i>
             {{ trans('hotspot.users.export') }}
         </button>
@@ -41,7 +41,7 @@
             <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
                 <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.export_title') }}</h2>
                 <button type="button" @click="exportModal = false"
-                    class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                     <i class="ph ph-x text-xl" aria-hidden="true"></i>
                 </button>
             </div>
@@ -51,7 +51,7 @@
             <div class="flex flex-col gap-1 p-3">
                 <a href="{{ url_for('hotspot.users.export') }}?q={{ filters.q|url_encode }}&profile={{ filters.profile|url_encode }}&comment={{ filters.comment|url_encode }}&status={{ filters.status|url_encode }}&format=csv&preview=1"
                     target="_blank" @click="exportModal = false"
-                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                     <span class="inline-flex items-center gap-2">
                         <i class="ph ph-table text-base text-zinc-400" aria-hidden="true"></i>
                         {{ trans('hotspot.users.csv') }}
@@ -60,7 +60,7 @@
                 </a>
                 <a href="{{ url_for('hotspot.users.export') }}?q={{ filters.q|url_encode }}&profile={{ filters.profile|url_encode }}&comment={{ filters.comment|url_encode }}&status={{ filters.status|url_encode }}&format=rsc&preview=1"
                     target="_blank" @click="exportModal = false"
-                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                     <span class="inline-flex items-center gap-2">
                         <i class="ph ph-file-code text-base text-zinc-400" aria-hidden="true"></i>
                         {{ trans('hotspot.users.script') }}
@@ -142,7 +142,7 @@
                 {{ trans('hotspot.users.filter_btn') }}
             </button>
             <a href="{{ url_for('hotspot.users') }}"
-                class="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 sm:flex-none">
+                class="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50 sm:flex-none">
                 {{ trans('hotspot.users.reset') }}
             </a>
         </div>
@@ -395,22 +395,22 @@
         </dl>
         <div class="mt-4 flex items-center gap-2">
             <button type="button" title="{{ trans('hotspot.detail') }}" @click="openDetail('{{ user.id|e('js') }}')"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 <i class="ph ph-eye text-xl" aria-hidden="true"></i>
             </button>
-            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
             </a>
             <button type="button" title="{{ trans('hotspot.print') }}" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 <i class="ph ph-printer text-xl" aria-hidden="true"></i>
             </button>
             <button type="button" title="{{ trans('hotspot.users.reset_counters') }}" @click="resetUserId = '{{ user.id|e('js') }}'; resetUserName = '{{ user.name|e('js') }}'; resetUserModal = true"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 <i class="ph ph-arrow-counter-clockwise text-xl" aria-hidden="true"></i>
             </button>
             <button type="button" title="{{ trans('hotspot.remove') }}" @click="deleteUserId = '{{ user.id|e('js') }}'; deleteUserName = '{{ user.name|e('js') }}'; deleteUserModal = true"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                 <i class="ph ph-trash text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -470,22 +470,22 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
                             <button type="button" title="{{ trans('hotspot.detail') }}" @click="openDetail('{{ user.id|e('js') }}')"
-                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                 <i class="ph ph-eye text-xl" aria-hidden="true"></i>
                             </button>
-                            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                            <a href="{{ url_for('hotspot.users.edit', {id: user.id}) }}{{ filterQuery ? '?' ~ filterQuery : '' }}" title="{{ trans('hotspot.edit') }}" class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                 <i class="ph ph-pencil-simple text-xl" aria-hidden="true"></i>
                             </a>
                             <button type="button" title="{{ trans('hotspot.print') }}" @click="printUserId = '{{ user.id }}'; printUserName = '{{ user.name }}'; printModal = true"
-                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                 <i class="ph ph-printer text-xl" aria-hidden="true"></i>
                             </button>
                             <button type="button" title="{{ trans('hotspot.users.reset_counters') }}" @click="resetUserId = '{{ user.id|e('js') }}'; resetUserName = '{{ user.name|e('js') }}'; resetUserModal = true"
-                                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                                     <i class="ph ph-arrow-counter-clockwise text-xl" aria-hidden="true"></i>
                                 </button>
                             <button type="button" title="{{ trans('hotspot.remove') }}" @click="deleteUserId = '{{ user.id|e('js') }}'; deleteUserName = '{{ user.name|e('js') }}'; deleteUserModal = true"
-                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                                 <i class="ph ph-trash text-xl" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -512,22 +512,22 @@
                 {{ trans('hotspot.users.print_vouchers') }}
             </button>
             <button type="button" @click="resetManyModal = true"
-                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3.5 text-sm font-semibold text-amber-700 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-500/40 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-500/10">
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3.5 text-sm font-semibold text-amber-700 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-500/40 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-500/10 active:bg-amber-100 dark:active:bg-amber-500/20">
                 <i class="ph ph-arrow-counter-clockwise text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.reset_counters') }}
             </button>
             <button type="button" @click="openChangeLimitsModal()"
-                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-400 bg-white px-3.5 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50 dark:border-green-400 dark:bg-zinc-800 dark:text-green-400 dark:hover:bg-green-500/10">
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-400 bg-white px-3.5 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50 dark:border-green-400 dark:bg-zinc-800 dark:text-green-400 dark:hover:bg-green-500/10 active:bg-green-100 dark:active:bg-green-500/20">
                 <i class="ph ph-sliders-horizontal text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.bulk_change_limits.title') }}
             </button>
             <button type="button" @click="openExpiryModal()"
-                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3.5 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-50 dark:border-blue-500/40 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-500/10">
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3.5 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-50 dark:border-blue-500/40 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-500/10 active:bg-blue-100 dark:active:bg-blue-500/20">
                 <i class="ph ph-clock-countdown text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.change_expiry') }}
             </button>
             <button type="button" @click="deleteManyModal = true"
-                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10">
+                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                 <i class="ph ph-trash text-base" aria-hidden="true"></i>
                 {{ trans('hotspot.users.delete_selected') }}
             </button>
@@ -542,7 +542,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.print_by_comment_title') }}</h2>
             <button type="button" @click="printManyModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -552,7 +552,7 @@
         <div class="flex flex-col gap-1 p-3">
             <template x-for="t in {{ voucherTemplates|json_encode }}" :key="t.id">
                 <button type="button" @click="const p = new URLSearchParams(); p.set('template', String(t.id)); selected.forEach(id => p.append('ids[]', id)); window.open('{{ url_for('hotspot.users.printMany') }}' + '?' + p.toString(), '_blank'); printManyModal = false"
-                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                     <span x-text="t.name + (t.is_default ? ' (default)' : '')"></span>
                     <i class="ph ph-printer text-base text-zinc-400" aria-hidden="true"></i>
                 </button>
@@ -568,7 +568,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.reset_counters_title') }}</h2>
             <button type="button" @click="resetManyModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -577,7 +577,7 @@
         </p>
         <div class="mt-3 flex items-center justify-end gap-2 p-3 pt-1">
             <button type="button" @click="resetManyModal = false"
-                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
             <button type="button" @click="$refs.resetManyForm.submit()"
@@ -596,7 +596,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.change_expiry_title') }}</h2>
             <button type="button" @click="changeExpiryModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -610,7 +610,7 @@
         </div>
         <div class="flex items-center justify-end gap-2 p-3 pt-0">
             <button type="button" @click="changeExpiryModal = false"
-                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
             <button type="button" @click="if (newExpiry) $refs.changeExpiryManyForm.submit()"
@@ -629,7 +629,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 id="change-limits-title" class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.bulk_change_limits.title') }}</h2>
             <button type="button" @click="changeLimitsModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -658,7 +658,7 @@
                     aria-describedby="change_data_limit_help">
                 <label for="change_data_limit_unit" class="sr-only">{{ trans('hotspot.user_form.data_limit_unit') }}</label>
                 <select id="change_data_limit_unit" x-model="changeDataLimitUnit" aria-describedby="change_data_limit_help"
-                    class="rounded-r-lg bg-zinc-100 px-2 py-2 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    class="rounded-r-lg bg-zinc-100 px-2 py-2 text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                     <option value="MB">MB</option>
                     <option value="GB">GB</option>
                 </select>
@@ -670,7 +670,7 @@
 
             <div class="mt-4 flex items-center justify-end gap-2 p-3">
                 <button type="button" @click="changeLimitsModal = false"
-                    class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                    class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                     {{ trans('hotspot.cancel') }}
                 </button>
                 <button type="button" :disabled="(uptimeMode === 'keep' && dataMode === 'keep') || (uptimeMode === 'set' && !changeUptime.trim()) || (dataMode === 'set' && changeDataLimit === '')" @click="$refs.changeLimitsManyForm.submit()"
@@ -690,7 +690,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.delete_selected_title') }}</h2>
             <button type="button" @click="deleteManyModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -701,7 +701,7 @@
             {{ trans('hotspot.users.delete_connected_help', {count: '<span class="font-medium text-zinc-700 dark:text-zinc-300" x-text="connectedSelected"></span>'})|raw }}
         </p>
         <div class="p-3 pt-1">
-            <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-700 transition hover:border-red-300 hover:bg-red-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-red-500/40 dark:hover:bg-red-500/10">
+            <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-700 transition hover:border-red-300 hover:bg-red-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-red-500/40 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/20">
                 <input type="checkbox" x-model="includeActive" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500 dark:border-zinc-600 dark:bg-zinc-800">
                 <span>
                     <span class="font-medium">{{ trans('hotspot.users.delete_include_active_label') }}</span>
@@ -711,7 +711,7 @@
         </div>
         <div class="flex items-center justify-end gap-2 p-3 pt-0">
             <button type="button" @click="deleteManyModal = false"
-                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
             <button type="button" @click="$refs.deleteManyForm.submit()"
@@ -732,7 +732,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.print_title') }}</h2>
             <button type="button" @click="printModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -743,7 +743,7 @@
             <template x-for="t in {{ voucherTemplates|json_encode }}" :key="t.id">
                 <a :href="`{{ url_for('hotspot.users.print', {id: '__ID__'}) }}?template=${t.id}`.replace('__ID__', printUserId)"
                     target="_blank" @click="printModal = false"
-                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10">
+                    class="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/10 active:bg-teal-100 dark:active:bg-teal-500/20">
                     <span x-text="t.name + (t.is_default ? ' (default)' : '')"></span>
                     <i class="ph ph-printer text-base text-zinc-400" aria-hidden="true"></i>
                 </a>
@@ -759,14 +759,14 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.reset_counters_title') }}</h2>
             <button type="button" @click="resetUserModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
         <p class="px-4 pt-3 pb-1 text-sm text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.reset_counters_confirm') }}</p>
         <div class="mt-3 flex items-center justify-end gap-2 p-3 pt-1">
             <button type="button" @click="resetUserModal = false"
-                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
             <button type="button" @click="$refs.resetUserForm.submit()"
@@ -785,7 +785,7 @@
         <div class="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-700/50">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.remove') }}</h2>
             <button type="button" @click="deleteUserModal = false"
-                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700" title="{{ trans('hotspot.close') }}">
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 active:bg-zinc-200 dark:active:bg-zinc-600/70" title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-xl" aria-hidden="true"></i>
             </button>
         </div>
@@ -794,7 +794,7 @@
         </p>
         <div class="mt-3 flex items-center justify-end gap-2 p-3 pt-1">
             <button type="button" @click="deleteUserModal = false"
-                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600">
+                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50">
                 {{ trans('hotspot.cancel') }}
             </button>
             <button type="button" @click="$refs.deleteUserForm.submit()"
@@ -834,7 +834,7 @@
         <div class="flex items-center justify-between bg-zinc-50 px-5 py-4 dark:bg-zinc-700/20">
             <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-50">{{ trans('hotspot.users.detail_title') }}</h2>
             <button type="button" @click="detailModal = false"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-transparent dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/50 dark:active:border-zinc-700"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 hover:border-zinc-300 hover:text-zinc-900 hover:shadow-xs focus:ring-zinc-300/25 active:border-zinc-200 active:shadow-none dark:border-zinc-700 dark:bg-transparent dark:text-zinc-300 dark:hover:border-zinc-600 active:bg-zinc-100 dark:active:bg-zinc-700/50 dark:hover:text-zinc-200 dark:focus:ring-zinc-600/50 dark:active:border-zinc-700"
                 title="{{ trans('hotspot.close') }}">
                 <i class="ph ph-x text-base" aria-hidden="true"></i>
             </button>
