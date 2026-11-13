@@ -74,18 +74,19 @@
 </div>
 
 <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-    <form method="get" action="{{ url_for('hotspot.users') }}" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+    <form method="get" action="{{ url_for('hotspot.users') }}" x-data x-ref="filterForm" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
         <div class="sm:col-span-2 lg:col-span-3">
             <label for="filter-q" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.filter_search') }}</label>
             <div class="relative">
                 <i class="ph ph-magnifying-glass pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-base text-zinc-400" aria-hidden="true"></i>
                 <input type="search" id="filter-q" name="q" value="{{ filters.q|default('') }}" placeholder="{{ trans('hotspot.users.filter_search_ph') }}"
+                    @input.debounce.500ms="$refs.filterForm.requestSubmit()"
                     class="block w-full rounded-lg border border-zinc-300 bg-white py-2 pe-3 ps-9 text-sm text-zinc-900 placeholder-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
             </div>
         </div>
         <div class="lg:col-span-2">
             <label for="filter-profile" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.filter_profile') }}</label>
-            <select id="filter-profile" name="profile"
+            <select id="filter-profile" name="profile" @change="$refs.filterForm.requestSubmit()"
                 class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 <option value="" {% if profileFilter == '' %}selected{% endif %}>{{ trans('hotspot.users.all_profiles') }}</option>
                 {% for p in profiles %}
@@ -95,7 +96,7 @@
         </div>
         <div class="lg:col-span-3">
             <label for="filter-comment" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.filter_comment') }}</label>
-            <select id="filter-comment" name="comment"
+            <select id="filter-comment" name="comment" @change="$refs.filterForm.requestSubmit()"
                 class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 <option value="" {% if filters.comment|default('') == '' %}selected{% endif %}>{{ trans('hotspot.users.all_comments') }}</option>
                 {% for c in comments %}
@@ -105,7 +106,7 @@
         </div>
         <div class="lg:col-span-2">
             <label for="filter-status" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.filter_status') }}</label>
-            <select id="filter-status" name="status"
+            <select id="filter-status" name="status" @change="$refs.filterForm.requestSubmit()"
                 class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 <option value="all" {% if filters.status|default('all') == 'all' %}selected{% endif %}>{{ trans('hotspot.users.status_all') }}</option>
                 <option value="enabled" {% if filters.status|default('all') == 'enabled' %}selected{% endif %}>{{ trans('hotspot.status_enabled') }}</option>
@@ -114,7 +115,7 @@
         </div>
         <div class="lg:col-span-2">
             <label for="filter-sort" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.sort_label') }}</label>
-            <select id="filter-sort" name="sort"
+            <select id="filter-sort" name="sort" @change="$refs.filterForm.requestSubmit()"
                 class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 <option value="name" {% if filters.sort|default('name') == 'name' %}selected{% endif %}>{{ trans('hotspot.users.th_name') }}</option>
                 <option value="profile" {% if filters.sort|default('name') == 'profile' %}selected{% endif %}>{{ trans('hotspot.users.th_profile') }}</option>
@@ -128,7 +129,7 @@
         </div>
         <div class="lg:col-span-2">
             <label for="filter-direction" class="mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ trans('hotspot.users.sort_direction') }}</label>
-            <select id="filter-direction" name="direction"
+            <select id="filter-direction" name="direction" @change="$refs.filterForm.requestSubmit()"
                 class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100">
                 <option value="asc" {% if filters.direction|default('asc') == 'asc' %}selected{% endif %}>{{ trans('hotspot.users.sort_ascending') }}</option>
                 <option value="desc" {% if filters.direction|default('asc') == 'desc' %}selected{% endif %}>{{ trans('hotspot.users.sort_descending') }}</option>
